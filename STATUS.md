@@ -1,5 +1,9 @@
 # EarthLab Status
 
+## Local opening performance
+
+The landing opens before the globe loads. AquaGrid prepares its 3D buildings in a worker and makes storm controls available while the map loads. In the local Downtown benchmark the median time to the first building draw fell from 3.97 s to 1.62 s. The [performance handoff](docs/handoffs/local-opening-performance.md) records the hardware, startup timings, regional service behavior and verification commands.
+
 ## Local 3D flood simulator
 
 Run `pnpm dev` after the [local setup](README.md#run-locally). Open the [Houston area chooser](http://127.0.0.1:5173/#/simulate). All five links open AquaGrid with the selected region's streets and extruded buildings. The area chooser is the current entry point. The resource-allocation engine remains available through the EarthLab API and `pnpm demo:allocation`.

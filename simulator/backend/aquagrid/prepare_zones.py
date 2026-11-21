@@ -5,6 +5,7 @@ import subprocess
 import sys
 
 from .config import REGIONS
+from .geometry import prepare_geometry
 
 
 BUILD_OUTPUTS = (
@@ -23,6 +24,9 @@ def prepare(region_id):
     if not built:
         needs_model.touch()
         subprocess.run([sys.executable, "-m", "aquagrid.pipeline.build", "--region", region_id], check=True)
+    else:
+        for name in ("roads.json", "buildings.json"):
+            prepare_geometry(out / "static" / name)
     if needs_model.exists() or not all((out / file).is_file() for file in MODEL_OUTPUTS):
         needs_model.touch()
         subprocess.run([sys.executable, "-m", "aquagrid.model.train", "--region", region_id], check=True)

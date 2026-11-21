@@ -158,11 +158,11 @@ for (const id of zones) {
       assert.equal(new URL(await iframe.getAttribute('src')).searchParams.get('zone'), id)
       assert.equal(await frame.locator('.sim-zone-note').count(), 0, 'Fallback notice appeared')
       await until(() => responses.length > 0, 'Initial model response missing')
-      assert.deepEqual([...regionAssets].sort(), ['buildings', 'meta', 'roads'], 'Selected region assets missing')
       await frame.locator('.sim-map canvas').first().waitFor()
       const regionFrame = await (await iframe.elementHandle()).contentFrame()
       const sideDraw = await regionFrame.waitForFunction(() => window.__earthlabBuildingSides > 0 && window.__earthlabBuildingSides)
       report.buildingWallInstances = await sideDraw.jsonValue()
+      assert.deepEqual([...regionAssets].sort(), ['buildings', 'meta', 'roads'], 'Selected region assets missing')
       report.renderer = await frame.locator('.sim-map').evaluate(element => {
         const canvas = element.querySelector('#deckgl-overlay')
         const gl = canvas?.getContext('webgl2') ?? canvas?.getContext('webgl')

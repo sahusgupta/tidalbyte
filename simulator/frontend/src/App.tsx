@@ -4,7 +4,6 @@ import {
   api,
   chooseRegion,
   overlaps,
-  type Buildings,
   type LonLat,
   type Meta,
   type RegionInfo,
@@ -13,7 +12,6 @@ import {
   type SimRequest,
   type SimResult,
 } from './lib/api'
-import MapView from './components/MapView'
 import { sameRouteSelection } from './lib/routeSelection'
 import ControlPanel from './components/ControlPanel'
 import ImpactPanel from './components/ImpactPanel'
@@ -21,6 +19,11 @@ import Legend from './components/Legend'
 import RainOverlay from './components/RainOverlay'
 
 type Dest = { id?: string; lonlat?: LonLat }
+type Scene = {
+  MapView: typeof import('./components/MapView').default
+  roads: Roads
+  buildings: Awaited<ReturnType<typeof api.buildings>>
+}
 const INITIAL_PRESET = 'thunderstorm'
 const PLAY_FRAMES = 24
 
@@ -39,9 +42,11 @@ const REGION_PARAM = query.get('region')
 
 export default function App() {
   const [regions, setRegions] = useState<RegionInfo[]>([])
+  const catalog = useRef<Promise<RegionInfo[]> | null>(null)
   const [region, setRegion] = useState<string | null>(null)
   const regionRef = useRef<string | null>(null)
-  const [data, setData] = useState<{ meta: Meta; roads: Roads; buildings: Buildings } | null>(null)
+  const [meta, setMeta] = useState<Meta | null>(null)
+  const [scene, setScene] = useState<Scene | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [controls, setControls] = useState<Scenario>({ rain: 0, duration: 1, surge: 0, clog: 0.1 })
   const [preset, setPreset] = useState<string | null>(INITIAL_PRESET)
@@ -92,51 +97,66 @@ export default function App() {
 
   // Pick the region: EarthLab's zone id, else a region overlapping its bbox, else ?region=, else the default.
   useEffect(() => {
-    api
-      .regions()
+    let active = true
+    catalog.current ??= api.regions()
+    catalog.current
       .then((rs) => {
+        if (!active) return
         setRegions(rs)
         const byParam = rs.find((r) => r.built && r.id === REGION_PARAM)
         const pick = EARTH_ZONE_ID || EARTH_BBOX.length === 4 ? chooseRegion(rs, EARTH_ZONE_ID, EARTH_BBOX) : byParam ?? chooseRegion(rs, null, [])
         if (!pick) throw new Error('No simulation region has been built yet')
         setRegion(pick.id)
       })
-      .catch((e) => setError(String(e)))
+      .catch((e) => { if (active) setError(String(e)) })
+    return () => { active = false }
   }, [])
 
   useEffect(() => {
     if (!region) return
-    let live = true
+    const load = new AbortController()
     regionRef.current = region
     pending.current = null // a queued request carries the old region's hospital/destination ids
     playingRef.current = false
     setPlaying(null)
-    setData(null)
+    setScene(null)
+    setMeta(null)
     setResult(null)
     setError(null)
-    Promise.all([api.meta(region), api.roads(region), api.buildings(region)])
-      .then(([meta, roads, buildings]) => {
-        if (!live) return
+    const failed = (error: unknown) => {
+      if (!load.signal.aborted) {
+        setError(String(error))
+        load.abort()
+      }
+    }
+    // Model inputs only depend on the small catalog entry. Start the scenario
+    // while the region's much larger geometry and the 3D renderer are loading.
+    api.meta(region, load.signal)
+      .then((meta) => {
+        if (load.signal.aborted) return
         const key = INITIAL_PRESET in meta.presets ? INITIAL_PRESET : Object.keys(meta.presets)[0]
         const p = meta.presets[key]
         setPreset(key)
         setControls({ rain: p.rain, duration: p.duration, surge: p.surge, clog: p.clog })
         setHospital(meta.hospitals[0]?.id ?? '')
         setDest({ id: meta.neighborhoods[0]?.id })
-        setData({ meta, roads, buildings })
+        setMeta(meta)
       })
-      .catch((e) => live && setError(String(e)))
-    return () => {
-      live = false
-    }
+      .catch(failed)
+    Promise.all([api.roads(region, load.signal), api.buildings(region, load.signal), import('./components/MapView')])
+      .then(([roads, buildings, renderer]) => {
+        if (!load.signal.aborted) setScene({ roads, buildings, MapView: renderer.default })
+      })
+      .catch(failed)
+    return () => load.abort()
   }, [region])
 
   // Tell EarthLab the simulator is usable (clears its "Connecting to simulator…" notice).
   useEffect(() => {
     if (!EMBEDDED) return
-    if (data) window.parent.postMessage({ source: 'simulator', type: 'ready' }, '*')
+    if (scene && meta) window.parent.postMessage({ source: 'simulator', type: 'ready' }, '*')
     else if (error) window.parent.postMessage({ source: 'simulator', type: 'status', message: error.includes('No simulation region has been built') ? 'No prepared simulator region is available' : 'Simulator API or region data could not load' }, '*')
-  }, [data, error])
+  }, [scene, meta, error])
 
   // Stream completed scenario results while dragging; retain only the newest queued request.
   const inflight = useRef(false)
@@ -157,7 +177,7 @@ export default function App() {
         if (!playingRef.current && regionRef.current === forRegion &&
             (!pending.current || sameRouteSelection(req, pending.current))) setResult(r)
       })
-      .catch((e) => setError(String(e)))
+      .catch((e) => { if (regionRef.current === forRegion) setError(String(e)) })
       .finally(() => {
         inflight.current = false
         const next = pending.current
@@ -172,9 +192,9 @@ export default function App() {
   )
 
   useEffect(() => {
-    if (!data || playingRef.current) return
+    if (!meta || meta.region.id !== region || playingRef.current) return
     send({ ...controls, ...routeParams() })
-  }, [data, controls, routeParams, send])
+  }, [meta, region, controls, routeParams, send])
 
   const stop = useCallback(() => {
     playingRef.current = false
@@ -229,15 +249,15 @@ export default function App() {
   }
   const onPreset = (key: string) => {
     stop()
-    const p = data!.meta.presets[key]
+    const p = meta!.presets[key]
     setPreset(key)
     setControls({ rain: p.rain, duration: p.duration, surge: p.surge, clog: p.clog })
   }
 
-  if (error && !data) return <Splash error={error} />
-  if (!data) return <Splash name={regions.find((r) => r.id === region)?.name} />
+  if (!meta || meta.region.id !== region || (error && !scene)) {
+    return <Splash error={error ?? undefined} name={regions.find((r) => r.id === region)?.name} />
+  }
 
-  const { meta, roads, buildings } = data
   const wind = Math.min(1, (controls.surge / 3) * 0.8 + (controls.rain / 200) * 0.35)
   const p = preset ? meta.presets[preset] : null
   const redirected = EARTH_ZONE_ID ? EARTH_ZONE_ID !== meta.region.id : Boolean(EARTH_ZONE && !overlaps(EARTH_BBOX, meta.region.bbox))
@@ -256,10 +276,10 @@ export default function App() {
       </header>
       <main className="sim-stage">
         <div id="sim-map" className="sim-map" tabIndex={-1} aria-label="Houston scenario map. Click to choose a starting point, or use the starting point selector in Impact and routing." inert={modal}>
-          <MapView key={meta.region.id} meta={meta} roads={roads} buildings={buildings} result={deferredResult} buildingMode={buildingMode} showWater={showWater} storm={mapSeverity}
-            onPick={onPick}
-          />
-          <RainOverlay rain={controls.rain} wind={wind} severity={severity} />
+          {scene ? <>
+            <scene.MapView key={meta.region.id} meta={meta} roads={scene.roads} buildings={scene.buildings} result={deferredResult} buildingMode={buildingMode} showWater={showWater} storm={mapSeverity} onPick={onPick} />
+            <RainOverlay rain={controls.rain} wind={wind} severity={severity} />
+          </> : <p className="sim-map-loading" role="status"><LoaderCircle size={16} aria-hidden="true" className="sim-spinner" />Loading roads and buildings…</p>}
         </div>
         {(!EMBEDDED || redirected) && <div className="sim-summary" inert={modal}>
           {!EMBEDDED && regions.filter((r) => r.built).length > 1 ? (

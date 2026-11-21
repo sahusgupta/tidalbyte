@@ -8,6 +8,7 @@ import json
 import time
 from collections import OrderedDict
 from dataclasses import dataclass
+from threading import Lock
 
 import geopandas as gpd
 import numpy as np
@@ -15,17 +16,12 @@ import pandas as pd
 import xgboost as xgb
 from PIL import Image
 
+from .catalog import VEHICLES, public_meta
 from .config import REGIONS, Region
 from .model.featurize import FEATURES, assemble, inundation_index, static_matrix
-from .model.simulator import HOUSTON_PRESETS
 from .pipeline.dem import load_grid
 from .routing import WET_M, Router, edge_weights
 
-VEHICLES = {
-    "sedan": dict(label="Passenger car", clearance_m=0.15),
-    "ambulance": dict(label="Ambulance", clearance_m=0.30),
-    "truck": dict(label="High-water rescue truck", clearance_m=0.75),
-}
 FLOODED_M = 0.15  # "flooded" for statistics: water over the curb / doorstep
 
 
@@ -95,6 +91,7 @@ class RegionEngine:
         self.router = Router(edges.ui.to_numpy(), edges.vi.to_numpy(), edges.time_s.to_numpy(),
                              self.edge_len, node_xy, geoms)
         self.lut = _depth_lut()
+        self._prediction_lock = Lock()
         self._pred_cache: OrderedDict[Scenario, tuple] = OrderedDict()
         self._dry_cache: dict = {}
         self.pois = {p["id"]: p for p in self.meta["hospitals"] + self.meta["neighborhoods"]}
@@ -104,19 +101,21 @@ class RegionEngine:
 
     # ------------------------------------------------------------------ flood
     def predict(self, sc: Scenario):
-        if sc in self._pred_cache:
-            self._pred_cache.move_to_end(sc)
-            return self._pred_cache[sc]
-        assemble(self.static, sc.rain, sc.duration, sc.surge, sc.clog, self.region.base_water_level, out=self.X)
-        d = self.booster.inplace_predict(self.X, iteration_range=(0, self.n_trees))
-        d = np.clip(np.asarray(d, dtype=np.float32), 0, None)
-        d[d < 0.01] = 0
-        a, b, c, e = self.splits
-        res = (d[a:b], d[b:c], d[c:e])
-        self._pred_cache[sc] = res
-        if len(self._pred_cache) > 96:
-            self._pred_cache.popitem(last=False)
-        return res
+        # The feature matrix is reused across frames and must stay paired with its storm.
+        with self._prediction_lock:
+            if sc in self._pred_cache:
+                self._pred_cache.move_to_end(sc)
+                return self._pred_cache[sc]
+            assemble(self.static, sc.rain, sc.duration, sc.surge, sc.clog, self.region.base_water_level, out=self.X)
+            d = self.booster.inplace_predict(self.X, iteration_range=(0, self.n_trees))
+            d = np.clip(np.asarray(d, dtype=np.float32), 0, None)
+            d[d < 0.01] = 0
+            a, b, c, e = self.splits
+            res = (d[a:b], d[b:c], d[c:e])
+            self._pred_cache[sc] = res
+            if len(self._pred_cache) > 96:
+                self._pred_cache.popitem(last=False)
+            return res
 
     def overlay_png(self, cell_depth: np.ndarray) -> str:
         g = self.grid
@@ -251,13 +250,7 @@ class RegionEngine:
                 for n, r in g.iterrows()]
 
     def public_meta(self):
-        m = dict(self.meta)
-        m["presets"] = HOUSTON_PRESETS
-        m["vehicles"] = VEHICLES
-        m["model"] = {k: self.metrics[k] for k in (
-            "model", "target", "teacher", "r2", "mae_cm", "rmse_cm", "n_trees", "n_train_rows",
-            "n_train_storms", "n_val_storms", "classification", "importance", "presets")}
-        return m
+        return public_meta(self.region)
 
 
 def _route_json(r):
@@ -268,9 +261,11 @@ def _route_json(r):
 
 
 _ENGINES: dict[str, RegionEngine] = {}
+_LOAD_LOCKS = {region_id: Lock() for region_id in REGIONS}
 
 
 def get_engine(region_id: str) -> RegionEngine:
-    if region_id not in _ENGINES:
-        _ENGINES[region_id] = RegionEngine(REGIONS[region_id])
-    return _ENGINES[region_id]
+    with _LOAD_LOCKS[region_id]:
+        if region_id not in _ENGINES:
+            _ENGINES[region_id] = RegionEngine(REGIONS[region_id])
+        return _ENGINES[region_id]

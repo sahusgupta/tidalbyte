@@ -1,3 +1,5 @@
+import { loadBuildings } from './loadBuildings'
+
 export type LonLat = [number, number]
 
 export type POI = { id: string; name: string; lon: number; lat: number; note?: string; node: number }
@@ -105,17 +107,17 @@ export type SimRequest = Scenario & {
 
 export type RegionInfo = { id: string; name: string; bbox: number[]; default: boolean; built: boolean }
 
-async function getJSON<T>(path: string): Promise<T> {
-  const r = await fetch(path)
+async function getJSON<T>(path: string, signal?: AbortSignal): Promise<T> {
+  const r = await fetch(path, { signal })
   if (!r.ok) throw new Error(`${path}: ${r.status} ${await r.text()}`)
   return r.json() as Promise<T>
 }
 
 export const api = {
   regions: () => getJSON<RegionInfo[]>('/api/regions'),
-  meta: (region: string) => getJSON<Meta>(`/api/regions/${region}/meta`),
-  roads: (region: string) => getJSON<Roads>(`/api/regions/${region}/roads`),
-  buildings: (region: string) => getJSON<Buildings>(`/api/regions/${region}/buildings`),
+  meta: (region: string, signal?: AbortSignal) => getJSON<Meta>(`/api/regions/${region}/meta`, signal),
+  roads: (region: string, signal?: AbortSignal) => getJSON<Roads>(`/api/regions/${region}/roads`, signal),
+  buildings: loadBuildings,
   simulate: async (region: string, req: SimRequest, signal?: AbortSignal): Promise<SimResult> => {
     const r = await fetch(`/api/regions/${region}/simulate`, {
       method: 'POST',

@@ -20,7 +20,9 @@ import { setWorkerUrl, type StyleSpecification } from 'maplibre-gl'
 // pre-bundling. The worker files are copied to /maplibre/ by the plugin in vite.config.ts.
 setWorkerUrl('/maplibre/maplibre-gl-worker.mjs')
 
-import { CUT_OFF, type Buildings, type LonLat, type Meta, type Roads, type SimResult, type ViewState } from '../lib/api'
+import { CUT_OFF, type LonLat, type Meta, type Roads, type SimResult, type ViewState } from '../lib/api'
+import type { PreparedBuildings } from '../lib/buildingGeometry'
+import { useRouteMarker } from './useRouteMarker'
 import { accessColor, buildingFloodColor, roadColor } from '../lib/colors'
 
 // Ground: USGS The National Map orthoimagery (public domain, no key; ~2 m/px over the US at z16).
@@ -76,7 +78,7 @@ const DEST_ICON = svgUrl(
 type Props = {
   meta: Meta
   roads: Roads
-  buildings: Buildings
+  buildings: PreparedBuildings
   result: SimResult | null
   buildingMode: 'flood' | 'access'
   showWater: boolean
@@ -99,36 +101,6 @@ function useDecodedImage(url?: string) {
     }
   }, [url])
   return img
-}
-
-function useRoutePhase(active: boolean) {
-  const [phase, setPhase] = useState(0)
-  useEffect(() => {
-    if (!active || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
-    let raf = 0
-    let last = 0
-    const tick = (t: number) => {
-      if (t - last > 33) {
-        setPhase((t / 7000) % 1)
-        last = t
-      }
-      raf = requestAnimationFrame(tick)
-    }
-    raf = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(raf)
-  }, [active])
-  return phase
-}
-
-function pointAlong(coords: LonLat[], cum: number[], f: number): LonLat {
-  const target = f * cum[cum.length - 1]
-  let i = 1
-  while (i < cum.length - 1 && cum[i] < target) i++
-  const seg = cum[i] - cum[i - 1] || 1
-  const t = (target - cum[i - 1]) / seg
-  const a = coords[i - 1]
-  const b = coords[i]
-  return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]
 }
 
 function MapView({ meta, roads, buildings, result, buildingMode, showWater, storm, onPick }: Props) {
@@ -174,7 +146,9 @@ function MapView({ meta, roads, buildings, result, buildingMode, showWater, stor
     const bounds = event.currentTarget.getBoundingClientRect()
     const x = event.clientX - bounds.left
     const y = event.clientY - bounds.top
-    const viewport = deckRef.current?.deck?.getViewports({ x, y })[0]
+    const renderer = deckRef.current?.deck
+    if (!renderer?.isInitialized) return
+    const viewport = renderer.getViewports({ x, y })[0]
     if (!viewport) return
     // Route pins belong on the ground even when the user taps the roof of a building.
     const [lon, lat] = viewport.unproject([x - viewport.x, y - viewport.y], { targetZ: 0 })
@@ -182,6 +156,12 @@ function MapView({ meta, roads, buildings, result, buildingMode, showWater, stor
   }
 
   const [view, setView] = useState<ViewState>(meta.region.view)
+  const [openingStage, setOpeningStage] = useState(0)
+  const nextStage = useRef<number | undefined>(undefined)
+  useEffect(() => () => {
+    if (nextStage.current !== undefined) cancelAnimationFrame(nextStage.current)
+    nextStage.current = undefined
+  }, [])
   const [viewOptions, setViewOptions] = useState(false)
   const [imageryWarning, setImageryWarning] = useState(false)
   const controlsRef = useRef<HTMLDivElement>(null)
@@ -199,7 +179,6 @@ function MapView({ meta, roads, buildings, result, buildingMode, showWater, stor
     return () => { document.removeEventListener('pointerdown', outside); document.removeEventListener('keydown', escape) }
   }, [viewOptions])
   const roadIdx = useMemo(() => Array.from({ length: roads.paths.length }, (_, i) => i), [roads])
-  const bldIdx = useMemo(() => Array.from({ length: buildings.polys.length }, (_, i) => i), [buildings])
   const overlay = useDecodedImage(result?.overlay)
   const version = useRef(0)
   const resultKey = useMemo(() => ++version.current, [result])
@@ -250,11 +229,10 @@ function MapView({ meta, roads, buildings, result, buildingMode, showWater, stor
     })
     const bldLayer = new SolidPolygonLayer<number>({
       id: 'buildings',
-      data: bldIdx,
-      getPolygon: (i) => buildings.polys[i],
+      data: buildings.mesh,
+      _normalize: false,
       extruded: true,
-      getElevation: (i) => buildings.h[i],
-      getFillColor: (i) => {
+      getFillColor: (_, { index: i }) => {
         if (buildingMode === 'access') {
           const a = access?.[i]
           return accessColor(a === undefined ? 0 : a === CUT_OFF ? null : a / 10)
@@ -267,22 +245,23 @@ function MapView({ meta, roads, buildings, result, buildingMode, showWater, stor
       highlightColor: [255, 255, 255, 90],
       updateTriggers: { getFillColor: [resultKey, buildingMode] },
     })
-    return water ? [water, roadLayer, bldLayer] : [roadLayer, bldLayer]
-  }, [overlay, showWater, meta, roads, buildings, roadIdx, bldIdx, edgeDepth, bldDepth, access, clearance, buildingMode, resultKey])
+    return { water, roadLayer, bldLayer }
+  }, [overlay, showWater, meta, roads, buildings, roadIdx, edgeDepth, bldDepth, access, clearance, buildingMode, resultKey])
 
   const route = result?.route
   const cur = route?.current
-  const routeCum = useMemo(() => {
-    if (!cur) return null
-    const cum = [0]
-    for (let i = 1; i < cur.coords.length; i++) {
-      const [x1, y1] = cur.coords[i - 1]
-      const [x2, y2] = cur.coords[i]
-      cum.push(cum[i - 1] + Math.hypot((x2 - x1) * 0.9, y2 - y1))
+  const { marker, projectMarker } = useRouteMarker(deckRef, cur?.coords)
+  const afterRender = () => {
+    projectMarker()
+    if (openingStage < 2 && nextStage.current === undefined) {
+      // Each shader family can block on the driver the first time it links.
+      // Give the browser a paint and input opportunity after each group.
+      nextStage.current = requestAnimationFrame(() => {
+        nextStage.current = undefined
+        setOpeningStage(stage => Math.min(2, stage + 1))
+      })
     }
-    return cum
-  }, [cur])
-  const phase = useRoutePhase(!!cur)
+  }
 
   const routeLayers = useMemo(() => {
     if (!route) return []
@@ -414,25 +393,6 @@ function MapView({ meta, roads, buildings, result, buildingMode, showWater, stor
     ]
   }, [meta, route])
 
-  const ambulance = useMemo(() => {
-    if (!cur || !routeCum || cur.coords.length < 2) return []
-    const p = pointAlong(cur.coords, routeCum, 1 - phase)
-    return [
-      new ScatterplotLayer({
-        id: 'ambulance',
-        data: [p],
-        getPosition: (d: LonLat) => d,
-        getRadius: 9,
-        radiusUnits: 'pixels',
-        getFillColor: [255, 255, 255, 255],
-        getLineColor: [16, 185, 129, 255],
-        lineWidthMinPixels: 4,
-        stroked: true,
-        parameters: FLAT,
-      }),
-    ]
-  }, [cur, routeCum, phase])
-
   const getTooltip = ({ layer, index }: PickingInfo) => {
     if (!layer || index < 0) return null
     const style = {
@@ -485,14 +445,21 @@ function MapView({ meta, roads, buildings, result, buildingMode, showWater, stor
       onViewStateChange={({ viewState }) => setView(viewState as ViewState)}
       controller={{ inertia: 250 }}
       onInteractionStateChange={({ isDragging }) => { if (isDragging) groundTap.current = null }}
-      layers={[...baseLayers, ...routeLayers, ...ambulance, ...markerLayers]}
+      onAfterRender={afterRender}
+      layers={[
+        openingStage > 0 && baseLayers.water,
+        openingStage > 0 && baseLayers.roadLayer,
+        baseLayers.bldLayer,
+        openingStage > 1 && routeLayers,
+        openingStage > 1 && markerLayers,
+      ]}
       effects={lighting.effects}
       getTooltip={getTooltip}
     >
       <Map reuseMaps mapStyle={BASEMAP} onError={() => setImageryWarning(true)} attributionControl={{ compact: false, customAttribution: 'USDA / USGS · 2017–2021 aerial archive' }}>
         <ScaleControl position="bottom-left" unit="metric" maxWidth={100} />
       </Map>
-    </DeckGL></div>
+    </DeckGL><span ref={marker} className="sim-route-dot" aria-hidden="true" /></div>
     {imageryWarning && <p className="sim-imagery-warning" role="status">Some imagery could not load. Scenario geometry remains visible.</p>}
     <div className="sim-map-controls" ref={controlsRef} role="group" aria-label="Map camera controls">
       <button type="button" aria-label="Zoom in" onClick={() => setView((current) => ({ ...current, zoom: Math.min(19, current.zoom + 0.5) }))}><Plus size={18} /></button>

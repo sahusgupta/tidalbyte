@@ -29,6 +29,7 @@ from scipy.spatial import cKDTree
 import re
 
 from ..config import DEFAULT_REGION, POI, REGIONS
+from ..geometry import prepare_geometry
 from . import features as F
 from . import hydrology
 from .dem import fetch_dem, save_grid
@@ -237,6 +238,8 @@ def export_static(region, grid, edges, node_xy, buildings, bnode, out: Path):
         kind=buildings.kind.astype(str).tolist(),
     )
     (static / "buildings.json").write_bytes(orjson.dumps(blds))
+    for name in ("roads.json", "buildings.json"):
+        prepare_geometry(static / name)
 
     meta = dict(
         region=dict(id=region.id, name=region.name, bbox=region.bbox, view=region.view, blurb=region.blurb,

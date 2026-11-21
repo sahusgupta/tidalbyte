@@ -4,11 +4,13 @@ export type RainState = {
 }
 type Drop = { x: number; y: number; len: number; speed: number; alpha: number }
 
-export function startRain(canvas: HTMLCanvasElement | OffscreenCanvas, read: () => RainState) {
+export const dropCount = (rain: number) => Math.round(Math.min(Math.max(rain, 0), 220) * 5.5)
+
+export function startRain(canvas: HTMLCanvasElement | OffscreenCanvas, read: () => RainState, onIdle: () => void) {
   const ctx = canvas.getContext('2d') as CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D | null
   if (!ctx) return () => {}
   let w = 0, h = 0, dpr = 0
-  const weather = { ...read() }
+  const weather = { ...read(), rain: 0 }
     const drops: Drop[] = []
     const spawn = (anywhere: boolean): Drop => ({
       x: Math.random() * (w + 400) - 200,
@@ -32,13 +34,17 @@ export function startRain(canvas: HTMLCanvasElement | OffscreenCanvas, read: () 
       }
       const dt = Math.min((t - last) / 1000, 0.05)
       last = t
-      const targetWeather = read()
       const blend = 1 - Math.exp(-dt / 0.16)
-      weather.rain += (targetWeather.rain - weather.rain) * blend
-      weather.wind += (targetWeather.wind - weather.wind) * blend
-      weather.severity += (targetWeather.severity - weather.severity) * blend
+      weather.rain += (state.rain - weather.rain) * blend
+      weather.wind += (state.wind - weather.wind) * blend
+      weather.severity += (state.severity - weather.severity) * blend
       const { rain: r, wind: wd, severity: sev } = weather
-      const target = state.reduce ? 0 : Math.round(Math.min(r, 220) * 5.5)
+      const target = dropCount(r)
+      if (state.reduce || (!target && !dropCount(state.rain) && flash <= 0.005)) {
+        ctx.clearRect(0, 0, w, h)
+        onIdle()
+        return
+      }
       while (drops.length < target) drops.push(spawn(drops.length < target / 2))
       if (drops.length > target) drops.length = target
 
