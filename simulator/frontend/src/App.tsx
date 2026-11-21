@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useDeferredValue, useEffect, useRef, useState } from 'react'
 import { Droplets, LoaderCircle, PanelLeftOpen, PanelRightOpen } from 'lucide-react'
 import {
   api,
@@ -14,6 +14,7 @@ import {
   type SimResult,
 } from './lib/api'
 import MapView from './components/MapView'
+import { sameRouteSelection } from './lib/routeSelection'
 import ControlPanel from './components/ControlPanel'
 import ImpactPanel from './components/ImpactPanel'
 import Legend from './components/Legend'
@@ -103,7 +104,7 @@ export default function App() {
     else if (error) window.parent.postMessage({ source: 'simulator', type: 'status', message: 'Simulator API unreachable' }, '*')
   }, [data, error])
 
-  // latest-wins request scheduler: at most one request in flight, newest queued
+  // Stream completed scenario results while dragging; retain only the newest queued request.
   const inflight = useRef(false)
   const pending = useRef<SimRequest | null>(null)
   const send = useCallback((req: SimRequest) => {
@@ -117,7 +118,10 @@ export default function App() {
     api
       .simulate(forRegion, req)
       .then((r) => {
-        if (!playingRef.current && !pending.current && regionRef.current === forRegion) setResult(r)
+        // A newer storm value must not starve rendering during continuous dragging.
+        // A changed route endpoint/vehicle must still discard the old route.
+        if (!playingRef.current && regionRef.current === forRegion &&
+            (!pending.current || sameRouteSelection(req, pending.current))) setResult(r)
       })
       .catch((e) => setError(String(e)))
       .finally(() => {
@@ -171,6 +175,17 @@ export default function App() {
     setPlaying(null)
   }, [controls, routeParams])
 
+  // Keep input urgent; expensive map updates can yield while the slider moves.
+  const deferredResult = useDeferredValue(result)
+  const severity = Math.min(1, controls.rain / 170 + (controls.surge / 3) * 0.6) * 0.85
+  const mapSeverity = useDeferredValue(severity)
+  const onPick = useCallback((lonlat: LonLat) => {
+    stop()
+    setResult(null)
+    setDest({ lonlat })
+    setRightOpen(true)
+  }, [stop])
+
   const onControls = (c: Scenario) => {
     stop()
     setPreset(null)
@@ -187,7 +202,6 @@ export default function App() {
   if (!data) return <Splash name={regions.find((r) => r.id === region)?.name} />
 
   const { meta, roads, buildings } = data
-  const severity = Math.min(1, controls.rain / 170 + (controls.surge / 3) * 0.6) * 0.85
   const wind = Math.min(1, (controls.surge / 3) * 0.8 + (controls.rain / 200) * 0.35)
   const p = preset ? meta.presets[preset] : null
 
@@ -198,16 +212,11 @@ export default function App() {
         meta={meta}
         roads={roads}
         buildings={buildings}
-        result={result}
+        result={deferredResult}
         buildingMode={buildingMode}
         showWater={showWater}
-        storm={severity}
-        onPick={(lonlat) => {
-          stop()
-          setResult(null)
-          setDest({ lonlat })
-          setRightOpen(true)
-        }}
+        storm={mapSeverity}
+        onPick={onPick}
       />
       <RainOverlay rain={controls.rain} wind={wind} severity={severity} />
 

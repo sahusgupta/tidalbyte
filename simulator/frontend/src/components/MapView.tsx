@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { memo, useEffect, useMemo, useRef, useState } from 'react'
 import DeckGL from '@deck.gl/react'
 import {
   BitmapLayer,
@@ -117,7 +117,7 @@ function pointAlong(coords: LonLat[], cum: number[], f: number): LonLat {
   return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]
 }
 
-export default function MapView({ meta, roads, buildings, result, buildingMode, showWater, storm, onPick }: Props) {
+function MapView({ meta, roads, buildings, result, buildingMode, showWater, storm, onPick }: Props) {
   const roadIdx = useMemo(() => Array.from({ length: roads.paths.length }, (_, i) => i), [roads])
   const bldIdx = useMemo(() => Array.from({ length: buildings.polys.length }, (_, i) => i), [buildings])
   const overlay = useDecodedImage(result?.overlay)
@@ -129,12 +129,14 @@ export default function MapView({ meta, roads, buildings, result, buildingMode, 
   const bldDepth = result?.buildings
   const access = result?.access
 
-  const effects = useMemo(() => {
-    const ambient = new AmbientLight({ color: [255, 255, 255], intensity: 1.05 - 0.4 * storm })
-    const sun = new DirectionalLight({ color: [255, 240, 220], intensity: 1.7 - 0.9 * storm, direction: [-3, -8, -3] })
+  const lighting = useMemo(() => {
+    const ambient = new AmbientLight({ color: [255, 255, 255], intensity: 1.05 })
+    const sun = new DirectionalLight({ color: [255, 240, 220], intensity: 1.7, direction: [-3, -8, -3] })
     const sky = new DirectionalLight({ color: [170, 200, 255], intensity: 0.55, direction: [4, 6, -2] })
-    return [new LightingEffect({ ambient, sun, sky })]
-  }, [storm])
+    return { ambient, sun, effects: [new LightingEffect({ ambient, sun, sky })] }
+  }, [])
+  lighting.ambient.intensity = 1.05 - 0.4 * storm
+  lighting.sun.intensity = 1.7 - 0.9 * storm
 
   const baseLayers = useMemo(() => {
     // only create the water layer once its image has decoded (an undefined image breaks texture init)
@@ -394,7 +396,7 @@ export default function MapView({ meta, roads, buildings, result, buildingMode, 
       initialViewState={meta.region.view}
       controller={{ inertia: 250 }}
       layers={[...baseLayers, ...routeLayers, ...ambulance, ...markerLayers]}
-      effects={effects}
+      effects={lighting.effects}
       getTooltip={getTooltip}
       onClick={(info) => {
         if (info.coordinate) onPick([info.coordinate[0], info.coordinate[1]])
@@ -404,3 +406,6 @@ export default function MapView({ meta, roads, buildings, result, buildingMode, 
     </DeckGL>
   )
 }
+
+// Slider labels can render without reconciling the entire map.
+export default memo(MapView)
