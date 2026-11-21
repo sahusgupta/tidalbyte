@@ -24,6 +24,7 @@ import {
   Viewer,
 } from "cesium";
 import { offlineCounties, type Prediction } from "@earthlab/contracts";
+import { sharpenRendering, usgsImageryLayer } from "../earth/imagery";
 import type { AtlasMode, BookmarkId, EditorTool, Point, RoadSegment } from "../../atlas/domain";
 import { FLOOD_RADIUS_LIMITS, getFloodPolygon } from "../../atlas/domain";
 import { FlatMap } from "./FlatMap";
@@ -162,7 +163,7 @@ export default function Globe(props: AtlasMapProps) {
     viewer.scene.globe.baseColor = c("#34483d");
     viewer.scene.globe.enableLighting = false;
     viewer.scene.fog.enabled = false;
-    viewer.resolutionScale = Math.min(window.devicePixelRatio || 1, 1.5);
+    sharpenRendering(viewer);
     viewer.scene.screenSpaceCameraController.minimumZoomDistance = 1500;
     viewer.scene.screenSpaceCameraController.maximumZoomDistance = 115000;
     const initial = BOOKMARKS[latest.current.bookmark];
@@ -202,6 +203,11 @@ export default function Globe(props: AtlasMapProps) {
     };
     addAerial("/map/houston-usgs.webp", [-95.9, 29.249921875, -94.7, 30.200078125]);
     addAerial("/map/houston-detail-usgs.webp", [-95.570036869, 29.6, -95.079963131, 29.96]);
+    // The bundled images are single tiles and blur when zoomed. Tiled USGS orthoimagery on top keeps
+    // street-level detail (~2 m/px); the bundled images stay underneath as an offline fallback.
+    const tiled = usgsImageryLayer(BOUNDS);
+    Object.assign(tiled, { saturation: 0.48, brightness: 0.79, contrast: 1.13, gamma: 1.12 });
+    viewer.imageryLayers.add(tiled);
     // An explicitly configured licensed template is optional; local imagery
     // remains underneath, and the failed provider layer is removed.
     const imageryUrl = import.meta.env.VITE_ATLAS_IMAGERY_URL?.trim();
@@ -776,7 +782,7 @@ export default function Globe(props: AtlasMapProps) {
       />
       {flat && <FlatMap {...props} />}
       <div className="atlas-map-credit">
-        USDA / USGS aerial reference <span>2017–2021 archive · display only</span>
+        USDA / USGS aerial reference <span>National Map tiles + bundled archive · display only</span>
       </div>
       {!flat && (
         <div className="atlas-map-scale">
