@@ -53,7 +53,7 @@ function edit(state: AtlasState, next: AtlasSnapshot): Partial<AtlasState> | Atl
 
 export const useAtlasStore = create<AtlasState>((set, get) => ({
   ...structuredClone(SEED_SCENARIO),
-  version: 1, tool: "inspect", playing: false, comparison: true,
+  version: 1, tool: "inspect", playing: false, comparison: false,
   selectedRoadId: "channel-bridge", bookmark: "houston", cameraRevision: 0, history: [],
   setMode: (mode) => {
     if (mode !== "hurricane" && mode !== "flood") return;
@@ -117,7 +117,7 @@ export const useAtlasStore = create<AtlasState>((set, get) => ({
   }),
   reset: () => set((state) => ({
     ...structuredClone(SEED_SCENARIO), version: state.version + 1, history: [], playing: false,
-    tool: "inspect", selectedRoadId: "channel-bridge", comparison: true, bookmark: "houston",
+    tool: "inspect", selectedRoadId: "channel-bridge", comparison: false, bookmark: "houston",
     cameraRevision: state.cameraRevision + 1,
   })),
 }));
