@@ -182,7 +182,7 @@ export function App({ onEarth }: { onEarth?: () => void } = {}) {
       <a className="skip" href="#atlas-map" onClick={(event) => {
         event.preventDefault();
         setDrawer(null);
-        requestAnimationFrame(() => document.getElementById("atlas-map")?.focus());
+        document.getElementById("atlas-map")?.focus();
       }}>
         Skip to map
       </a>
