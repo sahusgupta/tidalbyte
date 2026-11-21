@@ -11,7 +11,6 @@ export interface PlanningAsset {
   color: string;
   dashed: boolean;
   selected: boolean;
-  scheduled: boolean;
 }
 
 export function planningAssets(
@@ -44,7 +43,6 @@ export function planningAssets(
           color: facility ? "#dcead1" : "#d1cbb9",
           dashed: false,
           selected: false,
-          scheduled: false,
         },
       ];
     }
@@ -81,7 +79,6 @@ export function planningAssets(
                 : "#c1c6c0",
         dashed: !selected && (status === "blocked" || status === "impaired"),
         selected,
-        scheduled: Boolean(action),
       },
     ];
   });

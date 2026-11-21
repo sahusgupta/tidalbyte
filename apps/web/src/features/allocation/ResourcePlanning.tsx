@@ -162,7 +162,12 @@ export function ResourcePlanning({
                   {strategyNames[s.id]}
                 </button>
               </th>
-              <td>{percent(s.weightedAccess)}</td>
+              <td>
+                {percent(s.weightedAccess)}
+                <span className="plan-access-meter" aria-hidden="true">
+                  <i style={{ width: percent(s.weightedAccess) }} />
+                </span>
+              </td>
               <td>{score(s.utilities.health)}</td>
               <td>{score(s.utilities.shelter)}</td>
             </tr>

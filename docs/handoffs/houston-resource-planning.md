@@ -16,7 +16,7 @@ The following response results use 50 shared budget units, two crews, two equipm
 | Coordinated | 8.20 | −1.20 | 75% | 40 | Main and north |
 | Nash bargaining | 2.80 | 4.00 | 25% | 32 | Main and south |
 
-One agency working alone cannot reconnect a facility in this case. Independent best responses settle on no work and exhaustive unilateral checks verify that neither agency can improve alone under the shared limits. Coordination values the sum of the two utilities. Bargaining requires a gain for both over disagreement and maximizes their weighted product. With the default preferences, funding the shelter connection meets that condition. When the feasible set contains no positive-gain agreement, the result explicitly returns the disagreement portfolio.
+One agency working alone cannot reconnect a facility in this case. Independent best responses settle on no work and exhaustive unilateral checks verify that neither agency can improve alone under the shared limits. Coordination assigns each agency a welfare weight of one and maximizes the sum of their utilities. Bargaining requires a gain for both over disagreement and maximizes their weighted product. With the default preferences, funding the shelter connection meets that condition. When the feasible set contains no positive-gain agreement, the result explicitly returns the disagreement portfolio.
 
 ## Model and map
 

@@ -11,7 +11,10 @@ await mkdir(output, { recursive: true });
 const browser = await chromium.launch({
   executablePath: process.env.QA_CHROME_PATH,
   headless: true,
-  args: ["--enable-unsafe-swiftshader", "--use-angle=swiftshader"],
+  args:
+    process.env.QA_SOFTWARE_GL === "1"
+      ? ["--enable-unsafe-swiftshader", "--use-angle=swiftshader"]
+      : [],
 });
 
 try {
@@ -101,17 +104,27 @@ try {
     await link.waitFor();
     const line = link.locator("polyline").first();
     const point = await line.evaluate(async (e) => {
-      const midpoint = () => e.getPointAtLength(e.getTotalLength() / 2).matrixTransform(e.getScreenCTM());
+      const midpoint = () =>
+        e
+          .getPointAtLength(e.getTotalLength() / 2)
+          .matrixTransform(e.getScreenCTM());
       const role = e.closest('[role="button"]');
       let p = midpoint();
       for (let i = 0; i < 60; i++) {
-        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        await new Promise((resolve) =>
+          requestAnimationFrame(() => requestAnimationFrame(resolve)),
+        );
         const next = midpoint();
-        if (Math.hypot(next.x - p.x, next.y - p.y) < 0.05 && role.contains(document.elementFromPoint(next.x,next.y)))
-          return {x:next.x, y:next.y};
+        if (
+          Math.hypot(next.x - p.x, next.y - p.y) < 0.05 &&
+          role.contains(document.elementFromPoint(next.x, next.y))
+        )
+          return { x: next.x, y: next.y };
         p = next;
       }
-      throw new Error("The recommended link did not settle at a visible touch target.");
+      throw new Error(
+        "The recommended link did not settle at a visible touch target.",
+      );
     });
     if (mobile) await page.touchscreen.tap(point.x, point.y);
     else await page.mouse.click(point.x, point.y);

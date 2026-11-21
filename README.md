@@ -61,6 +61,8 @@ Complete the [simulator setup](simulator/README.md), then run `pnpm dev:integrat
 The [frontend walkthrough](apps/web/README.md) includes controls, screenshots,
 imagery provenance, and optional service contracts.
 
+Restart the integrated launcher after changing Python code or refreshing a regional hospital catalog. The separate `pnpm dev:api` command supports automatic reload during API development.
+
 The polygons are original schematic rectangles, not official county boundaries.
 The arbitrary event timestamp and severity indices do not describe observed
 weather or outages. See `data/fixtures/README.md` for provenance and limitations.

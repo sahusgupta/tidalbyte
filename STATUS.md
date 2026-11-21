@@ -1,5 +1,13 @@
 # EarthLab Status
 
+## Houston planning and zones
+
+The [resource planning integration](https://github.com/sahusgupta/tidalbyte/pull/5) adds mitigation and response to the Houston atlas. Open **Study menu → Resource planning**, or run `pnpm demo:allocation` for both cases. The [planning handoff](docs/handoffs/houston-resource-planning.md) covers the API, computed example, desktop and touch controls, tests and model assumptions.
+
+The four additional AquaGrid regions have local geography, full-default trained surrogate models and checked regional hospital destinations. The five-region catalog includes Downtown. Run `python -m aquagrid.prepare_zones` from `simulator/backend` with the simulator environment on another machine. Large artifacts stay local. Regional flood models use a process simulator as their training target. The allocation engine uses a separate fictional five-link graph.
+
+The current shared API version is 1.1.0. FastAPI computes the three feasible portfolios and completion frames. The command controller requires confirmation, and optional ElevenLabs narration reads the displayed result. The historical bootstrap notes below describe earlier milestones.
+
 Updated 2026-11-21. The [integration PR](https://github.com/sahusgupta/tidalbyte/pull/4)
 combines the Figma field console, the embedded flood simulator, the illustrative
 graph and the command and voice services. The Houston atlas opens at `/`, Earth
