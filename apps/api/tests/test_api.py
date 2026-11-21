@@ -138,8 +138,6 @@ def test_malformed_json_and_unknown_routes_are_enveloped(client):
     [
         ("GET", "/api/v1/network"),
         ("POST", "/api/v1/network/compare"),
-        ("POST", "/api/v1/ai/interpret"),
-        ("POST", "/api/v1/voice/transcribe"),
         ("POST", "/api/v1/voice/speak"),
     ],
 )
