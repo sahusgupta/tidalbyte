@@ -36,8 +36,20 @@ export default function Globe({ predictions }: { predictions: Prediction[] }) {
   useEffect(() => {
     if (!containerRef.current) return;
     let disposed = false;
+    const imageryListeners: (() => void)[] = [];
     let viewer: Viewer;
     try {
+      const baseLayer = ImageryLayer.fromProviderAsync(TileMapServiceImageryProvider.fromUrl(
+        buildModuleUrl("Assets/Textures/NaturalEarthII"),
+        { credit: new Credit("Natural Earth II · public domain") },
+      ));
+      const reportImageryFailure = () => {
+        if (!disposed) setError("Local globe imagery could not load. The basic globe and county controls remain available.");
+      };
+      imageryListeners.push(baseLayer.errorEvent.addEventListener(reportImageryFailure));
+      imageryListeners.push(baseLayer.readyEvent.addEventListener((provider) => {
+        if (!disposed) imageryListeners.push(provider.errorEvent.addEventListener(reportImageryFailure));
+      }));
       viewer = new Viewer(containerRef.current, {
         animation: false,
         timeline: false,
@@ -50,12 +62,11 @@ export default function Globe({ predictions }: { predictions: Prediction[] }) {
         infoBox: false,
         selectionIndicator: false,
         shouldAnimate: false,
-        baseLayer: ImageryLayer.fromProviderAsync(TileMapServiceImageryProvider.fromUrl(
-          buildModuleUrl("Assets/Textures/NaturalEarthII"),
-          { credit: new Credit("Natural Earth II · public domain") },
-        )),
+        baseLayer,
       });
     } catch {
+      disposed = true;
+      imageryListeners.forEach((remove) => remove());
       setError("3D rendering is unavailable on this device. County controls and the offline example remain available.");
       return;
     }
@@ -116,6 +127,7 @@ export default function Globe({ predictions }: { predictions: Prediction[] }) {
 
     return () => {
       disposed = true;
+      imageryListeners.forEach((remove) => remove());
       handler.destroy();
       removeOrbit();
       removeRenderError();
