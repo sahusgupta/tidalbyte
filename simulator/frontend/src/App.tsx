@@ -18,6 +18,8 @@ import ControlPanel from './components/ControlPanel'
 import ImpactPanel from './components/ImpactPanel'
 import Legend from './components/Legend'
 import RainOverlay from './components/RainOverlay'
+import { rainRate, useWeatherPreset, WEATHER_PRESET, weatherTime } from './useWeatherPreset'
+import type { CurrentWeather } from './lib/currentWeather'
 
 type Dest = { id?: string; lonlat?: LonLat }
 const INITIAL_PRESET = 'thunderstorm'
@@ -52,6 +54,7 @@ export default function App() {
   const [result, setResult] = useState<SimResult | null>(null)
   const [playing, setPlaying] = useState<{ k: number; n: number; t: number } | null>(null)
   const playingRef = useRef(false)
+  const playbackRun = useRef(0)
   const [panel, setPanel] = useState<'storm' | 'impact' | 'layers' | null>(null)
   const [compact, setCompact] = useState(() => window.matchMedia('(max-width: 760px)').matches)
   const panelRef = useRef<HTMLDivElement>(null)
@@ -108,6 +111,7 @@ export default function App() {
     let live = true
     regionRef.current = region
     pending.current = null // a queued request carries the old region's hospital/destination ids
+    playbackRun.current++
     playingRef.current = false
     setPlaying(null)
     setData(null)
@@ -173,16 +177,27 @@ export default function App() {
   }, [data, controls, routeParams, send])
 
   const stop = useCallback(() => {
+    playbackRun.current++
     playingRef.current = false
     setPlaying(null)
   }, [])
 
+  const applyWeather = useCallback((reading: CurrentWeather) => {
+    stop()
+    setResult(null)
+    setError(null)
+    setPreset(WEATHER_PRESET)
+    setControls({ rain: reading.rainMmPerHour, duration: 1, surge: 0, clog: 0.1 })
+  }, [stop])
+  const weather = useWeatherPreset(data?.meta.region, applyWeather)
+
   const play = useCallback(async () => {
+    const run = ++playbackRun.current
     playingRef.current = true
     setPlaying({ k: 0, n: PLAY_FRAMES, t: 0 })
     const params = routeParams()
     const forRegion = regionRef.current!
-    for (let k = 1; k <= PLAY_FRAMES && playingRef.current; k++) {
+    for (let k = 1; k <= PLAY_FRAMES && playbackRun.current === run; k++) {
       const f = k / PLAY_FRAMES
       const sc = {
         rain: controls.rain,
@@ -193,25 +208,30 @@ export default function App() {
       const t0 = performance.now()
       try {
         const r = await api.simulate(forRegion, { ...sc, ...params })
-        if (!playingRef.current || regionRef.current !== forRegion) break
+        if (playbackRun.current !== run || regionRef.current !== forRegion) return
         setResult(r)
         setPlaying({ k, n: PLAY_FRAMES, t: sc.duration })
       } catch (e) {
+        if (playbackRun.current !== run) return
         setError(String(e))
         break
       }
       await sleep(Math.max(0, 260 - (performance.now() - t0)))
     }
-    playingRef.current = false
-    setPlaying(null)
+    if (playbackRun.current === run) {
+      playingRef.current = false
+      setPlaying(null)
+    }
   }, [controls, routeParams])
 
   const onControls = (c: Scenario) => {
+    weather.clear()
     stop()
     setPreset(null)
     setControls(c)
   }
   const onPreset = (key: string) => {
+    weather.clear()
     stop()
     const p = data!.meta.presets[key]
     setPreset(key)
@@ -224,7 +244,10 @@ export default function App() {
   const { meta, roads, buildings } = data
   const severity = Math.min(1, controls.rain / 170 + (controls.surge / 3) * 0.6) * 0.85
   const wind = Math.min(1, (controls.surge / 3) * 0.8 + (controls.rain / 200) * 0.35)
-  const p = preset ? meta.presets[preset] : null
+  const live = preset === WEATHER_PRESET && weather.reading !== null
+  const scenarioLabel = live
+    ? weather.fresh && !weather.message ? 'Current weather' : 'Last weather snapshot'
+    : (preset && meta.presets[preset]?.label) || 'Custom storm'
   const redirected = EARTH_ZONE_ID ? EARTH_ZONE_ID !== meta.region.id : Boolean(EARTH_ZONE && !overlaps(EARTH_BBOX, meta.region.bbox))
 
   const modal = compact && panel !== null
@@ -232,7 +255,7 @@ export default function App() {
     <div className={`sim-shell ${panel ? 'has-panel' : ''} ${EMBEDDED ? 'is-embedded' : ''}`}>
       <a className="sim-skip" href="#sim-map">Skip to map</a>
       <header className="sim-header" inert={modal}>
-        {EMBEDDED ? <div className="sim-embed-title">{p ? p.label : 'Custom storm'}<span>Simulated scenario</span></div> : <div className="sim-brand"><Droplets size={25} aria-hidden="true" /><span>EarthLab</span><span className="sim-product">Houston simulator</span></div>}
+        {EMBEDDED ? <div className="sim-embed-title">{scenarioLabel}<span>Simulated scenario</span></div> : <div className="sim-brand"><Droplets size={25} aria-hidden="true" /><span>EarthLab</span><span className="sim-product">Houston simulator</span></div>}
         <nav aria-label="Simulator panels">
           <button type="button" aria-label="Storm controls" aria-expanded={panel === 'storm'} aria-controls="sim-panel" onClick={() => openPanel('storm')}><PanelLeftOpen size={18} aria-hidden="true" /><span>Storm controls</span></button>
           <button type="button" id="show-impact" aria-label="Impact and routing" aria-expanded={panel === 'impact'} aria-controls="sim-panel" onClick={() => openPanel('impact')}><PanelRightOpen size={18} aria-hidden="true" /><span>Impact & routing</span></button>
@@ -254,33 +277,33 @@ export default function App() {
         </div>
         {(!EMBEDDED || redirected) && <div className="sim-summary" inert={modal}>
           {!EMBEDDED && regions.filter((r) => r.built).length > 1 ? (
-            <select aria-label="Simulation region" value={meta.region.id} onChange={(event) => setRegion(event.target.value)}>
+            <select aria-label="Simulation region" value={meta.region.id} onChange={(event) => { weather.clear(); setRegion(event.target.value) }}>
               {regions.filter((r) => r.built).map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
             </select>
           ) : !EMBEDDED && <h1>{meta.region.name}</h1>}
-          {!EMBEDDED && <p>{p ? p.label : 'Custom storm'} <span>· Simulated scenario</span></p>}
+          {!EMBEDDED && <p>{scenarioLabel} <span>· Simulated scenario</span></p>}
           {redirected && (
             <p className="sim-zone-note">No prepared dataset for “{EARTH_ZONE ?? EARTH_ZONE_ID}”. Showing {meta.region.name}.</p>
           )}
         </div>}
         {modal && <button type="button" className="sim-backdrop" tabIndex={-1} aria-label="Close simulator panel" onClick={closePanel} />}
         {panel && <div ref={panelRef} id="sim-panel" className="sim-panel-host" role={compact ? 'dialog' : 'region'} aria-modal={compact || undefined} aria-labelledby={`${panel}-panel-title`}>
-          {panel === 'storm' && <ControlPanel meta={meta} controls={controls} preset={preset} onControls={onControls} onPreset={onPreset} playing={playing} onPlay={play} onStop={stop} onCollapse={closePanel} embedded={EMBEDDED} />}
+          {panel === 'storm' && <ControlPanel meta={meta} controls={controls} weather={weather} preset={preset} onControls={onControls} onPreset={onPreset} playing={playing} onPlay={play} onStop={stop} onCollapse={closePanel} embedded={EMBEDDED} />}
           {panel === 'impact' && <ImpactPanel meta={meta} result={result} vehicle={vehicle} onVehicle={setVehicle} hospital={hospital} onHospital={(id) => { stop(); setResult(null); setHospital(id) }} dest={dest} onDest={(id) => { if (id !== 'custom') { stop(); setResult(null); setDest({ id }) } }} onCollapse={closePanel} />}
           {panel === 'layers' && <Legend buildingMode={buildingMode} onBuildingMode={setBuildingMode} showWater={showWater} onShowWater={setShowWater} onCollapse={closePanel} />}
         </div>}
         {error && <div className="sim-error" role="alert">{error}</div>}
       </main>
       <footer className="sim-transport" inert={modal}>
-        <button type="button" className="sim-play" onClick={playing ? stop : play} disabled={!playing && controls.rain === 0 && controls.surge === 0} aria-label={playing ? 'Stop storm playback' : 'Play storm hour by hour'}>
+        <button type="button" className="sim-play" onClick={playing ? stop : play} disabled={!playing && !live && controls.rain === 0 && controls.surge === 0} aria-label={playing ? 'Stop storm playback' : 'Play storm hour by hour'}>
           {playing ? <Square size={17} aria-hidden="true" /> : <Play size={17} aria-hidden="true" />}
           <span>{playing ? 'Stop' : 'Play storm'}</span>
         </button>
         <div className="sim-time">
-          <div><strong>{playing ? `T+${playing.t.toFixed(1)} h` : `${controls.duration} h scenario`}</strong><span>{controls.rain.toFixed(0)} mm/h rain · +{controls.surge.toFixed(2)} m surge</span></div>
+          <div><strong>{playing ? `T+${playing.t.toFixed(1)} h` : `${controls.duration} h scenario`}</strong><span>{rainRate(controls.rain)} mm/h rain · +{controls.surge.toFixed(2)} m surge</span></div>
           <progress aria-label="Storm playback progress" max={PLAY_FRAMES} value={playing?.k ?? (result ? PLAY_FRAMES : 0)} />
         </div>
-        <p>Model scenario estimates<br /><span>Not operational navigation</span></p>
+        <p>{live ? 'Hypothetical flood impacts' : 'Model scenario estimates'}<br /><span>{live && weather.reading ? `Open-Meteo · ${weatherTime(weather.reading)}` : 'Not operational navigation'}</span></p>
       </footer>
     </div>
   )

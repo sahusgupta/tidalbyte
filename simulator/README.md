@@ -25,6 +25,18 @@ After completing the [atlas setup](../README.md), run `pnpm dev:integrated` from
 
 For standalone development, start Uvicorn with `python -m uvicorn aquagrid.api:app --port 8000` from `simulator/backend` using the simulator environment, and `npm run dev -- --port 5174` from `simulator/frontend`. Set the frontend process variable `AQUAGRID_API` when its API runs at a different address. To embed a separately served simulator, set `VITE_SIMULATOR_URL` to its public URL before starting or building the atlas. A static deployment of the simulator must forward its `/api/` requests to the AquaGrid backend.
 
+## Current-weather preset
+
+For a prepared region, open **Storm controls → Live weather**. The simulator
+requests a current grid-model estimate at the center of the loaded region.
+It converts the estimated liquid rain and showers accumulated over the source
+interval to millimeters per hour, then runs the ordinary flood scenario with
+that rate held for one hour, zero added sea surge and 10% assumed drain
+capacity loss. The map and playback show hypothetical impacts under these
+assumptions. Adjusting a slider switches to a custom scenario. The atlas also
+has a wind-and-rain view that works without a prepared region.
+[Weather data by Open-Meteo](https://open-meteo.com/)
+
 ## Interpretation
 
 The route estimate uses the selected vehicle and modeled road depths. Travel time excludes live traffic. Roads are treated as undirected. Route availability in this scenario does not establish current road safety or emergency access.

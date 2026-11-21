@@ -54,7 +54,7 @@
 }
 .atlas-shell .scenario-choice {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 4px;
   padding: 4px;
   margin: 0 0 16px;

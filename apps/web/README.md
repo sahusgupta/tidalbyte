@@ -11,6 +11,18 @@ Run `pnpm install --frozen-lockfile` and `pnpm --filter web dev` from the reposi
 5. Open **Layers** to change the basemap, see the legend or enable county severity. County readings identify their source and data mode. **Ask the atlas** accepts typed or voice input for a proposed command.
 6. The **Study menu** (•••) includes the inspector, sources, Earth navigation and **Export study**. The GeoJSON download contains the active sketch, sample roads, assumed closures, scenario time and inputs. On phones, the menu also provides **Compare** and **Map layers & legend**.
 
+## Current weather
+
+Open **Scenario settings → Live weather** and choose a Houston bookmark. The
+north-up display illustrates wind direction, speed and liquid rainfall for
+that location. It uses Open-Meteo's current grid-model estimate over archival
+USDA/USGS imagery. The panel shows the model's valid time in Houston time,
+checks for updates every five minutes and lets you pause the animation or
+refresh manually. A failed request offers a retry and a labeled offline
+example. Returning to Scenario settings restores your edited scenario.
+The atlas weather view runs independently of prepared flood-simulator regions.
+[Open-Meteo current weather documentation](https://open-meteo.com/en/docs#current)
+
 ## Evidence and integrations
 
 | Layer                         | Input and interpretation                                                                                                                                                                                                                                                                                                                |

@@ -23,6 +23,7 @@ import { AtlasHeader, AtlasTools, StudyDialog, StudyMenu, type StudyPage } from 
 import { MapLayers } from "./MapLayers";
 import { downloadStudy } from "../atlas/exportStudy";
 
+const LiveWeather = lazy(() => import("../features/weather/LiveWeather"));
 const Globe = lazy(() => import("../features/globe/Globe"));
 const initialLayers: Layers = { hazard: true, roads: true, outages: false };
 const makeScenario = (version: number): Scenario => ({
@@ -44,6 +45,7 @@ export function App({
 } = {}) {
   const s = useAtlasStore();
   const hurricane = s.mode === "hurricane";
+  const [weatherOpen, setWeatherOpen] = useState(false);
   const [layers, setLayers] = useState<Layers>(initialLayers);
   const [mapStyle, setMapStyle] = useState<"field" | "aerial">("field");
   const [pages, setPages] = useState<StudyPage[]>([]);
@@ -106,7 +108,7 @@ export function App({
   }, [s.playing]);
   useEffect(() => {
     const listener = (e: KeyboardEvent) => {
-      if (page || e.defaultPrevented) return;
+      if (weatherOpen || page || e.defaultPrevented) return;
       if (e.key === "Escape") {
         setMapNotice("");
         useAtlasStore.getState().setTool("inspect");
@@ -137,7 +139,7 @@ export function App({
     };
     window.addEventListener("keydown", listener);
     return () => window.removeEventListener("keydown", listener);
-  }, [page]);
+  }, [page, weatherOpen]);
   function selectTool(tool: EditorTool) {
     s.setPlaying(false);
     if (tool === "track" && !hurricane) s.setMode("hurricane");
@@ -160,6 +162,13 @@ export function App({
     s.selectRoad(id);
     if (s.tool === "closure") s.toggleClosure(id);
     else openPage("inspector");
+  }
+  if (weatherOpen) {
+    return (
+      <Suspense fallback={<div className="map-loading" role="status">Loading live weather…</div>}>
+        <LiveWeather initialLocation={s.bookmark} onBack={() => setWeatherOpen(false)} />
+      </Suspense>
+    );
   }
   const hint = mapNotice || instructions[s.tool];
   return (
@@ -256,6 +265,7 @@ export function App({
           )}
           {page === "scenario" && (
             <ScenarioRail
+              onLiveWeather={() => setWeatherOpen(true)}
               onEnsureHazard={() => layer("hazard", true)}
               onResetLayers={() => setLayers(initialLayers)}
               inspectMode={() => setMapNotice("")}

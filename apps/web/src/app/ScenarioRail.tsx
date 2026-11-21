@@ -147,11 +147,13 @@ function ScenarioPlate({
 }
 
 export function ScenarioRail({
+  onLiveWeather,
   onEnsureHazard,
   onResetLayers,
   inspectMode,
   onEditMap,
 }: {
+  onLiveWeather: () => void;
   onEnsureHazard: () => void;
   onResetLayers: () => void;
   inspectMode: () => void;
@@ -194,6 +196,9 @@ export function ScenarioRail({
             </button>
             <button type="button" aria-pressed={!hurricane} onClick={() => chooseMode("flood")}>
               Flood
+            </button>
+            <button type="button" onClick={onLiveWeather}>
+              Live weather
             </button>
           </div>
           <ScenarioPlate
