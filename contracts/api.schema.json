@@ -343,7 +343,8 @@
         "explanation",
         "weightedAccess",
         "equipmentUsed",
-        "completionHours"
+        "completionHours",
+        "frames"
       ],
       "properties": {
         "id": {
@@ -404,9 +405,71 @@
           "type": "number",
           "minimum": 0,
           "maximum": 48
+        },
+        "frames": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AllocationFrame"
+          },
+          "minItems": 1,
+          "maxItems": 6
         }
       },
       "title": "AllocationStrategy"
+    },
+    "AllocationFrame": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "hour",
+        "access",
+        "serviceEdges"
+      ],
+      "properties": {
+        "hour": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 48
+        },
+        "access": {
+          "$ref": "#/$defs/AllocationAccess"
+        },
+        "serviceEdges": {
+          "$ref": "#/$defs/AllocationPaths"
+        }
+      },
+      "title": "AllocationFrame"
+    },
+    "AllocationPaths": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "clinic",
+        "shelter"
+      ],
+      "properties": {
+        "clinic": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "uniqueItems": true,
+          "maxItems": 5
+        },
+        "shelter": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "uniqueItems": true,
+          "maxItems": 5
+        }
+      },
+      "title": "AllocationPaths"
     },
     "AllocationResult": {
       "type": "object",

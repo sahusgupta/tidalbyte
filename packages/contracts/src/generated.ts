@@ -139,6 +139,11 @@ export interface AllocationStrategy {
   weightedAccess: number;
   equipmentUsed: number;
   completionHours: number;
+  /**
+   * @minItems 1
+   * @maxItems 6
+   */
+  frames: AllocationFrame[];
 }
 export interface AllocationUtilities {
   health: number;
@@ -156,6 +161,21 @@ export interface AllocationIntervention {
   crews: number;
   actionId: string;
   accessWithout: AllocationAccess;
+}
+export interface AllocationFrame {
+  hour: number;
+  access: AllocationAccess;
+  serviceEdges: AllocationPaths;
+}
+export interface AllocationPaths {
+  /**
+   * @maxItems 5
+   */
+  clinic: string[];
+  /**
+   * @maxItems 5
+   */
+  shelter: string[];
 }
 export interface AllocationPayoff {
   /**
