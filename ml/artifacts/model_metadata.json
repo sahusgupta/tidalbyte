@@ -1,0 +1,1024 @@
+{
+ "modelVersion": "outage-severity-v1",
+ "createdUtc": "2026-11-21T18:31:32+00:00",
+ "dataMode": "trained_conditional",
+ "modelScope": "conditional_selected_event",
+ "scope": "selected_positive_outage_warning_hours",
+ "artifact": {
+  "path": "ml/artifacts/outage_model.joblib",
+  "sha256": "cda12bfba3061638b7c13c9606eec8aea9d3aba5875457e1c96357d9c110bdd1",
+  "bytes": 2617702
+ },
+ "algorithm": "scikit-learn HistGradientBoostingRegressor (absolute-error loss on log1p target = conditional median); quantile-loss models for the 10th/90th percentile interval",
+ "dataSource": {
+  "id": "zenodo-22651795",
+  "doi": "10.5281/zenodo.22651795",
+  "title": "A spatiotemporally harmonized dataset of utility-reported power outages and NWS VTEC weather warnings for the contiguous United States (2015-2024)",
+  "paper_doi": "10.1038/s41597-026-08356-z",
+  "license": "CC-BY-4.0",
+  "md5": "b47a454b0c7f2e8047e870d3167a157c",
+  "file": "Eagle_I_US_2024_with_VTEC_Updated.csv",
+  "observedPeriod": [
+   "2015-01-02 03:00:00+00:00",
+   "2023-01-03 01:00:00+00:00"
+  ],
+  "note": "File name says 2024 but the released records end 2023-01-03."
+ },
+ "target": {
+  "name": "max_rolling_avg",
+  "unit": "customers without power (max 4-h trailing average within the clock hour)",
+  "transform": "log1p for fitting; expm1 and clamp >= 0 on output",
+  "population": "county-hours with a positive processed outage metric AND >= 1 matched NWS VTEC warning (dataset selection)"
+ },
+ "featureOrder": [
+  "w_SV",
+  "w_TO",
+  "w_HU",
+  "w_TR",
+  "w_HW",
+  "w_WI",
+  "w_IS",
+  "w_ZR",
+  "w_WS",
+  "w_BZ",
+  "w_WW",
+  "w_WC",
+  "w_HZ",
+  "w_FZ",
+  "w_EH",
+  "w_HT",
+  "w_FW",
+  "w_EW",
+  "n_warnings",
+  "wfo",
+  "month",
+  "solar_hour",
+  "source_completeness_pct",
+  "log_aland_km2",
+  "awater_share",
+  "lon",
+  "lat",
+  "county_med_log",
+  "county_p90_log",
+  "county_log_events"
+ ],
+ "featureLabels": {
+  "w_SV": "Warning: Severe Thunderstorm",
+  "w_TO": "Warning: Tornado",
+  "w_HU": "Warning: Hurricane",
+  "w_TR": "Warning: Tropical Storm",
+  "w_HW": "Warning: High Wind",
+  "w_WI": "Warning: Wind Advisory",
+  "w_IS": "Warning: Ice Storm",
+  "w_ZR": "Warning: Freezing Rain",
+  "w_WS": "Warning: Winter Storm",
+  "w_BZ": "Warning: Blizzard",
+  "w_WW": "Warning: Winter Weather",
+  "w_WC": "Warning: Wind Chill",
+  "w_HZ": "Warning: Hard Freeze",
+  "w_FZ": "Warning: Freeze",
+  "w_EH": "Warning: Excessive Heat",
+  "w_HT": "Warning: Heat Advisory",
+  "w_FW": "Warning: Fire Weather / Red Flag",
+  "w_EW": "Warning: Extreme Wind",
+  "n_warnings": "Number of simultaneous warning types",
+  "wfo": "NWS forecast office",
+  "month": "Month",
+  "solar_hour": "Local solar hour",
+  "source_completeness_pct": "Source-record availability",
+  "log_aland_km2": "County land area",
+  "awater_share": "County water share",
+  "lon": "County longitude",
+  "lat": "County latitude",
+  "county_med_log": "County typical outage (training period)",
+  "county_p90_log": "County 90th-pct outage (training period)",
+  "county_log_events": "County outage-event count (training period)"
+ },
+ "excludedColumns": {
+  "max_rolling_avg": "target",
+  "Max_outage": "event peak outage (outcome over the whole event)",
+  "evDur_Hr": "event duration (known only after restoration)",
+  "evDur_day": "event duration (known only after restoration)",
+  "event_mean_completeness_pct": "event-level aggregate over future hours",
+  "event_min_completeness_pct": "event-level aggregate over future hours",
+  "new_event_no": "outcome-derived event segmentation id",
+  "median_sum": "county 75th-percentile outage over the full 2015-2024 record (includes test-period outcomes); replaced by training-period-only county statistics"
+ },
+ "split": {
+  "policy": "whole outage events assigned by event start time (UTC); events starting within 48 h before a boundary dropped",
+  "boundaries": {
+   "train_end": "2020-01-01T00:00:00Z",
+   "val_end": "2021-01-01T00:00:00Z"
+  },
+  "counts": {
+   "train": {
+    "rows": 1967291,
+    "events": 773434,
+    "houston_rows": 19286,
+    "houston_events": 8027,
+    "period": [
+     "2015-01-02 03:00:00+00:00",
+     "2019-12-31 00:00:00+00:00"
+    ]
+   },
+   "val": {
+    "rows": 515986,
+    "events": 194586,
+    "houston_rows": 6345,
+    "houston_events": 2684,
+    "period": [
+     "2020-01-01 17:00:00+00:00",
+     "2020-12-31 00:00:00+00:00"
+    ]
+   },
+   "test": {
+    "rows": 1086568,
+    "events": 405144,
+    "houston_rows": 13479,
+    "houston_events": 3836,
+    "period": [
+     "2021-01-01 00:00:00+00:00",
+     "2023-01-03 01:00:00+00:00"
+    ]
+   }
+  }
+ },
+ "selection": {
+  "geography_candidates": {
+   "gulf_coast": {
+    "n_train_rows": 35440,
+    "fit_seconds": 2.1,
+    "val_houston": {
+     "n": 6345,
+     "mae": 189.635,
+     "median_ae": 11.6849,
+     "p90_ae": 300.6617,
+     "mae_log1p": 1.1121,
+     "within_factor_2": 0.4258,
+     "median_signed_error": 0.2043
+    }
+   },
+   "texas": {
+    "n_train_rows": 201385,
+    "fit_seconds": 6.6,
+    "val_houston": {
+     "n": 6345,
+     "mae": 185.6062,
+     "median_ae": 11.0843,
+     "p90_ae": 266.2219,
+     "mae_log1p": 1.0941,
+     "within_factor_2": 0.4361,
+     "median_signed_error": 0.1858
+    }
+   },
+   "conus": {
+    "n_train_rows": 1199936,
+    "fit_seconds": 23.6,
+    "val_houston": {
+     "n": 6345,
+     "mae": 184.4139,
+     "median_ae": 10.8473,
+     "p90_ae": 271.3758,
+     "mae_log1p": 1.069,
+     "within_factor_2": 0.4467,
+     "median_signed_error": 0.0823
+    }
+   }
+  },
+  "chosen_geography": "conus",
+  "grid": [
+   {
+    "params": {
+     "max_iter": 300,
+     "max_leaf_nodes": 31,
+     "min_samples_leaf": 40
+    },
+    "val_houston": {
+     "n": 6345,
+     "mae": 184.6632,
+     "median_ae": 11.2657,
+     "p90_ae": 274.0526,
+     "mae_log1p": 1.0714,
+     "within_factor_2": 0.446,
+     "median_signed_error": 0.1293
+    }
+   },
+   {
+    "params": {
+     "max_iter": 300,
+     "max_leaf_nodes": 31,
+     "min_samples_leaf": 200
+    },
+    "val_houston": {
+     "n": 6345,
+     "mae": 184.5622,
+     "median_ae": 11.1748,
+     "p90_ae": 275.6803,
+     "mae_log1p": 1.0704,
+     "within_factor_2": 0.4479,
+     "median_signed_error": 0.1344
+    }
+   },
+   {
+    "params": {
+     "max_iter": 300,
+     "max_leaf_nodes": 63,
+     "min_samples_leaf": 40
+    },
+    "val_houston": {
+     "n": 6345,
+     "mae": 184.5157,
+     "median_ae": 10.9782,
+     "p90_ae": 279.5671,
+     "mae_log1p": 1.0704,
+     "within_factor_2": 0.4493,
+     "median_signed_error": 0.1297
+    }
+   },
+   {
+    "params": {
+     "max_iter": 300,
+     "max_leaf_nodes": 63,
+     "min_samples_leaf": 200
+    },
+    "val_houston": {
+     "n": 6345,
+     "mae": 184.8388,
+     "median_ae": 10.9289,
+     "p90_ae": 276.1749,
+     "mae_log1p": 1.0698,
+     "within_factor_2": 0.4484,
+     "median_signed_error": 0.1407
+    }
+   },
+   {
+    "params": {
+     "max_iter": 700,
+     "max_leaf_nodes": 31,
+     "min_samples_leaf": 40
+    },
+    "val_houston": {
+     "n": 6345,
+     "mae": 184.0779,
+     "median_ae": 11.0676,
+     "p90_ae": 272.5271,
+     "mae_log1p": 1.0698,
+     "within_factor_2": 0.4478,
+     "median_signed_error": 0.1014
+    }
+   },
+   {
+    "params": {
+     "max_iter": 700,
+     "max_leaf_nodes": 31,
+     "min_samples_leaf": 200
+    },
+    "val_houston": {
+     "n": 6345,
+     "mae": 184.1592,
+     "median_ae": 11.1501,
+     "p90_ae": 273.379,
+     "mae_log1p": 1.0678,
+     "within_factor_2": 0.4493,
+     "median_signed_error": 0.1031
+    }
+   },
+   {
+    "params": {
+     "max_iter": 700,
+     "max_leaf_nodes": 63,
+     "min_samples_leaf": 40
+    },
+    "val_houston": {
+     "n": 6345,
+     "mae": 184.4925,
+     "median_ae": 10.7568,
+     "p90_ae": 276.2441,
+     "mae_log1p": 1.0713,
+     "within_factor_2": 0.4512,
+     "median_signed_error": 0.1066
+    }
+   },
+   {
+    "params": {
+     "max_iter": 700,
+     "max_leaf_nodes": 63,
+     "min_samples_leaf": 200
+    },
+    "val_houston": {
+     "n": 6345,
+     "mae": 184.5475,
+     "median_ae": 10.7107,
+     "p90_ae": 273.7434,
+     "mae_log1p": 1.0696,
+     "within_factor_2": 0.4512,
+     "median_signed_error": 0.0954
+    }
+   }
+  ],
+  "chosen_params": {
+   "learning_rate": 0.06,
+   "max_iter": 700,
+   "max_leaf_nodes": 31,
+   "min_samples_leaf": 200,
+   "l2_regularization": 1.0
+  },
+  "criterion": "Houston validation MAE on log1p"
+ },
+ "finalTraining": {
+  "rows": 1500443,
+  "period": "2015-2020 events",
+  "geography": "conus",
+  "fit_seconds": 95.1
+ },
+ "metrics": {
+  "test_houston": {
+   "model": {
+    "n": 13479,
+    "mae": 3477.503,
+    "median_ae": 71.6258,
+    "p90_ae": 1073.8122,
+    "mae_log1p": 1.9345,
+    "within_factor_2": 0.2626,
+    "median_signed_error": -52.9392,
+    "interval_coverage": 0.6664
+   },
+   "global_median": {
+    "n": 13479,
+    "mae": 3506.6263,
+    "median_ae": 83.75,
+    "p90_ae": 1220.575,
+    "mae_log1p": 2.5588,
+    "within_factor_2": 0.1336,
+    "median_signed_error": -83.75
+   },
+   "warning_type_median": {
+    "n": 13479,
+    "mae": 3506.3254,
+    "median_ae": 83.5938,
+    "p90_ae": 1219.9688,
+    "mae_log1p": 2.597,
+    "within_factor_2": 0.1338,
+    "median_signed_error": -83.5938
+   },
+   "county_median": {
+    "n": 13479,
+    "mae": 3485.7788,
+    "median_ae": 78.5,
+    "p90_ae": 1125.425,
+    "mae_log1p": 2.4158,
+    "within_factor_2": 0.1736,
+    "median_signed_error": -67.625
+   },
+   "county_x_warning_median": {
+    "n": 13479,
+    "mae": 3486.618,
+    "median_ae": 79.25,
+    "p90_ae": 1117.2688,
+    "mae_log1p": 2.4157,
+    "within_factor_2": 0.1745,
+    "median_signed_error": -66.4688
+   }
+  },
+  "test_houston_excluding_largest_episode": {
+   "excluded_episode": "ep-20210211-15",
+   "model": {
+    "n": 12027,
+    "mae": 239.4606,
+    "median_ae": 60.9001,
+    "p90_ae": 517.3753,
+    "mae_log1p": 1.6143,
+    "within_factor_2": 0.2788,
+    "median_signed_error": -42.2169,
+    "interval_coverage": 0.7136
+   },
+   "global_median": {
+    "n": 12027,
+    "mae": 267.1939,
+    "median_ae": 70.3125,
+    "p90_ae": 606.7625,
+    "mae_log1p": 2.2306,
+    "within_factor_2": 0.1413,
+    "median_signed_error": -70.3125
+   },
+   "warning_type_median": {
+    "n": 12027,
+    "mae": 267.0051,
+    "median_ae": 70.1875,
+    "p90_ae": 606.1687,
+    "mae_log1p": 2.2875,
+    "within_factor_2": 0.142,
+    "median_signed_error": -70.1875
+   },
+   "county_median": {
+    "n": 12027,
+    "mae": 247.7016,
+    "median_ae": 66.8125,
+    "p90_ae": 526.625,
+    "mae_log1p": 2.0909,
+    "within_factor_2": 0.1831,
+    "median_signed_error": -56.375
+   },
+   "county_x_warning_median": {
+    "n": 12027,
+    "mae": 250.3311,
+    "median_ae": 67.625,
+    "p90_ae": 538.4875,
+    "mae_log1p": 2.0987,
+    "within_factor_2": 0.1873,
+    "median_signed_error": -55.5
+   }
+  },
+  "test_houston_full_source_records": {
+   "model": {
+    "n": 10909,
+    "mae": 4234.6834,
+    "median_ae": 104.6797,
+    "p90_ae": 1486.9318,
+    "mae_log1p": 2.1023,
+    "within_factor_2": 0.2177,
+    "median_signed_error": -83.0483,
+    "interval_coverage": 0.6481
+   },
+   "global_median": {
+    "n": 10909,
+    "mae": 4270.1374,
+    "median_ae": 125.0,
+    "p90_ae": 1613.1,
+    "mae_log1p": 2.8034,
+    "within_factor_2": 0.1096,
+    "median_signed_error": -125.0
+   },
+   "warning_type_median": {
+    "n": 10909,
+    "mae": 4269.6517,
+    "median_ae": 125.0625,
+    "p90_ae": 1611.9688,
+    "mae_log1p": 2.8466,
+    "within_factor_2": 0.108,
+    "median_signed_error": -125.0625
+   },
+   "county_median": {
+    "n": 10909,
+    "mae": 4244.4867,
+    "median_ae": 113.75,
+    "p90_ae": 1515.7625,
+    "mae_log1p": 2.6407,
+    "within_factor_2": 0.1483,
+    "median_signed_error": -100.9375
+   },
+   "county_x_warning_median": {
+    "n": 10909,
+    "mae": 4245.3374,
+    "median_ae": 114.875,
+    "p90_ae": 1506.8625,
+    "mae_log1p": 2.6358,
+    "within_factor_2": 0.1438,
+    "median_signed_error": -98.875
+   }
+  },
+  "test_texas_outside_houston_model_only": {
+   "n": 143546,
+   "mae": 422.6477,
+   "median_ae": 3.3081,
+   "p90_ae": 202.1085,
+   "mae_log1p": 1.1154,
+   "within_factor_2": 0.5291,
+   "median_signed_error": -0.0058
+  },
+  "model_beats_baseline_on_mae_log1p": {
+   "global_median": true,
+   "warning_type_median": true,
+   "county_median": true,
+   "county_x_warning_median": true
+  },
+  "model_beats_best_baseline_on_mae": true,
+  "rolling_origin_2022": {
+   "train_events": "start < 2022 (2015-2021)",
+   "test": "Houston events starting 2022",
+   "rows": 7967,
+   "model": {
+    "n": 7967,
+    "mae": 253.4785,
+    "median_ae": 63.6878,
+    "p90_ae": 545.3883,
+    "mae_log1p": 1.4928,
+    "within_factor_2": 0.2804,
+    "median_signed_error": -38.3007
+   },
+   "model_trained_2015_2020": {
+    "n": 7967,
+    "mae": 226.8671,
+    "median_ae": 63.8528,
+    "p90_ae": 496.1397,
+    "mae_log1p": 1.6491,
+    "within_factor_2": 0.2722,
+    "median_signed_error": -46.2117
+   },
+   "global_median": {
+    "n": 7967,
+    "mae": 249.3235,
+    "median_ae": 67.875,
+    "p90_ae": 568.85,
+    "mae_log1p": 1.976,
+    "within_factor_2": 0.1619,
+    "median_signed_error": -67.875
+   },
+   "warning_type_median": {
+    "n": 7967,
+    "mae": 250.8852,
+    "median_ae": 71.5,
+    "p90_ae": 571.05,
+    "mae_log1p": 2.1827,
+    "within_factor_2": 0.1561,
+    "median_signed_error": -71.5
+   },
+   "county_median": {
+    "n": 7967,
+    "mae": 230.9062,
+    "median_ae": 66.8125,
+    "p90_ae": 494.6875,
+    "mae_log1p": 1.8959,
+    "within_factor_2": 0.202,
+    "median_signed_error": -54.6562
+   },
+   "county_x_warning_median": {
+    "n": 7967,
+    "mae": 234.1766,
+    "median_ae": 68.1875,
+    "p90_ae": 507.2688,
+    "mae_log1p": 1.9856,
+    "within_factor_2": 0.2036,
+    "median_signed_error": -55.125
+   }
+  }
+ },
+ "dataDrift": {
+  "median_customers_by_county_year": {
+   "Austin": {
+    "2015": 2.4,
+    "2016": 1.1,
+    "2017": 1.5,
+    "2018": 2.6,
+    "2019": 2.2,
+    "2020": 2.4,
+    "2021": 76.4,
+    "2022": 67.7
+   },
+   "Brazoria": {
+    "2015": 31.2,
+    "2016": null,
+    "2017": 14.7,
+    "2018": 30.2,
+    "2019": 15.9,
+    "2020": 11.3,
+    "2021": 334.6,
+    "2022": 286.2
+   },
+   "Chambers": {
+    "2015": 3.5,
+    "2016": 1.8,
+    "2017": 2.2,
+    "2018": 4.8,
+    "2019": 3.7,
+    "2020": 2.2,
+    "2021": 22.9,
+    "2022": 35.2
+   },
+   "Colorado": {
+    "2015": 2.1,
+    "2016": 1.3,
+    "2017": 2.0,
+    "2018": 3.4,
+    "2019": 3.7,
+    "2020": 2.8,
+    "2021": 33.2,
+    "2022": 20.2
+   },
+   "Fort Bend": {
+    "2015": 27.6,
+    "2016": null,
+    "2017": 31.8,
+    "2018": 35.1,
+    "2019": 23.2,
+    "2020": 20.3,
+    "2021": 182.4,
+    "2022": 172.2
+   },
+   "Galveston": {
+    "2015": 3.1,
+    "2016": 1.9,
+    "2017": 5.9,
+    "2018": 19.9,
+    "2019": 28.2,
+    "2020": 22.2,
+    "2021": 163.3,
+    "2022": 101.9
+   },
+   "Harris": {
+    "2015": 22.0,
+    "2016": 11.5,
+    "2017": 28.1,
+    "2018": 747.6,
+    "2019": 487.5,
+    "2020": 533.2,
+    "2021": 753.1,
+    "2022": 407.0
+   },
+   "Liberty": {
+    "2015": 6.7,
+    "2016": 3.1,
+    "2017": 6.8,
+    "2018": 7.9,
+    "2019": 8.9,
+    "2020": 5.2,
+    "2021": 49.6,
+    "2022": 28.2
+   },
+   "Matagorda": {
+    "2015": 19.1,
+    "2016": null,
+    "2017": 9.2,
+    "2018": 4.0,
+    "2019": 4.1,
+    "2020": 3.5,
+    "2021": 16.1,
+    "2022": 12.2
+   },
+   "Montgomery": {
+    "2015": 54.2,
+    "2016": 31.0,
+    "2017": 41.6,
+    "2018": 49.6,
+    "2019": 58.3,
+    "2020": 72.6,
+    "2021": 201.5,
+    "2022": 199.1
+   },
+   "Walker": {
+    "2015": 7.8,
+    "2016": 12.2,
+    "2017": 11.1,
+    "2018": 3.4,
+    "2019": 2.5,
+    "2020": 3.8,
+    "2021": 30.9,
+    "2022": 3.5
+   },
+   "Waller": {
+    "2015": 4.0,
+    "2016": 2.6,
+    "2017": 5.4,
+    "2018": 2.5,
+    "2019": 3.0,
+    "2020": 4.7,
+    "2021": 82.1,
+    "2022": 91.2
+   },
+   "Wharton": {
+    "2015": 9.6,
+    "2016": null,
+    "2017": 4.7,
+    "2018": 2.9,
+    "2019": 4.0,
+    "2020": 2.4,
+    "2021": 134.1,
+    "2022": 116.6
+   }
+  },
+  "mean_source_availability_by_year": {
+   "2015": 69.4,
+   "2016": 65.6,
+   "2017": 67.1,
+   "2018": 81.1,
+   "2019": 79.8,
+   "2020": 80.2,
+   "2021": 92.5,
+   "2022": 92.3
+  }
+ },
+ "permutationImportance": [
+  {
+   "feature": "source_completeness_pct",
+   "label": "Source-record availability",
+   "mae_log1p_increase": 0.2877
+  },
+  {
+   "feature": "county_med_log",
+   "label": "County typical outage (training period)",
+   "mae_log1p_increase": 0.0521
+  },
+  {
+   "feature": "w_WS",
+   "label": "Warning: Winter Storm",
+   "mae_log1p_increase": 0.0069
+  },
+  {
+   "feature": "n_warnings",
+   "label": "Number of simultaneous warning types",
+   "mae_log1p_increase": 0.0065
+  },
+  {
+   "feature": "w_TO",
+   "label": "Warning: Tornado",
+   "mae_log1p_increase": 0.0042
+  },
+  {
+   "feature": "w_WI",
+   "label": "Warning: Wind Advisory",
+   "mae_log1p_increase": 0.0027
+  },
+  {
+   "feature": "w_HZ",
+   "label": "Warning: Hard Freeze",
+   "mae_log1p_increase": 0.0027
+  },
+  {
+   "feature": "w_SV",
+   "label": "Warning: Severe Thunderstorm",
+   "mae_log1p_increase": 0.0016
+  },
+  {
+   "feature": "w_HW",
+   "label": "Warning: High Wind",
+   "mae_log1p_increase": 0.0
+  },
+  {
+   "feature": "w_IS",
+   "label": "Warning: Ice Storm",
+   "mae_log1p_increase": 0.0
+  },
+  {
+   "feature": "w_ZR",
+   "label": "Warning: Freezing Rain",
+   "mae_log1p_increase": 0.0
+  },
+  {
+   "feature": "w_BZ",
+   "label": "Warning: Blizzard",
+   "mae_log1p_increase": 0.0
+  },
+  {
+   "feature": "w_FW",
+   "label": "Warning: Fire Weather / Red Flag",
+   "mae_log1p_increase": 0.0
+  },
+  {
+   "feature": "w_EW",
+   "label": "Warning: Extreme Wind",
+   "mae_log1p_increase": 0.0
+  },
+  {
+   "feature": "wfo",
+   "label": "NWS forecast office",
+   "mae_log1p_increase": 0.0
+  },
+  {
+   "feature": "w_WC",
+   "label": "Warning: Wind Chill",
+   "mae_log1p_increase": -0.0001
+  },
+  {
+   "feature": "lon",
+   "label": "County longitude",
+   "mae_log1p_increase": -0.0002
+  },
+  {
+   "feature": "lat",
+   "label": "County latitude",
+   "mae_log1p_increase": -0.0007
+  },
+  {
+   "feature": "county_log_events",
+   "label": "County outage-event count (training period)",
+   "mae_log1p_increase": -0.0019
+  },
+  {
+   "feature": "log_aland_km2",
+   "label": "County land area",
+   "mae_log1p_increase": -0.0023
+  },
+  {
+   "feature": "w_HU",
+   "label": "Warning: Hurricane",
+   "mae_log1p_increase": -0.0032
+  },
+  {
+   "feature": "w_FZ",
+   "label": "Warning: Freeze",
+   "mae_log1p_increase": -0.0035
+  },
+  {
+   "feature": "w_EH",
+   "label": "Warning: Excessive Heat",
+   "mae_log1p_increase": -0.0035
+  },
+  {
+   "feature": "w_HT",
+   "label": "Warning: Heat Advisory",
+   "mae_log1p_increase": -0.0037
+  },
+  {
+   "feature": "solar_hour",
+   "label": "Local solar hour",
+   "mae_log1p_increase": -0.0052
+  },
+  {
+   "feature": "awater_share",
+   "label": "County water share",
+   "mae_log1p_increase": -0.0052
+  },
+  {
+   "feature": "w_WW",
+   "label": "Warning: Winter Weather",
+   "mae_log1p_increase": -0.0056
+  },
+  {
+   "feature": "w_TR",
+   "label": "Warning: Tropical Storm",
+   "mae_log1p_increase": -0.0063
+  },
+  {
+   "feature": "month",
+   "label": "Month",
+   "mae_log1p_increase": -0.0113
+  },
+  {
+   "feature": "county_p90_log",
+   "label": "County 90th-pct outage (training period)",
+   "mae_log1p_increase": -0.0274
+  }
+ ],
+ "supportedGeography": [
+  {
+   "countyFips": "48015",
+   "county": "Austin",
+   "defaultWFO": "HGX"
+  },
+  {
+   "countyFips": "48039",
+   "county": "Brazoria",
+   "defaultWFO": "HGX"
+  },
+  {
+   "countyFips": "48071",
+   "county": "Chambers",
+   "defaultWFO": "HGX"
+  },
+  {
+   "countyFips": "48089",
+   "county": "Colorado",
+   "defaultWFO": "HGX"
+  },
+  {
+   "countyFips": "48157",
+   "county": "Fort Bend",
+   "defaultWFO": "HGX"
+  },
+  {
+   "countyFips": "48167",
+   "county": "Galveston",
+   "defaultWFO": "HGX"
+  },
+  {
+   "countyFips": "48201",
+   "county": "Harris",
+   "defaultWFO": "HGX"
+  },
+  {
+   "countyFips": "48291",
+   "county": "Liberty",
+   "defaultWFO": "HGX"
+  },
+  {
+   "countyFips": "48321",
+   "county": "Matagorda",
+   "defaultWFO": "HGX"
+  },
+  {
+   "countyFips": "48339",
+   "county": "Montgomery",
+   "defaultWFO": "HGX"
+  },
+  {
+   "countyFips": "48471",
+   "county": "Walker",
+   "defaultWFO": "HGX"
+  },
+  {
+   "countyFips": "48473",
+   "county": "Waller",
+   "defaultWFO": "HGX"
+  },
+  {
+   "countyFips": "48481",
+   "county": "Wharton",
+   "defaultWFO": "HGX"
+  }
+ ],
+ "supportedWarningTypes": [
+  {
+   "code": "SV",
+   "name": "Severe Thunderstorm"
+  },
+  {
+   "code": "TO",
+   "name": "Tornado"
+  },
+  {
+   "code": "HU",
+   "name": "Hurricane"
+  },
+  {
+   "code": "TR",
+   "name": "Tropical Storm"
+  },
+  {
+   "code": "HW",
+   "name": "High Wind"
+  },
+  {
+   "code": "WI",
+   "name": "Wind Advisory"
+  },
+  {
+   "code": "IS",
+   "name": "Ice Storm"
+  },
+  {
+   "code": "ZR",
+   "name": "Freezing Rain"
+  },
+  {
+   "code": "WS",
+   "name": "Winter Storm"
+  },
+  {
+   "code": "BZ",
+   "name": "Blizzard"
+  },
+  {
+   "code": "WW",
+   "name": "Winter Weather"
+  },
+  {
+   "code": "WC",
+   "name": "Wind Chill"
+  },
+  {
+   "code": "HZ",
+   "name": "Hard Freeze"
+  },
+  {
+   "code": "FZ",
+   "name": "Freeze"
+  },
+  {
+   "code": "EH",
+   "name": "Excessive Heat"
+  },
+  {
+   "code": "HT",
+   "name": "Heat Advisory"
+  },
+  {
+   "code": "FW",
+   "name": "Fire Weather / Red Flag"
+  },
+  {
+   "code": "EW",
+   "name": "Extreme Wind"
+  }
+ ],
+ "supportedPerturbations": {
+  "month": [
+   1,
+   12
+  ],
+  "local_hour": [
+   0,
+   23
+  ]
+ },
+ "inferenceAssumptions": [
+  "source_completeness_pct is set to 100 (estimate under full source-record availability)",
+  "WFO is the county's most frequent forecast office in training",
+  "solar hour is derived from event time and county centroid longitude"
+ ],
+ "limitations": [
+  "Conditional on the archive's selection: only hours that already had a positive outage AND a matched warning. It does not predict whether an outage happens, nor its probability.",
+  "Warning attribution is spatiotemporal co-occurrence (event start-to-peak window), not causation.",
+  "EAGLE-I coverage is heterogeneous and grows over time; missing source records were zero-filled by the dataset authors, biasing low-availability hours downward.",
+  "Tree ensembles cannot extrapolate beyond magnitudes seen in training; record events (Winter Storm Uri) are underestimated by orders of magnitude.",
+  "Reporting-regime drift: median outage levels in 12 of 13 Houston counties jump 5-40x in 2021 (Harris in 2018) while source availability rises above 90%. The step change is consistent with a change in utility reporting coverage rather than weather; models trained on earlier years underestimate 2021+ levels. On absolute customer error the model is roughly tied with a per-county median lookup; its advantage is in relative (log-scale) error.",
+  "County-level aggregate; says nothing about individual feeders, substations or buildings.",
+  "Not a weather forecast and not for operational dispatch."
+ ],
+ "seed": 7,
+ "environment": {
+  "python": "3.13.18",
+  "sklearn": "1.9.1",
+  "pandas": "3.1.1"
+ },
+ "trainRuntimeSeconds": 340.6
+}

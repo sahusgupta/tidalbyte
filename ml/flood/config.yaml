@@ -1,0 +1,39 @@
+# Flood-depth model trained on observed Hurricane Harvey (2017) flood documentation.
+version: "harvey-flood-depth-v1"
+seed: 11
+crs_epsg: 6579          # NAD83(2011) Texas Centric Albers Equal Area (CRS of the USGS Harvey release)
+res_m: 20               # analysis grid
+margin_m: 2000          # terrain context around each mapped reach
+stream_threshold_km2: 1.0
+event: {id: harvey_2017, rain_start: "2017-08-25", rain_end: "2017-09-01"}
+holdout_group: san_jacinto   # Harris County reach; never used for model selection
+sample_per_unit: 60000
+wet_threshold_m: [0.15, 0.30]
+
+paths:
+  harvey: data/interim/harvey
+  nwis_dir: data/raw/usgs-nwis-setx
+  ghcn_dir: data/raw/noaa-ghcnd
+  out: data/processed/flood
+  artifacts: ml/flood/artifacts
+
+# Mapped reaches from Watson et al. (2018), USGS data release doi:10.5066/F7VH5N3N.
+units:
+  - {name: san_jacinto,  group: san_jacinto, bnd: san_jacinto/San_Jacinto/San_Jacinto/sj_bndy.shp,
+     depth: san_jacinto/Depth_San_Jacinto/Depth_San_Jacinto/sj_depth.tif, hwm: san_jacinto/San_Jacinto/San_Jacinto/sj_hwm.shp}
+  - {name: brazos_lower, group: brazos, bnd: brazos/Brazos_lower/Brazos_lower/brazos_lower_bndy.shp,
+     depth: brazos/Depth_Brazos_lower/Depth_Brazos_lower/brazos_lower_depth.tif, hwm: brazos/Brazos_lower/Brazos_lower/brazos_lower_hwm.shp}
+  - {name: brazos_upper, group: brazos, bnd: brazos/Brazos_upper/Brazos_upper/brazos_upper_bndy.shp,
+     depth: brazos/Depth_Brazos_upper/Depth_Brazos_upper/brazos_lower_depth.tif, hwm: brazos/Brazos_upper/Brazos_upper/brazos_upper_hwm.shp}
+  - {name: sanbernard_lower, group: san_bernard, bnd: san_bernard/San_Bernard_lower/San_Bernard_lower/bnd_sandbernard_lower.shp,
+     depth: san_bernard/Depth_SanBernard_lower/Depth_SanBernard_lower/depth_sblow, hwm: san_bernard/San_Bernard_lower/San_Bernard_lower/hwm_sanbernard_lower.shp}
+  - {name: sanbernard_middle, group: san_bernard, bnd: san_bernard/San_Bernard_middle/San_Bernard_middle/bnd_sanbernard_middle.shp,
+     depth: san_bernard/Depth_SanBernard_middle/Depth_SanBernard_middle/depth_sbmid, hwm: san_bernard/San_Bernard_middle/San_Bernard_middle/hwm_sanbernard_middle.shp}
+  - {name: sanbernard_upper, group: san_bernard, bnd: san_bernard/San_Bernard_upper/San_Bernard_upper/bnd_sanbernard_upper.shp,
+     depth: san_bernard/Depth_SanBernard_upper/Depth_SanBernard_upper/depth_sbup, hwm: san_bernard/San_Bernard_upper/San_Bernard_upper/hwm_sanbernard_upper.shp}
+  - {name: emb1, group: coastal, bnd: coastal/East_Matagorda_Bay_basin1/East_Matagorda_Bay_basin1/bnd_emb_1.shp,
+     depth: coastal/depth_East_Matagorda_Bay_basin1/depth_East_Matagorda_Bay_basin1/depth_emb1, hwm: coastal/East_Matagorda_Bay_basin1/East_Matagorda_Bay_basin1/hwm_emb_1.shp}
+  - {name: emb2, group: coastal, bnd: coastal/East_Matagorda_Bay_basin2/East_Matagorda_Bay_basin2/bnd_emb2.shp,
+     depth: coastal/depth_East_Matagorda_Bay_basin2/depth_East_Matagorda_Bay_basin2/depth_emb2, hwm: coastal/East_Matagorda_Bay_basin2/East_Matagorda_Bay_basin2/hwm_emb_2.shp}
+  - {name: tres_palacios, group: coastal, bnd: coastal/Tres_Palacios_River/Tres_Palacios_River/bnd_tres_palacios.shp,
+     depth: coastal/depth_tres_palacios/depth_tres_palacios/depth_tres, hwm: coastal/Tres_Palacios_River/Tres_Palacios_River/hwm_tres_palacios.shp}
