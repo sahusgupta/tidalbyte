@@ -1,5 +1,11 @@
 # EarthLab Status
 
+## Local 3D flood simulator
+
+Run `pnpm dev` after the [local setup](README.md#run-locally). Open the [Houston area chooser](http://127.0.0.1:5173/#/simulate). All five links open AquaGrid with the selected region's streets and extruded buildings. The area chooser is the current entry point. The resource-allocation engine remains available through the EarthLab API and `pnpm demo:allocation`.
+
+The [simulator repair handoff](docs/handoffs/repair-3d-flood-links.md) records the startup and map-rendering fixes and the ten browser cases.
+
 ## Houston planning and zones
 
 The [resource planning integration](https://github.com/sahusgupta/tidalbyte/pull/5) adds mitigation and response to the Houston atlas. Open **Study menu → Resource planning**, or run `pnpm demo:allocation` for both cases. The [planning handoff](docs/handoffs/houston-resource-planning.md) covers the API, computed example, desktop and touch controls, tests and model assumptions.
