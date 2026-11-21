@@ -244,6 +244,14 @@ export function SimulatorHost({
             <span aria-hidden="true" />
             External simulator not connected
           </div>
+          <div className="sim-editor-callout">
+            <button type="button" className="sim-primary" onClick={onOpenAtlas}>
+              Open Houston editor <span aria-hidden="true">↗</span>
+            </button>
+            <p>
+              Explore illustrative storm, flood, and road-closure scenarios.
+            </p>
+          </div>
           <p className="sim-area-note">{zone.summary}</p>
           <div
             className="sim-area-frame"
@@ -283,20 +291,6 @@ export function SimulatorHost({
               </strong>
             </div>
           </div>
-          <section className="sim-editor-callout">
-            <h3>Explore the Houston editor</h3>
-            <p>
-              Draw a hypothetical storm track or flood footprint, inspect the
-              road sample, and compare assumed closures.
-            </p>
-            <button type="button" className="sim-primary" onClick={onOpenAtlas}>
-              Open Houston editor <span aria-hidden="true">↗</span>
-            </button>
-          </section>
-          <p className="sim-disclaimer">
-            No simulation has run for this selected area. The editor uses
-            clearly labeled illustrative scenarios.
-          </p>
           <details className="sim-extent">
             <summary>Area coordinates</summary>
             <dl>
@@ -365,9 +359,6 @@ export function SimulatorHost({
               )}
             </div>
           </details>
-          <button type="button" className="sim-return" onClick={onExit}>
-            Choose a different Houston area
-          </button>
         </div>
       )}
     </section>
