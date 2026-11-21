@@ -27,4 +27,12 @@ For standalone development, start Uvicorn with `python -m uvicorn aquagrid.api:a
 
 ## Interpretation
 
+Hospital choices are derived from Overture place records and snapped to the regional road
+network. The prepare pipeline excludes one audited BrightQuery record that mislabels the
+[Holly Hall outpatient clinic](https://www.harrishealth.org/locations-hh/Pages/smith-clinic.aspx)
+as [Ben Taub Hospital](https://www.harrishealth.org/locations-hh/Pages/ben-taub.aspx).
+The exclusion matches its source ID and erroneous location; a corrected future location
+is retained. Run catalog regressions from `simulator/backend` with the simulator environment:
+`python -m unittest discover -s tests -v`.
+
 The route estimate uses the selected vehicle and modeled road depths. Travel time excludes live traffic. Roads are treated as undirected. Route availability in this scenario does not establish current road safety or emergency access.
