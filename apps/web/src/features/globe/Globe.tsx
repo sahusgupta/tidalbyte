@@ -1,15 +1,18 @@
 import { useEffect, useRef, useState } from "react";
 import {
   BoundingSphere,
+  CallbackProperty,
   Cartesian2,
   Cartesian3,
   Cartographic,
   Color,
+  Credit,
   CustomDataSource,
   DistanceDisplayCondition,
   Entity,
   HeadingPitchRange,
   HorizontalOrigin,
+  ImageryLayer,
   LabelStyle,
   Math as CesiumMath,
   Matrix4,
@@ -17,7 +20,9 @@ import {
   PolylineDashMaterialProperty,
   ScreenSpaceEventHandler,
   ScreenSpaceEventType,
+  TileMapServiceImageryProvider,
   Viewer,
+  buildModuleUrl,
 } from "cesium";
 import { offlineCounties, type Prediction } from "@earthlab/contracts";
 import {
@@ -79,12 +84,17 @@ const colors = {
 const c = (hex: string, alpha = 1) => Color.fromCssColorString(hex).withAlpha(alpha);
 const positions = (points: Point[], height = 65) =>
   points.map(([lon, lat]) => Cartesian3.fromDegrees(lon, lat, height));
+// Avoid asynchronous geometry queues while timeline edits replace entities.
+const linePositions = (points: Point[], height = 65) => {
+  const packed = positions(points, height);
+  return new CallbackProperty(() => packed, false);
+};
 const label = (text: string, extra: object = {}) => ({
   text,
   font: "500 12px Arial",
   fillColor: c("#f5f0dc"),
-  outlineColor: c("#142329"),
-  outlineWidth: 3,
+  outlineColor: c("#101c16"),
+  outlineWidth: 4,
   style: LabelStyle.FILL_AND_OUTLINE,
   showBackground: false,
   pixelOffset: new Cartesian2(0, -13),
@@ -95,7 +105,7 @@ const framedTarget = (bookmark: BookmarkId, canvas: HTMLCanvasElement) => {
   const target = BOOKMARKS[bookmark];
   const aspect = Math.max(0.4, canvas.clientWidth / Math.max(1, canvas.clientHeight));
   return bookmark === "houston"
-    ? { point: HOUSTON_OVERVIEW_CENTER, range: Math.min(110000, target.range * Math.max(1, 1.1 / aspect)) }
+    ? { point: HOUSTON_OVERVIEW_CENTER, range: Math.min(110000, target.range * Math.max(1, 0.82 / aspect)) }
     : target;
 };
 
@@ -215,6 +225,13 @@ export default function Globe(props: AtlasMapProps) {
       void viewer.dataSources.add(source);
     });
 
+    // A bounded archive must never become Cesium's globally stretched base.
+    const globalBase = ImageryLayer.fromProviderAsync(TileMapServiceImageryProvider.fromUrl(
+      buildModuleUrl("Assets/Textures/NaturalEarthII"),
+      { credit: new Credit("Natural Earth II · public-domain cartography", true) },
+    ));
+    viewer.imageryLayers.add(globalBase, 0);
+
     for (const archive of HOUSTON_ARCHIVE_LAYERS) {
       const layer = createHoustonArchiveLayer(archive);
       removers.push(
@@ -241,14 +258,14 @@ export default function Globe(props: AtlasMapProps) {
       }),
     );
     for (const place of [
-      { point: [-95.3698, 29.7604] as Point, name: "Downtown Houston", size: 14 },
-      { point: [-95.446, 29.767] as Point, name: "Buffalo Bayou", size: 12 },
-      { point: [-95.185, 29.735] as Point, name: "Ship Channel", size: 12 },
+      { point: [-95.3698, 29.7604] as Point, name: "Downtown Houston", size: 15 },
+      { point: [-95.446, 29.767] as Point, name: "Buffalo Bayou", size: 13 },
+      { point: [-95.185, 29.735] as Point, name: "Ship Channel", size: 13 },
     ])
       group.reference.entities.add({
         position: Cartesian3.fromDegrees(...place.point, 120),
         label: label(place.name, {
-          font: `${place.size > 12 ? 500 : 400} ${place.size}px Arial`,
+          font: `500 ${place.size}px Arial`,
           horizontalOrigin: place.name === "Buffalo Bayou" ? HorizontalOrigin.RIGHT : HorizontalOrigin.LEFT,
           pixelOffset: new Cartesian2(
             place.name === "Buffalo Bayou" ? -12 : 16,
@@ -256,7 +273,7 @@ export default function Globe(props: AtlasMapProps) {
           ),
           distanceDisplayCondition: new DistanceDisplayCondition(
             0,
-            place.size <= 12 ? 90000 : 180000,
+            place.size <= 13 ? 90000 : 180000,
           ),
         }),
       });
@@ -454,6 +471,9 @@ export default function Globe(props: AtlasMapProps) {
       }),
     );
     setReady(true);
+    removers.push(viewer.scene.postRender.addEventListener(() => {
+      mount.current?.setAttribute("data-scene-ready", String(viewer.scene.globe.tilesLoaded && viewer.dataSourceDisplay.ready));
+    }));
     return () => {
       disposed = true;
       dragging.current = null;
@@ -517,16 +537,16 @@ export default function Globe(props: AtlasMapProps) {
       source.entities.add({
         id: `road-casing:${road.id}`,
         polyline: {
-          positions: positions(road.points, 45),
-          width: selected ? 6 : 3.5,
-          material: c(colors.ink, 0.72),
+          positions: linePositions(road.points, 45),
+          width: selected ? 6.5 : 4.5,
+          material: c(colors.ink, 0.85),
         },
       });
       source.entities.add({
         id: `road:${road.id}`,
         polyline: {
-          positions: positions(road.points, 68),
-          width: selected ? 3.5 : 1.75,
+          positions: linePositions(road.points, 68),
+          width: selected ? 3.75 : 2.25,
           material:
             closed || disconnected
               ? new PolylineDashMaterialProperty({ color: c(stroke), dashLength: 13 })
@@ -578,7 +598,7 @@ export default function Globe(props: AtlasMapProps) {
         source.entities.add({
           id: "baseline-track",
           polyline: {
-            positions: positions(props.baselineTrack, 100),
+            positions: linePositions(props.baselineTrack, 100),
             width: 3,
             material: new PolylineDashMaterialProperty({
               color: c("#e7e7df", 0.85),
@@ -591,7 +611,7 @@ export default function Globe(props: AtlasMapProps) {
         source.entities.add({
           id: "baseline-flood",
           polyline: {
-            positions: positions([...ring, ring[0]], 105),
+            positions: linePositions([...ring, ring[0]], 105),
             width: 3,
             material: new PolylineDashMaterialProperty({
               color: c("#f1ece0", 0.9),
@@ -604,7 +624,7 @@ export default function Globe(props: AtlasMapProps) {
     if (props.mode === "hurricane") {
       source.entities.add({
         id: "active-track",
-        polyline: { positions: positions(track, 160), width: 3, material: c("#e6aa63") },
+        polyline: { positions: linePositions(track, 160), width: 3, material: c("#e6aa63") },
       });
       track.forEach((point, index) =>
         source.entities.add({
@@ -664,7 +684,7 @@ export default function Globe(props: AtlasMapProps) {
       source.entities.add({
         id: "flood-perimeter",
         polyline: {
-          positions: positions([...polygon, polygon[0]], 115),
+          positions: linePositions([...polygon, polygon[0]], 115),
           width: 2,
           material: new PolylineDashMaterialProperty({ color: c("#b9ddda"), dashLength: 12 }),
         },
@@ -732,7 +752,7 @@ export default function Globe(props: AtlasMapProps) {
       source.entities.add({
         id: `county:${prediction.countyFips}`,
         polyline: {
-          positions: positions(ring, 110),
+          positions: linePositions(ring, 110),
           width: 2,
           material: new PolylineDashMaterialProperty({ color: c("#d6dbc3", 0.65), dashLength: 20 }),
         },

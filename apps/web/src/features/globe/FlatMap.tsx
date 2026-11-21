@@ -256,8 +256,8 @@ export function FlatMap(props: AtlasMapProps) {
                   points={path(road.points)}
                   fill="none"
                   stroke={dark}
-                  strokeWidth={selected ? 6 : 3.5}
-                  strokeOpacity={0.72}
+                  strokeWidth={selected ? 6.5 : 4.5}
+                  strokeOpacity={0.85}
                   vectorEffect="non-scaling-stroke"
                   pointerEvents="none"
                 />
@@ -269,7 +269,7 @@ export function FlatMap(props: AtlasMapProps) {
                   points={path(road.points)}
                   fill="none"
                   stroke={color}
-                  strokeWidth={selected ? 3.5 : 1.75}
+                  strokeWidth={selected ? 3.75 : 2.25}
                   strokeDasharray={closed || disconnected ? "8 6" : undefined}
                   vectorEffect="non-scaling-stroke"
                   onPointerEnter={() => setHoveredRoad(road.id)}
