@@ -1,0 +1,412 @@
+{
+  "regionId": "houston-gulf-coast",
+  "graphSource": "project:houston-illustrative-network-v1",
+  "phase": "response",
+  "scenarioLabel": "After-event assumed disruption and clearance",
+  "assumptions": [
+    "Only explicitly listed edge IDs are assumed blocked or impaired. Other fixture links are assumed available, not verified open roads.",
+    "A drawn footprint marks geometric exposure only. Exposure never creates a closure, probability, depth or safety claim.",
+    "Response uses one declared disruption scenario.",
+    "Untreated impaired links cost three times their fixture travel cost; untreated blocked links are removed from the modeled graph.",
+    "Action effect is hypothetical: blocked links get base cost / effect; impaired links get base cost \u00d7 (3 \u2212 2 \u00d7 effect). At zero effect nothing is restored. 100% is not flood-proofing.",
+    "One action class per phase, with one option for each agency on each of five links. At most one agency may fund an action on a physical link; duplicate funding is infeasible.",
+    "All work is parallel; crews and equipment are reserved throughout. Completion time is the maximum selected action time, not a real restoration schedule.",
+    "Access per facility is min(1, intact shortest travel cost / scenario shortest travel cost), or zero if unreachable; mitigation averages over its three declared scenarios.",
+    "Weighted access normalizes the fixture facility service weights (clinic 9, shelter 3) to a score from zero to one; no population is counted.",
+    "Agency utility points = clinicWeight \u00d7 clinic access + shelterWeight \u00d7 shelter access \u2212 0.1 \u00d7 that agency's budget-unit spend. Preferences and the cost conversion are editable/illustrative assumptions.",
+    "Independent best responses start at no work, health then shelter. Ties prefer lower spend, crews, equipment, completion time, then stable action order. Verification tests every feasible unilateral deviation under the same shared caps.",
+    "Coordinated planning maximizes the sum of agency utilities. Bargaining requires positive gains for both and maximizes the weighted Nash product relative to independent utilities.",
+    "Health bargaining exponent is 5/10; shelter exponent is 5/10. All methods share candidates and resource constraints.",
+    "Timestamp identifies the fixed assumption-set revision, not live conditions or the time of an observed flood."
+  ],
+  "scenarioVersion": 1,
+  "graphVersion": "houston-illustrative-network-v1",
+  "assumptionSetId": "project:houston-allocation-assumptions-v1",
+  "dataMode": "illustrative",
+  "sourceIds": [
+    "project:houston-illustrative-network-v1",
+    "project:houston-allocation-assumptions-v1"
+  ],
+  "limitations": [
+    "ILLUSTRATIVE: fictional links, facilities, costs, resources and disruption scenarios; requires verification.",
+    "No flood depths, road safety, real restoration schedule or operational dispatch recommendations are established.",
+    "County outage estimates and aerial imagery are not used to infer road-level disruption probabilities.",
+    "Actions run in parallel with resources reserved throughout; travel, logistics, uncertainty calibration and crew scheduling are not modeled."
+  ],
+  "timestampUtc": "2026-11-21T00:00:00Z",
+  "candidates": [
+    {
+      "actionId": "response:health:bypass-east",
+      "agency": "health",
+      "assetId": "bypass-east",
+      "label": "Hypothetical inspection/clearance \u00b7 bypass-east \u00b7 health",
+      "cost": 14,
+      "crews": 1,
+      "equipment": 1,
+      "hours": 6,
+      "effectAssumption": "Assumed 100% modeled restoration: blocked links get base travel cost / effect; impaired links get base cost \u00d7 (3 \u2212 2 \u00d7 effect). Zero effect restores nothing. Not verified field performance.",
+      "source": "project:houston-allocation-assumptions-v1",
+      "exposed": true,
+      "status": "available"
+    },
+    {
+      "actionId": "response:health:bypass-west",
+      "agency": "health",
+      "assetId": "bypass-west",
+      "label": "Hypothetical inspection/clearance \u00b7 bypass-west \u00b7 health",
+      "cost": 16,
+      "crews": 1,
+      "equipment": 1,
+      "hours": 8,
+      "effectAssumption": "Assumed 100% modeled restoration: blocked links get base travel cost / effect; impaired links get base cost \u00d7 (3 \u2212 2 \u00d7 effect). Zero effect restores nothing. Not verified field performance.",
+      "source": "project:houston-allocation-assumptions-v1",
+      "exposed": true,
+      "status": "blocked"
+    },
+    {
+      "actionId": "response:health:main-link",
+      "agency": "health",
+      "assetId": "main-link",
+      "label": "Hypothetical inspection/clearance \u00b7 main-link \u00b7 health",
+      "cost": 18,
+      "crews": 1,
+      "equipment": 1,
+      "hours": 8,
+      "effectAssumption": "Assumed 100% modeled restoration: blocked links get base travel cost / effect; impaired links get base cost \u00d7 (3 \u2212 2 \u00d7 effect). Zero effect restores nothing. Not verified field performance.",
+      "source": "project:houston-allocation-assumptions-v1",
+      "exposed": true,
+      "status": "blocked"
+    },
+    {
+      "actionId": "response:health:north-link",
+      "agency": "health",
+      "assetId": "north-link",
+      "label": "Hypothetical inspection/clearance \u00b7 north-link \u00b7 health",
+      "cost": 20,
+      "crews": 1,
+      "equipment": 1,
+      "hours": 10,
+      "effectAssumption": "Assumed 100% modeled restoration: blocked links get base travel cost / effect; impaired links get base cost \u00d7 (3 \u2212 2 \u00d7 effect). Zero effect restores nothing. Not verified field performance.",
+      "source": "project:houston-allocation-assumptions-v1",
+      "exposed": true,
+      "status": "blocked"
+    },
+    {
+      "actionId": "response:health:south-link",
+      "agency": "health",
+      "assetId": "south-link",
+      "label": "Hypothetical inspection/clearance \u00b7 south-link \u00b7 health",
+      "cost": 12,
+      "crews": 1,
+      "equipment": 1,
+      "hours": 6,
+      "effectAssumption": "Assumed 100% modeled restoration: blocked links get base travel cost / effect; impaired links get base cost \u00d7 (3 \u2212 2 \u00d7 effect). Zero effect restores nothing. Not verified field performance.",
+      "source": "project:houston-allocation-assumptions-v1",
+      "exposed": true,
+      "status": "blocked"
+    },
+    {
+      "actionId": "response:shelter:bypass-east",
+      "agency": "shelter",
+      "assetId": "bypass-east",
+      "label": "Hypothetical inspection/clearance \u00b7 bypass-east \u00b7 shelter",
+      "cost": 16,
+      "crews": 1,
+      "equipment": 1,
+      "hours": 6,
+      "effectAssumption": "Assumed 100% modeled restoration: blocked links get base travel cost / effect; impaired links get base cost \u00d7 (3 \u2212 2 \u00d7 effect). Zero effect restores nothing. Not verified field performance.",
+      "source": "project:houston-allocation-assumptions-v1",
+      "exposed": true,
+      "status": "available"
+    },
+    {
+      "actionId": "response:shelter:bypass-west",
+      "agency": "shelter",
+      "assetId": "bypass-west",
+      "label": "Hypothetical inspection/clearance \u00b7 bypass-west \u00b7 shelter",
+      "cost": 18,
+      "crews": 1,
+      "equipment": 1,
+      "hours": 8,
+      "effectAssumption": "Assumed 100% modeled restoration: blocked links get base travel cost / effect; impaired links get base cost \u00d7 (3 \u2212 2 \u00d7 effect). Zero effect restores nothing. Not verified field performance.",
+      "source": "project:houston-allocation-assumptions-v1",
+      "exposed": true,
+      "status": "blocked"
+    },
+    {
+      "actionId": "response:shelter:main-link",
+      "agency": "shelter",
+      "assetId": "main-link",
+      "label": "Hypothetical inspection/clearance \u00b7 main-link \u00b7 shelter",
+      "cost": 20,
+      "crews": 1,
+      "equipment": 1,
+      "hours": 8,
+      "effectAssumption": "Assumed 100% modeled restoration: blocked links get base travel cost / effect; impaired links get base cost \u00d7 (3 \u2212 2 \u00d7 effect). Zero effect restores nothing. Not verified field performance.",
+      "source": "project:houston-allocation-assumptions-v1",
+      "exposed": true,
+      "status": "blocked"
+    },
+    {
+      "actionId": "response:shelter:north-link",
+      "agency": "shelter",
+      "assetId": "north-link",
+      "label": "Hypothetical inspection/clearance \u00b7 north-link \u00b7 shelter",
+      "cost": 22,
+      "crews": 1,
+      "equipment": 1,
+      "hours": 10,
+      "effectAssumption": "Assumed 100% modeled restoration: blocked links get base travel cost / effect; impaired links get base cost \u00d7 (3 \u2212 2 \u00d7 effect). Zero effect restores nothing. Not verified field performance.",
+      "source": "project:houston-allocation-assumptions-v1",
+      "exposed": true,
+      "status": "blocked"
+    },
+    {
+      "actionId": "response:shelter:south-link",
+      "agency": "shelter",
+      "assetId": "south-link",
+      "label": "Hypothetical inspection/clearance \u00b7 south-link \u00b7 shelter",
+      "cost": 14,
+      "crews": 1,
+      "equipment": 1,
+      "hours": 6,
+      "effectAssumption": "Assumed 100% modeled restoration: blocked links get base travel cost / effect; impaired links get base cost \u00d7 (3 \u2212 2 \u00d7 effect). Zero effect restores nothing. Not verified field performance.",
+      "source": "project:houston-allocation-assumptions-v1",
+      "exposed": true,
+      "status": "blocked"
+    }
+  ],
+  "baselineAccess": {
+    "clinic": 0.0,
+    "shelter": 0.0
+  },
+  "strategies": [
+    {
+      "id": "independent",
+      "utilities": {
+        "health": 0.0,
+        "shelter": 0.0
+      },
+      "spend": {
+        "health": 0,
+        "shelter": 0
+      },
+      "crewsUsed": 0,
+      "equipmentUsed": 0,
+      "completionHours": 0,
+      "access": {
+        "clinic": 0.0,
+        "shelter": 0.0
+      },
+      "weightedAccess": 0.0,
+      "interventions": [],
+      "jointUtility": 0.0,
+      "gains": {
+        "health": 0.0,
+        "shelter": 0.0
+      },
+      "nashProduct": 0,
+      "explanation": "Independent outcome: verified no feasible unilateral deviation improves either agency's utility under the shared-capacity constraints. Best responses start at no work in health/shelter order; exact enumeration verifies the result and resolves any cycle by least regret."
+    },
+    {
+      "id": "coordinated",
+      "utilities": {
+        "health": 8.2,
+        "shelter": -1.2
+      },
+      "spend": {
+        "health": 18,
+        "shelter": 22
+      },
+      "crewsUsed": 2,
+      "equipmentUsed": 2,
+      "completionHours": 10,
+      "access": {
+        "clinic": 1.0,
+        "shelter": 0.0
+      },
+      "weightedAccess": 0.75,
+      "interventions": [
+        {
+          "actionId": "response:health:main-link",
+          "agency": "health",
+          "assetId": "main-link",
+          "label": "Hypothetical inspection/clearance \u00b7 main-link \u00b7 health",
+          "cost": 18,
+          "crews": 1,
+          "accessWithout": {
+            "clinic": 0.0,
+            "shelter": 0.0
+          }
+        },
+        {
+          "actionId": "response:shelter:north-link",
+          "agency": "shelter",
+          "assetId": "north-link",
+          "label": "Hypothetical inspection/clearance \u00b7 north-link \u00b7 shelter",
+          "cost": 22,
+          "crews": 1,
+          "accessWithout": {
+            "clinic": 0.0,
+            "shelter": 0.0
+          }
+        }
+      ],
+      "jointUtility": 7.0,
+      "gains": {
+        "health": 8.2,
+        "shelter": -1.2
+      },
+      "nashProduct": 0,
+      "explanation": "Coordinated optimum: greatest summed agency utility among every feasible joint portfolio; this is constrained optimization, not a Nash equilibrium claim."
+    },
+    {
+      "id": "bargaining",
+      "utilities": {
+        "health": 2.8,
+        "shelter": 4.0
+      },
+      "spend": {
+        "health": 12,
+        "shelter": 20
+      },
+      "crewsUsed": 2,
+      "equipmentUsed": 2,
+      "completionHours": 8,
+      "access": {
+        "clinic": 0.0,
+        "shelter": 1.0
+      },
+      "weightedAccess": 0.25,
+      "interventions": [
+        {
+          "actionId": "response:health:south-link",
+          "agency": "health",
+          "assetId": "south-link",
+          "label": "Hypothetical inspection/clearance \u00b7 south-link \u00b7 health",
+          "cost": 12,
+          "crews": 1,
+          "accessWithout": {
+            "clinic": 0.0,
+            "shelter": 0.0
+          }
+        },
+        {
+          "actionId": "response:shelter:main-link",
+          "agency": "shelter",
+          "assetId": "main-link",
+          "label": "Hypothetical inspection/clearance \u00b7 main-link \u00b7 shelter",
+          "cost": 20,
+          "crews": 1,
+          "accessWithout": {
+            "clinic": 0.0,
+            "shelter": 0.0
+          }
+        }
+      ],
+      "jointUtility": 6.8,
+      "gains": {
+        "health": 2.8,
+        "shelter": 4.0
+      },
+      "nashProduct": 3.3466401061,
+      "explanation": "Nash bargaining agreement: maximizes gains to powers 0.5 (health) and 0.5 (shelter), with strictly positive gains to both."
+    }
+  ],
+  "payoffMatrix": [
+    {
+      "healthActions": [],
+      "shelterActions": [],
+      "utilities": {
+        "health": 0.0,
+        "shelter": 0.0
+      },
+      "feasible": true
+    },
+    {
+      "healthActions": [
+        "response:health:main-link"
+      ],
+      "shelterActions": [
+        "response:shelter:north-link"
+      ],
+      "utilities": {
+        "health": 8.2,
+        "shelter": -1.2
+      },
+      "feasible": true
+    },
+    {
+      "healthActions": [
+        "response:health:south-link"
+      ],
+      "shelterActions": [
+        "response:shelter:main-link"
+      ],
+      "utilities": {
+        "health": 2.8,
+        "shelter": 4.0
+      },
+      "feasible": true
+    },
+    {
+      "healthActions": [],
+      "shelterActions": [
+        "response:shelter:north-link"
+      ],
+      "utilities": {
+        "health": 0.0,
+        "shelter": -2.2
+      },
+      "feasible": true
+    },
+    {
+      "healthActions": [],
+      "shelterActions": [
+        "response:shelter:main-link"
+      ],
+      "utilities": {
+        "health": 0.0,
+        "shelter": -2.0
+      },
+      "feasible": true
+    },
+    {
+      "healthActions": [
+        "response:health:main-link"
+      ],
+      "shelterActions": [],
+      "utilities": {
+        "health": -1.8,
+        "shelter": 0.0
+      },
+      "feasible": true
+    },
+    {
+      "healthActions": [
+        "response:health:south-link"
+      ],
+      "shelterActions": [],
+      "utilities": {
+        "health": -1.2,
+        "shelter": 0.0
+      },
+      "feasible": true
+    },
+    {
+      "healthActions": [
+        "response:health:south-link"
+      ],
+      "shelterActions": [
+        "response:shelter:north-link"
+      ],
+      "utilities": {
+        "health": -1.2,
+        "shelter": -2.2
+      },
+      "feasible": true
+    }
+  ],
+  "equilibriumVerified": true,
+  "agreement": true
+}

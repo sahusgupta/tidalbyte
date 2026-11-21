@@ -1,0 +1,18 @@
+{
+  "regionId": "houston-gulf-coast",
+  "scenarioVersion": 1,
+  "phase": "mitigation",
+  "totalBudget": 50,
+  "crewCapacity": 2,
+  "equipmentCapacity": 2,
+  "horizonHours": 12,
+  "blockedEdgeIds": ["main-link", "bypass-west", "north-link", "south-link"],
+  "impairedEdgeIds": [],
+  "bargainingWeight": 5,
+  "effectPercent": 100,
+  "footprint": {"longitude": -95.37, "latitude": 29.76, "radiusKm": 12},
+  "agencies": {
+    "health": {"budget": 30, "crewCapacity": 1, "clinicWeight": 10, "shelterWeight": 4},
+    "shelter": {"budget": 30, "crewCapacity": 1, "clinicWeight": 1, "shelterWeight": 6}
+  }
+}
