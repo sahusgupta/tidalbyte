@@ -254,11 +254,10 @@ export default function App() {
     setControls({ rain: p.rain, duration: p.duration, surge: p.surge, clog: p.clog })
   }
 
-  if (!meta || meta.region.id !== region || !scene) {
+  if (!meta || meta.region.id !== region || (error && !scene)) {
     return <Splash error={error ?? undefined} name={regions.find((r) => r.id === region)?.name} />
   }
 
-  const { MapView, roads, buildings } = scene
   const wind = Math.min(1, (controls.surge / 3) * 0.8 + (controls.rain / 200) * 0.35)
   const p = preset ? meta.presets[preset] : null
   const redirected = EARTH_ZONE_ID ? EARTH_ZONE_ID !== meta.region.id : Boolean(EARTH_ZONE && !overlaps(EARTH_BBOX, meta.region.bbox))
@@ -277,10 +276,10 @@ export default function App() {
       </header>
       <main className="sim-stage">
         <div id="sim-map" className="sim-map" tabIndex={-1} aria-label="Houston scenario map. Click to choose a starting point, or use the starting point selector in Impact and routing." inert={modal}>
-          <MapView key={meta.region.id} meta={meta} roads={roads} buildings={buildings} result={deferredResult} buildingMode={buildingMode} showWater={showWater} storm={mapSeverity}
-            onPick={onPick}
-          />
-          <RainOverlay rain={controls.rain} wind={wind} severity={severity} />
+          {scene ? <>
+            <scene.MapView key={meta.region.id} meta={meta} roads={scene.roads} buildings={scene.buildings} result={deferredResult} buildingMode={buildingMode} showWater={showWater} storm={mapSeverity} onPick={onPick} />
+            <RainOverlay rain={controls.rain} wind={wind} severity={severity} />
+          </> : <p className="sim-map-loading" role="status"><LoaderCircle size={16} aria-hidden="true" className="sim-spinner" />Loading roads and buildings…</p>}
         </div>
         {(!EMBEDDED || redirected) && <div className="sim-summary" inert={modal}>
           {!EMBEDDED && regions.filter((r) => r.built).length > 1 ? (

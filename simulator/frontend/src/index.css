@@ -25,6 +25,7 @@ button,select,input { font:inherit; } button { cursor:pointer; } button:disabled
 .sim-header button { display:flex; align-items:center; justify-content:center; min-width:44px; min-height:44px; gap:8px; padding:8px 12px; background:transparent; color:var(--sim-paper); border:1px solid transparent; font-size:13px; }
 .sim-header button:hover { background:var(--sim-raised); } .sim-header button[aria-expanded=true] { color:var(--sim-amber); border-color:#567a98; }
 .sim-stage { position:relative; min-height:0; min-width:0; isolation:isolate; } .sim-map { position:absolute; inset:0; container-type:size; }
+.sim-map-loading { height:100%; margin:0; display:flex; align-items:center; justify-content:center; gap:8px; color:var(--sim-dim); }
 .sim-summary { position:absolute; top:16px; left:16px; max-width:min(440px,calc(100% - 32px)); padding:8px 12px; background:#1c2632eb; border-left:2px solid #729ab9; }
 .sim-summary h1,.sim-summary select { margin:0; color:var(--sim-paper); font-size:15px; font-weight:500; line-height:20px; }
 .sim-summary select { width:100%; min-height:44px; padding:4px 20px 4px 0; background:var(--sim-panel); border:0; }
