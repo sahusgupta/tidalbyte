@@ -31,7 +31,7 @@ export const HOUSTON_OVERVIEW_CENTER: Point = [
   (Math.min(...overviewPoints.map((point) => point[1])) + Math.max(...overviewPoints.map((point) => point[1]))) / 2,
 ];
 
-export function FlatMap(props: AtlasMapProps) {
+export function FlatMap(props: AtlasMapProps & { measurement?: Point[]; onMeasurePoint?: (point: Point) => void }) {
   const svg = useRef<SVGSVGElement>(null);
   const [view, setView] = useState({ x: 0, y: 0, width: 1000, height: 760 });
   const [local, setLocal] = useState<{ track: Point[]; center: Point; radius: number } | null>(
@@ -39,6 +39,7 @@ export function FlatMap(props: AtlasMapProps) {
   );
   const [hoveredRoad, setHoveredRoad] = useState<string | null>(null);
   const [scaleFactor, setScaleFactor] = useState(1);
+  const untouchedView = useRef(true);
   const drag = useRef<{
     target: DragTarget | { kind: "pan" };
     start: Point;
@@ -56,16 +57,21 @@ export function FlatMap(props: AtlasMapProps) {
   const radius = local ? local.radius * ratio : props.currentFloodRadiusKm;
 
   useEffect(() => {
-    const target = BOOKMARKS[props.bookmark];
-    const aspect = (svg.current?.clientWidth || 1000) / (svg.current?.clientHeight || 760);
-    const scale = props.bookmark === "houston" ? Math.min(1.8, Math.max(.88, .82 / aspect)) : props.bookmark === "downtown" ? 0.35 : 0.45;
-    const point = props.bookmark === "houston" ? HOUSTON_OVERVIEW_CENTER : target.point;
-    setView({
-      x: X(point) - 500 * scale,
-      y: Y(point) - 380 * scale,
-      width: 1000 * scale,
-      height: 760 * scale,
-    });
+    untouchedView.current = true;
+    const frame = () => {
+      if (!untouchedView.current) return;
+      const target = BOOKMARKS[props.bookmark];
+      const aspect = (svg.current?.clientWidth || 1000) / (svg.current?.clientHeight || 760);
+      const scale = props.bookmark === "houston" ? Math.min(1.8, Math.max(.88, .82 / aspect)) : props.bookmark === "downtown" ? 0.35 : 0.45;
+      const point = props.bookmark === "houston" ? HOUSTON_OVERVIEW_CENTER : target.point;
+      setView({ x: X(point) - 500 * scale, y: Y(point) - 380 * scale, width: 1000 * scale, height: 760 * scale });
+    };
+    frame();
+    const node = svg.current;
+    if (!node) return;
+    const observer = new ResizeObserver(frame);
+    observer.observe(node);
+    return () => observer.disconnect();
   }, [props.bookmark, props.cameraRevision]);
 
   useEffect(() => {
@@ -111,6 +117,7 @@ export function FlatMap(props: AtlasMapProps) {
     const point = eventPoint(event);
     if (distanceKm(value.start, point) > 0.03) value.moved = true;
     if (value.target.kind === "pan") {
+      if (value.moved) untouchedView.current = false;
       const dx = (event.clientX - value.screen[0]) * value.scale[0],
         dy = (event.clientY - value.screen[1]) * value.scale[1];
       setView({
@@ -141,9 +148,11 @@ export function FlatMap(props: AtlasMapProps) {
     else if (value.target.kind !== "pan") props.onFloodChange(value.center, value.radius);
     else if (!value.moved && (props.tool === "track" || props.tool === "flood"))
       props.onMapPoint(eventPoint(event));
+    else if (!value.moved && props.tool === "measure") props.onMeasurePoint?.(eventPoint(event));
     setLocal(null);
   };
-  const zoom = (factor: number) =>
+  const zoom = (factor: number) => {
+    untouchedView.current = false;
     setView((current) => {
       const width = Math.max(160, Math.min(1800, current.width * factor));
       const height = width * 0.76;
@@ -154,6 +163,7 @@ export function FlatMap(props: AtlasMapProps) {
         height,
       };
     });
+  };
   const nudgeTrack = (index: number, key: string) => {
     const direction = (
       {
@@ -209,6 +219,7 @@ export function FlatMap(props: AtlasMapProps) {
           )[event.key];
           if (direction) {
             event.preventDefault();
+            untouchedView.current = false;
             setView((value) => ({
               ...value,
               x: boundStart(value.x + (direction[0] * value.width) / 1000, value.width, 1000, 100),
@@ -277,14 +288,16 @@ export function FlatMap(props: AtlasMapProps) {
                   onPointerDown={(event) => event.stopPropagation()}
                   onClick={(event) => {
                     event.stopPropagation();
-                    if (props.tool === "track" || props.tool === "flood")
+                    if (props.tool === "measure") props.onMeasurePoint?.(eventPoint(event));
+                    else if (props.tool === "track" || props.tool === "flood")
                       props.onMapPoint(eventPoint(event));
                     else props.onRoadSelect(road.id);
                   }}
                   onKeyDown={(event) => {
                     if (event.key === "Enter" || event.key === " ") {
                       event.preventDefault();
-                      props.onRoadSelect(road.id);
+                      if (props.tool === "measure") props.onMeasurePoint?.(middle);
+                      else props.onRoadSelect(road.id);
                     }
                   }}
                 >
@@ -573,6 +586,16 @@ export function FlatMap(props: AtlasMapProps) {
             </g>
           );
         })}
+        {(props.measurement ?? []).map((point, index) => <g key={`measure-${index}`} pointerEvents="none">
+          <circle cx={X(point)} cy={Y(point)} r={4.5 / scaleFactor} fill="#f5dfae" stroke="#20221f" strokeWidth={2 / scaleFactor} />
+          <text x={X(point)} y={Y(point) - 16 / scaleFactor} textAnchor="middle">{index ? "B" : "A"}</text>
+        </g>)}
+        {props.measurement?.length === 2 && <g pointerEvents="none">
+          <polyline points={path(props.measurement)} fill="none" stroke="#f5dfae" strokeWidth="2" strokeDasharray="6 6" vectorEffect="non-scaling-stroke" />
+          <text x={X([(props.measurement[0][0] + props.measurement[1][0]) / 2, 0])} y={Y([0, (props.measurement[0][1] + props.measurement[1][1]) / 2]) - 12 / scaleFactor} textAnchor="middle">
+            {distanceKm(props.measurement[0], props.measurement[1]).toFixed(2)} km
+          </text>
+        </g>}
       </svg>
       <div className="atlas-distance-scale" role="img" aria-label={`Approximate scale ${scaleKm} kilometers at view center`}>
         <span className="atlas-scale-line" style={{ width: Math.min(scalePixels, Math.max(10, scaleKm * pixelsPerKm)) }} />

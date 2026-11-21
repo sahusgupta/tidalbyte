@@ -35,6 +35,8 @@ import {
 import type { AtlasMode, BookmarkId, EditorTool, Point, RoadSegment } from "../../atlas/domain";
 import { FLOOD_RADIUS_LIMITS, getFloodPolygon } from "../../atlas/domain";
 import { FlatMap, HOUSTON_OVERVIEW_CENTER } from "./FlatMap";
+import { MapMeasure } from "./MapMeasure";
+import { addMeasurementPoint } from "./measurement";
 import {
   BOOKMARKS,
   BOUNDS,
@@ -59,6 +61,7 @@ export interface AtlasMapProps {
   disconnectedRoadIds?: string[];
   comparison: boolean;
   tool: EditorTool;
+  mapStyle?: "field" | "aerial";
   bookmark: BookmarkId;
   cameraRevision: number;
   showRoads?: boolean;
@@ -72,6 +75,7 @@ export interface AtlasMapProps {
   onTrackChange: (points: Point[]) => void;
   onFloodChange: (center: Point, maxRadiusKm: number) => void;
   onMapPoint: (point: Point) => void;
+  onResetView?: () => void;
 }
 
 const colors = {
@@ -107,7 +111,7 @@ const framedTarget = (bookmark: BookmarkId, canvas: HTMLCanvasElement) => {
   const portraitOverview = bookmark === "houston" && aspect < 1.2;
   return bookmark === "houston"
     ? {
-      point: [HOUSTON_OVERVIEW_CENTER[0], HOUSTON_OVERVIEW_CENTER[1] - (portraitOverview ? 0.025 : 0)] as Point,
+      point: [HOUSTON_OVERVIEW_CENTER[0], HOUSTON_OVERVIEW_CENTER[1] - (portraitOverview ? 0.035 : 0)] as Point,
       range: Math.min(110000, target.range * Math.max(1, 0.76 / aspect)),
       pitch: portraitOverview ? -82 : -66,
     }
@@ -122,6 +126,7 @@ export default function Globe(props: AtlasMapProps) {
     hazard: CustomDataSource;
     reference: CustomDataSource;
     counties: CustomDataSource;
+    measurement: CustomDataSource;
   } | null>(null);
   const latest = useRef(props);
   latest.current = props;
@@ -133,6 +138,7 @@ export default function Globe(props: AtlasMapProps) {
   } | null>(null);
   const suppressClickUntil = useRef(0);
   const lastCameraRequest = useRef<string | null>(null);
+  const autoCamera = useRef<{ position: Cartesian3; heading: number; pitch: number } | null>(null);
   const [preview, setPreview] = useState<{
     track?: Point[];
     center?: Point;
@@ -147,6 +153,8 @@ export default function Globe(props: AtlasMapProps) {
   const [scale, setScale] = useState({ km: 5, pixels: 80 });
   const [rendererUnavailable, setRendererUnavailable] = useState(false);
   const [viewOptionsOpen, setViewOptionsOpen] = useState(false);
+  const [measurement, setMeasurement] = useState<Point[]>([]);
+  const placeMeasurement = (point: Point) => setMeasurement((points) => addMeasurementPoint(points, point));
   const viewControls = useRef<HTMLDivElement>(null);
   const viewOptionsButton = useRef<HTMLButtonElement>(null);
   const [imageryStatus, setImageryStatus] = useState<ImageryStatus>({
@@ -154,6 +162,10 @@ export default function Globe(props: AtlasMapProps) {
     label: "Bundled aerial archive",
     credit: "USDA / USGS The National Map",
   });
+
+  useEffect(() => {
+    if (props.tool !== "measure") setMeasurement([]);
+  }, [props.tool]);
 
   useEffect(() => {
     if (!viewOptionsOpen) return;
@@ -219,16 +231,24 @@ export default function Globe(props: AtlasMapProps) {
       new HeadingPitchRange(0, CesiumMath.toRadians(initial.pitch), initial.range),
     );
     viewer.camera.lookAtTransform(Matrix4.IDENTITY);
+    autoCamera.current = { position: viewer.camera.position.clone(), heading: viewer.camera.heading, pitch: viewer.camera.pitch };
     const group = {
       roads: new CustomDataSource("curated-roads"),
       hazard: new CustomDataSource("hypothetical-scenario"),
       reference: new CustomDataSource("local-reference-labels"),
       counties: new CustomDataSource("schematic-counties"),
+      measurement: new CustomDataSource("local-surface-measurement"),
     };
     sources.current = group;
     Object.values(group).forEach((source) => {
       void viewer.dataSources.add(source);
     });
+    const toneLayer = (layer: ImageryLayer) => Object.assign(layer,
+      latest.current.mapStyle === "aerial"
+        ? { saturation: 0.48, brightness: 0.79, contrast: 1.13, gamma: 1.12 }
+        : { saturation: 0.18, brightness: 0.44, contrast: 1.18, gamma: 1.0 },
+    );
+    removers.push(viewer.imageryLayers.layerAdded.addEventListener(toneLayer));
 
     // A bounded archive must never become Cesium's globally stretched base.
     const globalBase = ImageryLayer.fromProviderAsync(TileMapServiceImageryProvider.fromUrl(
@@ -383,7 +403,7 @@ export default function Globe(props: AtlasMapProps) {
         ? "pointer"
         : id?.includes("handle") || id?.startsWith("flood-")
           ? "grab"
-          : state.tool === "track" || state.tool === "flood"
+          : state.tool === "track" || state.tool === "flood" || state.tool === "measure"
             ? "crosshair"
             : "";
     }, ScreenSpaceEventType.MOUSE_MOVE);
@@ -392,6 +412,11 @@ export default function Globe(props: AtlasMapProps) {
       if (performance.now() < suppressClickUntil.current) return;
       const id = pick(event.position);
       const state = latest.current;
+      if (state.tool === "measure") {
+        const point = groundPoint(event.position);
+        if (point) placeMeasurement(point);
+        return;
+      }
       if (id?.startsWith("track-handle:") || id?.startsWith("flood-")) return;
       const point = groundPoint(event.position);
       if (point && (state.tool === "track" || state.tool === "flood")) {
@@ -502,6 +527,39 @@ export default function Globe(props: AtlasMapProps) {
 
   useEffect(() => {
     const viewer = viewerRef.current;
+    if (!viewer || !ready) return;
+    for (let index = 0; index < viewer.imageryLayers.length; index++)
+      Object.assign(viewer.imageryLayers.get(index), props.mapStyle === "aerial"
+        ? { saturation: 0.48, brightness: 0.79, contrast: 1.13, gamma: 1.12 }
+        : { saturation: 0.18, brightness: 0.44, contrast: 1.18, gamma: 1.0 });
+    viewer.scene.requestRender();
+  }, [props.mapStyle, ready]);
+
+  useEffect(() => {
+    const source = sources.current?.measurement;
+    if (!source || !ready) return;
+    source.entities.removeAll();
+    if (props.tool !== "measure") return;
+    measurement.forEach((point, index) => source.entities.add({
+      id: `measurement:${index}`,
+      position: Cartesian3.fromDegrees(...point, 160),
+      point: { pixelSize: 9, color: c("#f5dfae"), outlineColor: c("#20221f"), outlineWidth: 2, disableDepthTestDistance: Number.POSITIVE_INFINITY },
+      label: label(index ? "B" : "A", { pixelOffset: new Cartesian2(0, -19) }),
+    }));
+    if (measurement.length === 2) {
+      source.entities.add({
+        id: "measurement-line",
+        polyline: { positions: linePositions(measurement, 160), width: 2, material: new PolylineDashMaterialProperty({ color: c("#f5dfae"), dashLength: 12 }) },
+      });
+      source.entities.add({
+        position: Cartesian3.fromDegrees((measurement[0][0] + measurement[1][0]) / 2, (measurement[0][1] + measurement[1][1]) / 2, 180),
+        label: label(`${distanceKm(measurement[0], measurement[1]).toFixed(2)} km`, { pixelOffset: new Cartesian2(0, -14) }),
+      });
+    }
+  }, [measurement, props.tool, ready]);
+
+  useEffect(() => {
+    const viewer = viewerRef.current;
     if (!viewer || !ready || flat) return;
     const target = framedTarget(props.bookmark, viewer.canvas);
     const request = `${props.bookmark}:${props.cameraRevision}:${tilted}`;
@@ -517,15 +575,40 @@ export default function Globe(props: AtlasMapProps) {
           duration: 0.8,
           offset,
           complete: () => {
-            if (!viewer.isDestroyed()) viewer.camera.lookAtTransform(Matrix4.IDENTITY);
+            if (!viewer.isDestroyed()) {
+              viewer.camera.lookAtTransform(Matrix4.IDENTITY);
+              autoCamera.current = { position: viewer.camera.position.clone(), heading: viewer.camera.heading, pitch: viewer.camera.pitch };
+            }
           },
         },
       );
     } else {
       viewer.camera.lookAt(Cartesian3.fromDegrees(...target.point), offset);
       viewer.camera.lookAtTransform(Matrix4.IDENTITY);
+      autoCamera.current = { position: viewer.camera.position.clone(), heading: viewer.camera.heading, pitch: viewer.camera.pitch };
     }
   }, [props.bookmark, props.cameraRevision, ready, tilted, flat]);
+
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    const node = mount.current;
+    if (!viewer || !node || !ready || flat) return;
+    const observer = new ResizeObserver(() => {
+      const saved = autoCamera.current;
+      if (!saved || viewer.isDestroyed()) return;
+      // Adapt an untouched overview on rotation; preserve deliberate camera edits.
+      if (Cartesian3.distance(viewer.camera.position, saved.position) > 1 ||
+          Math.abs(CesiumMath.negativePiToPi(viewer.camera.heading - saved.heading)) > 1e-5 ||
+          Math.abs(viewer.camera.pitch - saved.pitch) > 1e-5) return;
+      viewer.resize();
+      const target = framedTarget(latest.current.bookmark, viewer.canvas);
+      viewer.camera.lookAt(Cartesian3.fromDegrees(...target.point), new HeadingPitchRange(0, CesiumMath.toRadians(tilted ? target.pitch : -90), target.range));
+      viewer.camera.lookAtTransform(Matrix4.IDENTITY);
+      autoCamera.current = { position: viewer.camera.position.clone(), heading: viewer.camera.heading, pitch: viewer.camera.pitch };
+    });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [ready, flat, tilted]);
 
   useEffect(() => {
     const source = sources.current?.roads;
@@ -792,13 +875,14 @@ export default function Globe(props: AtlasMapProps) {
     if (action === "tilt") setTilted((value) => !value);
   };
   return (
-    <div className={`atlas-map ${flat ? "is-flat" : "is-3d"}`}>
+    <div className={`atlas-map ${flat ? "is-flat" : "is-3d"} map-style-${props.mapStyle ?? "field"} ${props.tool === "measure" ? "is-measuring" : ""}`}>
       <div
         ref={mount}
         className="atlas-cesium-mount"
         style={{ visibility: flat ? "hidden" : "visible" }}
       />
-      {flat && <FlatMap {...props} />}
+      {flat && <FlatMap {...props} measurement={props.tool === "measure" ? measurement : []} onMeasurePoint={placeMeasurement} />}
+      {props.tool === "measure" && <MapMeasure points={measurement} onPoint={placeMeasurement} onClear={() => setMeasurement([])} />}
       {flat && <div className="atlas-source-credit">
         <a href="https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer" target="_blank" rel="noopener noreferrer">USDA / USGS</a>
         <span>2017–2021 aerial archive</span>
@@ -854,6 +938,7 @@ export default function Globe(props: AtlasMapProps) {
             <button type="button" aria-pressed={!flat} disabled={rendererUnavailable} onClick={() => {setFlat(false);setNote("");setViewOptionsOpen(false);}}>3D map</button>
             <button type="button" aria-pressed={flat} onClick={() => {setFlat(true);setNote("");setViewOptionsOpen(false);}}>2D map</button>
           </div>
+          {props.onResetView && <button type="button" className="atlas-reset-view" onClick={() => { props.onResetView?.(); setViewOptionsOpen(false); }}>Reset Houston view</button>}
           {rendererUnavailable && <p>3D is unavailable on this device</p>}
         </div>}
       </div>
@@ -862,6 +947,8 @@ export default function Globe(props: AtlasMapProps) {
           ? "Click the map to add a waypoint. Drag numbered waypoints to move them."
           : props.tool === "flood"
             ? "Click the map to move the illustrative flood extent. Drag the center or radius handle to edit."
+            : props.tool === "measure"
+              ? "Click two map points to measure approximate surface distance. Use Enter coordinates for keyboard entry. Leaving Measure clears the measurement."
             : "Select a curated road to inspect it. Road flood exposure is unknown."}
       </div>
     </div>
