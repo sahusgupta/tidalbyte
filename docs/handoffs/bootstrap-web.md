@@ -10,7 +10,9 @@ Data contract imports are centralized in `@earthlab/contracts`: `Scenario`, `Pre
 
 ## Validation and review
 
-Unit tests cover fallback on API/network failure, rejection of malformed successful API responses, preservation of valid envelopes, preset version increments, and invalid county pins. Integration/root owns running the workspace dependency installation, typecheck, tests, build, and actual screenshot QA after shared contracts and fixture integration. No screenshot checks or production readiness are claimed in this subtask handoff.
+Unit tests cover fallback on API/network failure, rejection of malformed successful API responses, preservation of valid envelopes, preset version increments, and invalid county pins. After the lead integrated shared contracts and installed workspace dependencies, the web delegate ran `pnpm --filter web typecheck` (passed) and `pnpm --filter web test` (2 files, 5 tests passed) from the integrated checkout. Integration/root owns build and actual screenshot QA. No screenshot checks or production readiness are claimed in this subtask handoff.
+
+The `vercel:react-best-practices` review checked lazy loading of the heavy Cesium view, separate mount/update effects, listener and viewer cleanup, derived render state, and semantic controls. Scenario and overlay actions use the shared `CommandProposal` action shape; camera and county pins remain local UI commands. The Houston button also exposes the `H` shortcut.
 
 Mandatory visual critique must inspect 1440×900, 1280×720, 768×1024 and approximately 390px layouts after integration. Check globe assets/attribution, panel density, bottom action visibility, narrow-screen map height, map picking, keyboard focus, reduced motion, and API-offline behavior. Repair the three most consequential observed defects, then recheck.
 
