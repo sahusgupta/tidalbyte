@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { zoneSizeKm, type Zone } from "../earth/zones";
+import { REGIONS, zoneSizeKm, type Zone } from "../earth/zones";
 import {
   parseSimulatorMessage,
   simulatorUrl,
@@ -12,7 +12,8 @@ import "./simulator.css";
 export interface SimulatorHostProps {
   zone: Zone;
   onExit: () => void;
-  onOpenAtlas: () => void;
+  onHome: () => void;
+  onZoneChange: (zoneId: string) => void;
 }
 
 const EXAMPLE_BASE = "https://your-simulator.example/";
@@ -26,7 +27,8 @@ type Connection = {
 export function SimulatorHost({
   zone,
   onExit,
-  onOpenAtlas,
+  onHome,
+  onZoneChange,
 }: SimulatorHostProps) {
   const url = useMemo(
     () => simulatorUrl(import.meta.env.VITE_SIMULATOR_URL, zone),
@@ -77,7 +79,7 @@ export function SimulatorHost({
         phase: "slow",
         message:
           current.message ||
-          "The external simulator has not reported ready. You can keep waiting or open the Houston editor.",
+          "The simulation is taking longer to load. You can keep waiting or retry.",
       }));
     }, READY_TIMEOUT_MS);
     const onMessage = (event: MessageEvent) => {
@@ -157,11 +159,11 @@ export function SimulatorHost({
     >
       <div className="sim-bar">
         <button type="button" className="sim-back" onClick={onExit}>
-          ← Zones
+          ← Home
         </button>
         <div className="sim-title">
           <span className="sim-eyebrow">
-            {url ? "Houston flood simulator" : "Selected Houston area"}
+            {url ? "EarthLab · Flood simulation" : "Selected Houston area"}
           </span>
           <h2 id="sim-title" ref={heading} tabIndex={-1}>
             {zone.name}
@@ -177,14 +179,10 @@ export function SimulatorHost({
         )}
         {url && (
           <div className="sim-toolbar-actions">
-            <button
-              type="button"
-              className="sim-editor-link"
-              onClick={onOpenAtlas}
-              aria-label="Open Houston editor"
-            >
-              Atlas
-            </button>
+            <select className="sim-area-select" aria-label="Houston area" value={zone.id}
+              onChange={event => onZoneChange(event.target.value)}>
+              {REGIONS.flatMap(region => region.zones).map(area => <option key={area.id} value={area.id}>{area.name}</option>)}
+            </select>
             <a
               className="sim-newtab"
               href={url.toString()}
@@ -213,7 +211,7 @@ export function SimulatorHost({
               setConnection({
                 phase: "error",
                 message:
-                  "The external simulator could not be loaded. The Houston editor remains available.",
+                  "The simulation could not be loaded. Retry the connection or return home.",
               });
             }}
             referrerPolicy="no-referrer"
@@ -223,7 +221,7 @@ export function SimulatorHost({
           {(connection.phase !== "ready" || connection.message) && (
             <div className="sim-status" role="status" aria-live="polite">
               <span>
-                {connection.message || "Connecting to the external simulator…"}
+                {connection.message || "Loading EarthLab simulation…"}
               </span>
               {(connection.phase === "slow" ||
                 connection.phase === "error") && (
@@ -234,8 +232,8 @@ export function SimulatorHost({
                   >
                     Retry connection
                   </button>
-                  <button type="button" onClick={onOpenAtlas}>
-                    Open Houston editor
+                  <button type="button" onClick={onHome}>
+                    Back to EarthLab home
                   </button>
                 </div>
               )}
@@ -246,14 +244,14 @@ export function SimulatorHost({
         <div className="sim-card">
           <div className="sim-availability">
             <span aria-hidden="true" />
-            External simulator not connected
+            Simulation unavailable
           </div>
           <div className="sim-editor-callout">
-            <button type="button" className="sim-primary" onClick={onOpenAtlas}>
-              Open Houston editor <span aria-hidden="true">↗</span>
+            <button type="button" className="sim-primary" onClick={onHome}>
+              Back to EarthLab home <span aria-hidden="true">↗</span>
             </button>
             <p>
-              Explore illustrative storm, flood, and road-closure scenarios.
+              Return home or choose another Houston area.
             </p>
           </div>
           <p className="sim-area-note">{zone.summary}</p>

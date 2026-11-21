@@ -41,7 +41,7 @@ export interface EarthViewProps {
   activeZoneId: string | null;
   /** Called once the camera has flown into a zone; the parent then opens the simulator. */
   onZoneEntered: (zoneId: string) => void;
-  onOpenAtlas: () => void;
+  onOpenSimulator: () => void;
   /** The open simulator fully covers the globe: stop rendering (and fetching tiles) until it closes. */
   paused?: boolean;
   children?: ReactNode;
@@ -66,7 +66,7 @@ type Photoreal = "off" | "loading" | "on" | "error";
 export default function EarthView({
   activeZoneId,
   onZoneEntered,
-  onOpenAtlas,
+  onOpenSimulator,
   paused = false,
   children,
 }: EarthViewProps) {
@@ -432,9 +432,9 @@ export default function EarthView({
                   ? "Loading 3D tiles"
                   : (imagery?.label ?? "Basemap")}
           </span>
-          <button onClick={onOpenAtlas}>
+          <button onClick={onOpenSimulator}>
             <Icon name="layers" size={15} />
-            Houston atlas
+            Open EarthLab
           </button>
         </div>
       </header>

@@ -387,9 +387,9 @@ function MapView({ meta, roads, buildings, result, buildingMode, showWater, stor
   const getTooltip = ({ layer, index }: PickingInfo) => {
     if (!layer || index < 0) return null
     const style = {
-      background: '#20221f',
-      color: '#d5cfbd',
-      border: '1px solid #4a4c45',
+      background: '#1c2632',
+      color: '#d5e0eb',
+      border: '1px solid #3e5062',
       borderRadius: '2px',
       padding: '8px 10px',
       fontSize: '12px',

@@ -4,9 +4,9 @@
   z-index: 5;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
-  background: #1a201d;
+  background: #17212d;
   border-left: 1px solid var(--rule);
-  color: #eaece4;
+  color: #e4ebf3;
 }
 .sim-connected {
   inset: 0;
@@ -28,7 +28,7 @@
 }
 .sim-back {
   font: 12px var(--mono);
-  color: #e7b479;
+  color: #a4cbee;
   border: 1px solid var(--rule);
   padding: 9px 12px;
   min-height: 40px;
@@ -42,14 +42,14 @@
   font: 10px var(--mono);
   text-transform: uppercase;
   letter-spacing: 0.09em;
-  color: #e7b479;
+  color: #a4cbee;
 }
 .sim-title h2 {
   font-family: Georgia, serif;
   font-size: 22px;
   font-weight: 400;
   letter-spacing: -0.5px;
-  color: #f3f1e7;
+  color: #eaf0f6;
 }
 .sim-title h2:focus {
   outline: none;
@@ -67,7 +67,7 @@
   min-width: 44px;
   min-height: 44px;
   font-size: 19px;
-  color: #d9c8a8;
+  color: #bccdde;
 }
 .sim-toolbar-actions {
   display: flex;
@@ -79,7 +79,7 @@
   padding: 9px 12px;
   min-height: 40px;
   border: 1px solid #8a988a;
-  color: #f3e5cc;
+  color: #dce7f1;
   font-size: 12px;
 }
 .sim-frame-wrap {
@@ -91,7 +91,7 @@
   height: 100%;
   border: 0;
   display: block;
-  background: #111613;
+  background: #101923;
 }
 .sim-status {
   position: absolute;
@@ -99,7 +99,7 @@
   bottom: 16px;
   padding: 7px 10px;
   font: 11px var(--mono);
-  background: #19231f;
+  background: #192738;
   border: 1px solid var(--rule);
   right: 16px;
   max-width: 560px;
@@ -116,7 +116,7 @@
   border: 1px solid #829080;
   padding: 8px 11px;
   min-height: 40px;
-  color: #f4e1be;
+  color: #d4e4f2;
 }
 .sim-card {
   overflow-y: auto;
@@ -132,7 +132,7 @@
   font-family: Georgia, serif;
   font-size: 20px;
   font-weight: 400;
-  color: #f3f1e7;
+  color: #eaf0f6;
 }
 .sim-card h4 {
   margin: 4px 0 0;
@@ -150,15 +150,15 @@
 }
 .sim-card code {
   font: 11.5px var(--mono);
-  color: #f0c99d;
+  color: #bdd8ee;
 }
 .sim-code {
   margin: 0;
   padding: 10px 12px;
   font: 11px/1.5 var(--mono);
   color: #e3e6dc;
-  background: #121714;
-  border: 1px solid #343d36;
+  background: #111a25;
+  border: 1px solid #34475b;
   white-space: pre-wrap;
   word-break: break-all;
 }
@@ -188,12 +188,12 @@
   align-items: center;
   gap: 8px;
   font: 11px var(--mono);
-  color: #e5bf8d;
+  color: #b2d2ed;
 }
 .sim-availability > span {
   width: 6px;
   height: 6px;
-  background: #d7a566;
+  background: #8db8da;
 }
 .sim-area-note {
   font-size: 13px;
@@ -201,8 +201,8 @@
   color: #ccd6cb;
 }
 .sim-area-frame {
-  border: 1px solid #475349;
-  background: #202922;
+  border: 1px solid #475e74;
+  background: #202f40;
 }
 .sim-area-frame svg {
   display: block;
@@ -211,7 +211,7 @@
 }
 .sim-grid {
   fill: none;
-  stroke: #465347;
+  stroke: #465c72;
   stroke-width: 0.6;
 }
 .sim-bounds {
@@ -221,7 +221,7 @@
 }
 .sim-corners {
   fill: none;
-  stroke: #dfb87d;
+  stroke: #a4cbee;
   stroke-width: 2;
 }
 .sim-crosshair {
@@ -239,7 +239,7 @@
   align-items: center;
   gap: 12px;
   padding: 10px 12px;
-  border-top: 1px solid #475349;
+  border-top: 1px solid #475e74;
   font: 11px var(--mono);
   color: #c5d1bf;
 }
@@ -264,15 +264,15 @@
   min-height: 46px;
   margin-top: 3px;
   padding: 12px 15px;
-  background: #dfbc83;
-  color: #1d2820;
-  border: 1px solid #efd3a4;
+  background: #a4cbee;
+  color: #1c2b3b;
+  border: 1px solid #c2dbef;
   font-size: 13px;
   font-weight: 600;
 }
 .sim-extent,
 .sim-connection-details {
-  border-top: 1px solid #465247;
+  border-top: 1px solid #465c72;
   padding-top: 12px;
 }
 .sim-extent summary,
@@ -311,7 +311,7 @@
   padding-top: 9px;
 }
 .sim :focus-visible {
-  outline: 2px solid #e4ba7e;
+  outline: 2px solid #a4cbee;
   outline-offset: 3px;
 }
 @media (max-width: 860px) {
@@ -363,3 +363,7 @@
     gap: 0;
   }
 }
+
+.sim-area-select { max-width: min(290px, 65vw); min-height: 40px; padding: 8px 12px; border: 1px solid var(--rule); border-radius: 3px; color: #e4ebf3; background: #17212d; font: inherit; font-size: 14px; }
+
+.sim { --rule:#3e5062; --amber:#a4cbee; }
