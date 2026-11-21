@@ -1,4 +1,9 @@
-import type { CommandProposal, Interpretation, ResponseMeta, Scenario } from "@earthlab/contracts";
+import type {
+  CommandProposal,
+  Interpretation,
+  ResponseMeta,
+  Scenario,
+} from "@earthlab/contracts";
 import {
   jsonPost,
   keys,
@@ -22,7 +27,10 @@ export type ApprovedCommand = Omit<CommandProposal, "action" | "args"> &
     | { action: "SELECT_REGION"; args: { regionId: "houston-gulf-coast" } }
     | { action: "SELECT_PRESET"; args: { presetEventId: string } }
     | { action: "RUN_ANALYSIS"; args: Record<string, never> }
-    | { action: "TOGGLE_OVERLAY"; args: { overlayId: string; visible: boolean } }
+    | {
+        action: "TOGGLE_OVERLAY";
+        args: { overlayId: string; visible: boolean };
+      }
     | { action: "EXPLAIN_RESULT"; args: Record<string, never> }
   );
 
@@ -40,7 +48,13 @@ function isProposal(value: unknown): value is CommandProposal {
     record(value) &&
     keys(
       value,
-      ["commandId", "scenarioVersion", "action", "args", "requiresConfirmation"],
+      [
+        "commandId",
+        "scenarioVersion",
+        "action",
+        "args",
+        "requiresConfirmation",
+      ],
       ["clarification"],
     ) &&
     text(value.commandId, 100) &&
@@ -51,7 +65,8 @@ function isProposal(value: unknown): value is CommandProposal {
     Object.keys(value.args).length <= 16 &&
     typeof value.requiresConfirmation === "boolean" &&
     (value.clarification === undefined ||
-      (typeof value.clarification === "string" && value.clarification.length <= 2000))
+      (typeof value.clarification === "string" &&
+        value.clarification.length <= 2000))
   );
 }
 function isInterpretation(value: unknown): value is Interpretation {
@@ -69,7 +84,11 @@ export function validateProposal(
   currentScenario: Scenario,
   capabilities: AssistantCapabilities,
 ): ApprovedCommand {
-  if (!isProposal(proposal) || !isScenario(interpretedScenario) || !isScenario(currentScenario))
+  if (
+    !isProposal(proposal) ||
+    !isScenario(interpretedScenario) ||
+    !isScenario(currentScenario)
+  )
     throw new ServiceError(
       "unsupported",
       "The proposed command does not match the supported contract.",
@@ -83,12 +102,19 @@ export function validateProposal(
       "The scenario changed. Request a new proposal before applying a command.",
     );
   }
-  if (proposal.clarification?.trim()) throw new ServiceError("unsupported", proposal.clarification);
-  const args = proposal.args;
+  if (proposal.clarification?.trim())
+    throw new ServiceError("unsupported", proposal.clarification);
+  // The published county-only interpreter uses {visible}. Normalize only that
+  // documented form; all other overlay IDs still need an explicit allowlist match.
+  const args =
+    proposal.action === "TOGGLE_OVERLAY" && keys(proposal.args, ["visible"])
+      ? { overlayId: "outages", visible: proposal.args.visible }
+      : proposal.args;
   let allowed = false;
   switch (proposal.action) {
     case "SELECT_REGION":
-      allowed = keys(args, ["regionId"]) && args.regionId === "houston-gulf-coast";
+      allowed =
+        keys(args, ["regionId"]) && args.regionId === "houston-gulf-coast";
       break;
     case "SELECT_PRESET":
       allowed =
@@ -119,12 +145,13 @@ export function validateProposal(
       "unsupported",
       "This command or its arguments are not supported by the current controls. Use the manual controls.",
     );
-  return structuredClone(proposal) as ApprovedCommand;
+  return structuredClone({ ...proposal, args }) as ApprovedCommand;
 }
 
 export interface InterpretationResult {
   interpretation: Interpretation;
   mode: ResponseMeta["mode"];
+  warnings: string[];
 }
 export async function interpretText(
   input: string,
@@ -143,12 +170,24 @@ export async function interpretText(
     jsonPost({ text: trimmed, scenarioSummary: scenario }),
     { ...options, timeoutMs: options.timeoutMs ?? 12000 },
   );
-  return { interpretation: data, mode: meta.mode };
+  return { interpretation: data, mode: meta.mode, warnings: meta.warnings };
 }
 
-export async function transcribeAudio(audio: Blob, options: ServiceOptions = {}): Promise<string> {
-  if (audio.size === 0 || audio.size > 10 * 1024 * 1024)
-    throw new ServiceError("unsupported", "Record a short nonempty clip under 10 MB.");
+export const MAX_AUDIO_BYTES = 4 * 1024 * 1024;
+export interface TranscriptionResult {
+  transcript: string;
+  mode: ResponseMeta["mode"];
+  warnings: string[];
+}
+export async function transcribeAudio(
+  audio: Blob,
+  options: ServiceOptions = {},
+): Promise<TranscriptionResult> {
+  if (audio.size === 0 || audio.size > MAX_AUDIO_BYTES)
+    throw new ServiceError(
+      "unsupported",
+      "Record a short nonempty clip under 4 MiB.",
+    );
   const form = new FormData();
   const extension = audio.type.includes("mp4")
     ? "m4a"
@@ -160,13 +199,16 @@ export async function transcribeAudio(audio: Blob, options: ServiceOptions = {})
     record(value) &&
     keys(value, ["transcript"]) &&
     typeof value.transcript === "string" &&
-    Boolean(value.transcript.trim()) &&
     value.transcript.length <= 2000;
-  const { data } = await requestEnvelope(
+  const { data, meta } = await requestEnvelope(
     "/api/v1/voice/transcribe",
     isTranscript,
     { method: "POST", body: form },
     { ...options, timeoutMs: options.timeoutMs ?? 20000 },
   );
-  return data.transcript.trim();
+  return {
+    transcript: data.transcript.trim(),
+    mode: meta.mode,
+    warnings: meta.warnings,
+  };
 }
