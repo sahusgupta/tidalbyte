@@ -1,10 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import {
-  compareNetwork,
-  fetchNetworkCatalog,
-  type NetworkCatalog,
-} from "../services/network";
+import { compareNetwork, fetchNetworkCatalog, type NetworkCatalog } from "../services/network";
 
 function LiveComparison({ catalog }: { catalog: NetworkCatalog }) {
   const [edge, setEdge] = useState(catalog.edges[0]?.id ?? "");
@@ -35,8 +31,8 @@ function LiveComparison({ catalog }: { catalog: NetworkCatalog }) {
   const pair = requested === edge ? result.data?.comparison : null;
   return (
     <>
-      <p>{catalog.graphSource}</p>
-      <label>
+      <p className="source-identifiers">{catalog.graphSource}</p>
+      <label className="notebook-field">
         Backend segment
         <select
           value={edge}
@@ -53,6 +49,8 @@ function LiveComparison({ catalog }: { catalog: NetworkCatalog }) {
         </select>
       </label>
       <button
+        type="button"
+        className="notebook-primary"
         disabled={!edge || result.isFetching}
         onClick={() => {
           if (requested === edge) void result.refetch();
@@ -63,13 +61,13 @@ function LiveComparison({ catalog }: { catalog: NetworkCatalog }) {
       </button>
       {pair && (
         <>
-          <table>
+          <table className="notebook-table">
             <caption>Backend hypothetical network</caption>
             <thead>
               <tr>
-                <th>Measure</th>
-                <th>Base</th>
-                <th>Edited</th>
+                <th scope="col">Measure</th>
+                <th scope="col">Base</th>
+                <th scope="col">Edited</th>
               </tr>
             </thead>
             <tbody>
@@ -81,7 +79,7 @@ function LiveComparison({ catalog }: { catalog: NetworkCatalog }) {
                 ] as const
               ).map(([label, key]) => (
                 <tr key={key}>
-                  <th>{label}</th>
+                  <th scope="row">{label}</th>
                   <td>{pair.baseline[key]}</td>
                   <td>{pair.proposal[key]}</td>
                 </tr>
@@ -91,10 +89,9 @@ function LiveComparison({ catalog }: { catalog: NetworkCatalog }) {
           <p>{pair.limitations.join(" ")}</p>
         </>
       )}
-      {requested &&
-        (result.data?.status === "unavailable" || result.isError) && (
-          <p role="status">Backend comparison unavailable.</p>
-        )}
+      {requested && (result.data?.status === "unavailable" || result.isError) && (
+        <p role="status">Backend comparison unavailable.</p>
+      )}
     </>
   );
 }
@@ -102,19 +99,15 @@ function LiveComparison({ catalog }: { catalog: NetworkCatalog }) {
 export function NetworkComparison() {
   const query = useQuery({
     queryKey: ["houston-graph"],
-    queryFn: ({ signal }) =>
-      fetchNetworkCatalog("houston-gulf-coast", { signal }),
+    queryFn: ({ signal }) => fetchNetworkCatalog("houston-gulf-coast", { signal }),
     staleTime: 60_000,
     retry: false,
   });
   return (
-    <section className="network-controls">
+    <section className="network-controls notebook-section">
       <h3>Backend graph</h3>
       {query.data?.catalog ? (
-        <LiveComparison
-          key={query.data.catalog.graphSource}
-          catalog={query.data.catalog}
-        />
+        <LiveComparison key={query.data.catalog.graphSource} catalog={query.data.catalog} />
       ) : (
         <p>
           {query.isFetching

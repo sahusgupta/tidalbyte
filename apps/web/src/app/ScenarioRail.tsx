@@ -1,14 +1,151 @@
 import { useRef, useState } from "react";
 import { useAtlasStore } from "./store";
-import { Dial, LayerToggle } from "./FieldTools";
+import { Dial, LayerToggle, timeLabel } from "./FieldTools";
 import { Icon } from "./Icon";
-import { type Point } from "../atlas/domain";
+import {
+  ASSUMPTION_LIMITS,
+  FLOOD_RADIUS_LIMITS,
+  TRACK_POINT_LIMITS,
+  getFloodPolygon,
+  getFloodRadiusAtProgress,
+  getStormPosition,
+  type Point,
+} from "../atlas/domain";
+import "../styles/notebook.css";
 
 export interface Layers {
   hazard: boolean;
   roads: boolean;
   outages: boolean;
 }
+
+/** The plate projects the editor's own geometry; it is not a forecast graphic. */
+function ScenarioPlate({
+  track,
+  center,
+  radius,
+  progress,
+  duration,
+  hurricane,
+}: {
+  track: Point[];
+  center: Point;
+  radius: number;
+  progress: number;
+  duration: number;
+  hurricane: boolean;
+}) {
+  const currentRadius = getFloodRadiusAtProgress(radius, progress);
+  const shape = hurricane ? track : getFloodPolygon(center, radius);
+  const xs = shape.map((point) => point[0]);
+  const ys = shape.map((point) => point[1]);
+  const mid: Point = [
+    (Math.min(...xs) + Math.max(...xs)) / 2,
+    (Math.min(...ys) + Math.max(...ys)) / 2,
+  ];
+  const longitudeFactor = Math.cos((mid[1] * Math.PI) / 180);
+  const scale = Math.min(
+    208 / Math.max((Math.max(...xs) - Math.min(...xs)) * longitudeFactor, 0.001),
+    72 / Math.max(Math.max(...ys) - Math.min(...ys), 0.001),
+  );
+  const project = (point: Point) => [
+    132 + (point[0] - mid[0]) * longitudeFactor * scale,
+    60 - (point[1] - mid[1]) * scale,
+  ];
+  const line = (points: Point[]) => points.map((point) => project(point).join(",")).join(" ");
+  const marker = project(hurricane ? getStormPosition(track, progress) : center);
+  const first = project(track[0]);
+  const last = project(track[track.length - 1]);
+  return (
+    <figure className="scenario-plate">
+      <svg
+        viewBox="0 0 264 128"
+        role="img"
+        aria-label={
+          hurricane
+            ? "Authored storm trajectory, start and end, with the selected timeline position"
+            : "Illustrative circular footprint at the selected timeline position"
+        }
+      >
+        {hurricane ? (
+          <>
+            <polyline
+              points={line(track)}
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            {track.map((point, index) => {
+              const [x, y] = project(point);
+              return (
+                <circle
+                  key={index}
+                  cx={x}
+                  cy={y}
+                  r="3"
+                  fill="var(--paper)"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                />
+              );
+            })}
+            <text
+              x={first[0]}
+              y={Math.min(121, first[1] + 20)}
+              textAnchor={first[0] > 132 ? "end" : "start"}
+            >
+              Start
+            </text>
+            <text
+              x={last[0]}
+              y={Math.max(12, last[1] - 12)}
+              textAnchor={last[0] > 132 ? "end" : "start"}
+            >
+              End
+            </text>
+          </>
+        ) : (
+          <>
+            <polygon
+              points={line(shape)}
+              fill="none"
+              stroke="var(--rule)"
+              strokeWidth="1"
+              strokeDasharray="3 4"
+            />
+            <polygon
+              points={line(getFloodPolygon(center, currentRadius))}
+              fill="currentColor"
+              fillOpacity=".07"
+              stroke="currentColor"
+              strokeWidth="1.5"
+            />
+          </>
+        )}
+        <circle
+          cx={marker[0]}
+          cy={marker[1]}
+          r="6"
+          fill="var(--paper)"
+          stroke="currentColor"
+          strokeWidth="2"
+        />
+        <circle cx={marker[0]} cy={marker[1]} r="2" fill="currentColor" />
+      </svg>
+      <figcaption>
+        <span>
+          {hurricane
+            ? `${track.length} authored waypoints`
+            : `${currentRadius.toFixed(1)} km illustrative radius`}
+        </span>
+        <time>T+{timeLabel(progress * duration)}</time>
+      </figcaption>
+    </figure>
+  );
+}
+
 export function ScenarioRail({
   layers,
   onLayer,
@@ -36,167 +173,176 @@ export function ScenarioRail({
     inspectMode();
   }
   return (
-    <aside className="scenario-rail" aria-label="Scenario editor">
-      <div className="rail-title">
-        <Icon name="layers" />
-        <span>Scenario editor</span>
-      </div>
-      <div className="mode-pair" role="group" aria-label="Scenario type">
-        <button
-          aria-pressed={hurricane}
-          onClick={() => chooseMode("hurricane")}
-        >
-          <Icon name="hurricane" size={25} />
-          Hurricane
-        </button>
-        <button aria-pressed={!hurricane} onClick={() => chooseMode("flood")}>
-          <Icon name="flood" size={25} />
-          Flood
-        </button>
-      </div>
-      <div className="scenario-name">
-        <div className="kicker">Hypothetical scenario</div>
+    <aside className="notebook-page scenario-page" aria-label="Scenario editor">
+      <header className="notebook-heading">
         <h2>{hurricane ? "Gulf approach" : "Bayou footprint"}</h2>
         <p>
           {hurricane
-            ? "Chart a hypothetical storm through Greater Houston."
-            : "Explore how a drawn footprint intersects the road sample."}
+            ? "Draw a hypothetical storm path through Greater Houston."
+            : "Explore a drawn footprint and its intersection with the road sample."}
         </p>
+      </header>
+      <div className="scenario-choice" role="group" aria-label="Scenario type">
+        <button type="button" aria-pressed={hurricane} onClick={() => chooseMode("hurricane")}>
+          Hurricane
+        </button>
+        <button type="button" aria-pressed={!hurricane} onClick={() => chooseMode("flood")}>
+          Flood
+        </button>
       </div>
-      <section className="rail-section assumptions">
+      <ScenarioPlate
+        track={state.track}
+        center={state.floodCenter}
+        radius={state.floodRadiusKm}
+        progress={state.progress}
+        duration={state.assumptions.durationHours}
+        hurricane={hurricane}
+      />
+      <button
+        type="button"
+        className="notebook-primary"
+        onClick={() => {
+          inspectMode();
+          state.setPlaying(false);
+          state.setTool(hurricane ? "track" : "flood");
+          onLayer("hazard", true);
+        }}
+      >
+        <Icon name="edit" size={16} />
+        {hurricane ? "Edit track on map" : "Edit footprint on map"}
+      </button>
+      <section className="notebook-section assumptions">
         <h3>Scenario assumptions</h3>
         {hurricane ? (
           <Dial
             label="Intensity class"
             unit="/ 5"
             value={state.assumptions.intensity}
-            min={1}
-            max={5}
-            onChange={(v) => state.setAssumption("intensity", v)}
+            min={ASSUMPTION_LIMITS.intensity.min}
+            max={ASSUMPTION_LIMITS.intensity.max}
+            step={ASSUMPTION_LIMITS.intensity.step}
+            onChange={(value) => state.setAssumption("intensity", value)}
           />
         ) : (
           <Dial
             label="Final radius"
             unit="km"
             value={state.floodRadiusKm}
-            min={0.5}
-            max={15}
+            min={FLOOD_RADIUS_LIMITS.min}
+            max={FLOOD_RADIUS_LIMITS.max}
             step={0.25}
-            onChange={(v) => state.setFlood(state.floodCenter, v)}
+            onChange={(value) => state.setFlood(state.floodCenter, value)}
           />
         )}
         <Dial
           label="Rainfall"
           unit="mm"
           value={state.assumptions.rainfallMm}
-          min={0}
-          max={300}
-          step={5}
-          onChange={(v) => state.setAssumption("rainfallMm", v)}
+          min={ASSUMPTION_LIMITS.rainfallMm.min}
+          max={ASSUMPTION_LIMITS.rainfallMm.max}
+          step={ASSUMPTION_LIMITS.rainfallMm.step}
+          onChange={(value) => state.setAssumption("rainfallMm", value)}
         />
         <Dial
           label="Duration"
           unit="h"
           value={state.assumptions.durationHours}
-          min={1}
-          max={48}
-          onChange={(v) => state.setAssumption("durationHours", v)}
+          min={ASSUMPTION_LIMITS.durationHours.min}
+          max={ASSUMPTION_LIMITS.durationHours.max}
+          step={ASSUMPTION_LIMITS.durationHours.step}
+          onChange={(value) => state.setAssumption("durationHours", value)}
         />
-        <p className="hint">
-          Rainfall
+        <p className="notebook-note">
           {hurricane
-            ? " and intensity are scenario notes."
-            : " is a scenario note."}{" "}
+            ? "Rainfall and intensity are scenario notes."
+            : "Rainfall is a scenario note."}{" "}
           Duration sets the timeline.
         </p>
       </section>
-      <section className="rail-section">
+      <section className="notebook-section">
         <h3>Map layers</h3>
         <LayerToggle
           label={hurricane ? "Storm track & radius" : "Flood footprint"}
           styleName="hazard"
           value={layers.hazard}
-          set={(v) => onLayer("hazard", v)}
+          set={(value) => onLayer("hazard", value)}
         />
         <LayerToggle
           label="Sample road network"
           styleName="road"
           value={layers.roads}
-          set={(v) => onLayer("roads", v)}
+          set={(value) => onLayer("roads", value)}
         />
         <LayerToggle
           label="County severity"
           styleName="county"
           value={layers.outages}
-          set={(v) => onLayer("outages", v)}
+          set={(value) => onLayer("outages", value)}
         />
       </section>
-      <details ref={coordinates} className="rail-section geometry">
+      <details ref={coordinates} className="notebook-section coordinate-editor">
         <summary>
-          <Icon name="edit" size={15} />
           Coordinate editor
-          <Icon name="down" size={13} />
+          <Icon name="down" size={16} />
         </summary>
-        <p className="hint">Nudge a handle by 0.01° using the arrow buttons.</p>
+        <p className="notebook-note">Nudge a handle by 0.01° with the arrow buttons.</p>
         {hurricane && (
-          <label>
+          <label className="notebook-field">
             Waypoint
-            <select
-              value={idx}
-              onChange={(e) => setPointIndex(Number(e.target.value))}
-            >
-              {state.track.map((_, i) => (
-                <option value={i} key={i}>
-                  Waypoint {i + 1}
+            <select value={idx} onChange={(event) => setPointIndex(Number(event.target.value))}>
+              {state.track.map((_, index) => (
+                <option value={index} key={index}>
+                  Waypoint {index + 1}
                 </option>
               ))}
             </select>
           </label>
         )}
-        <output className="position-readout" aria-label="Handle coordinates">
+        <output className="coordinate-readout" aria-label="Handle coordinates">
           {position[1].toFixed(3)}° N · {Math.abs(position[0]).toFixed(3)}° W
         </output>
-        <div className="nudge">
+        <div className="coordinate-nudge">
           {[
             ["West", -0.01, 0],
             ["East", 0.01, 0],
             ["North", 0, 0.01],
             ["South", 0, -0.01],
           ].map(([name, x, y]) => (
-            <button key={name} onClick={() => nudge(Number(x), Number(y))}>
+            <button type="button" key={name} onClick={() => nudge(Number(x), Number(y))}>
               {name}
             </button>
           ))}
         </div>
         {hurricane && (
-          <div className="row-buttons">
+          <div className="coordinate-actions">
             <button
-              disabled={state.track.length >= 8}
+              type="button"
+              disabled={state.track.length >= TRACK_POINT_LIMITS.max}
               onClick={() => {
-                const p = state.track.at(-1)!;
-                state.setTrack([...state.track, [p[0] - 0.02, p[1] + 0.02]]);
+                const point = state.track.at(-1)!;
+                state.setTrack([...state.track, [point[0] - 0.02, point[1] + 0.02]]);
                 setPointIndex(state.track.length);
               }}
             >
               Add point
             </button>
             <button
-              disabled={state.track.length <= 2}
-              onClick={() =>
-                state.setTrack(state.track.filter((_, i) => i !== idx))
-              }
+              type="button"
+              disabled={state.track.length <= TRACK_POINT_LIMITS.min}
+              onClick={() => state.setTrack(state.track.filter((_, index) => index !== idx))}
             >
               Remove point
             </button>
           </div>
         )}
       </details>
-      <div className="rail-actions">
-        <button onClick={() => state.undo()} disabled={!state.history.length}>
-          <Icon name="undo" size={14} />
+      <footer className="notebook-actions">
+        <button type="button" onClick={() => state.undo()} disabled={!state.history.length}>
+          <Icon name="undo" size={16} />
           Undo edit
         </button>
         <button
+          type="button"
           onClick={() => {
             state.reset();
             if (coordinates.current) coordinates.current.open = false;
@@ -207,10 +353,10 @@ export function ScenarioRail({
             onLayer("outages", false);
           }}
         >
-          <Icon name="reset" size={14} />
+          <Icon name="reset" size={16} />
           Reset demo
         </button>
-      </div>
+      </footer>
     </aside>
   );
 }
