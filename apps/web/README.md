@@ -4,12 +4,12 @@ Run `pnpm install --frozen-lockfile` and `pnpm --filter web dev` from the reposi
 
 ## Three-minute walkthrough
 
-1. Open Greater Houston. The **Scenario** notebook shows the Gulf approach and the position along its drawn route. On a phone, tap **Scenario** below the map to open the notebook. Use the location menu to visit Downtown Houston, Buffalo Bayou or Ship Channel. H resets the view and 1–3 select local bookmarks outside form controls.
-2. In Hurricane mode choose **Edit track**. Click to add a waypoint, drag a numbered handle, or use the coordinate editor with a keyboard. Play or scrub the 12-hour seed timeline. Duration changes the displayed time. Intensity and rainfall are scenario annotations.
-3. Choose **Flood** and **Edit footprint**. Place the center and resize the edge. The circle expands with the timeline from 35% to 100% of the selected final radius. The viewport and legend identify this geometry as illustrative.
-4. Choose **Inspect** and select a road. Its notebook page shows the measured fixture geometry, source and exposure status. Use **Add closure** or **Remove closure** to change the local network. Open **Compare** to see the open baseline and the edited scenario at the same time. **Reset demo** restores the original setup, including one assumed closure.
-5. Toggle **County severity** for the independent county context. Open **Sources** for provenance and assumptions. **Ask the atlas** opens typed and voice requests. The **View** menu on the map contains the viewing angle and 2D/3D options.
-6. Choose **Earth** to open the global view at `#/earth`. Match a letter on the Houston aerial inset to a study zone and select its name. Each zone has a direct link at `#/zone/<id>`. Set `VITE_SIMULATOR_URL` to connect a compatible external simulator. The zone panel also links back to the Houston atlas.
+1. Houston opens directly on the map. Choose **Greater Houston** to visit Downtown Houston, Buffalo Bayou or Ship Channel. The desktop tool rail becomes a single tool picker on phones.
+2. Choose **Gulf approach** in the header to adjust scenario type, duration, rainfall or intensity. **Edit track on map** closes the settings and takes you to the map. Add or drag a waypoint, then play or scrub the timeline. The coordinate editor supports keyboard input.
+3. Choose **Edit flood footprint** to place and resize an illustrative circular area. **Measure distance** measures between two points on the map. **View** contains camera and renderer options.
+4. Select a sample road to open its inspection sheet. Change an assumed closure, then open **Compare** to slide between the baseline and the edited geography at the same scenario time. The numerical comparison and its evidence expand below the map.
+5. Open **Layers** to change the basemap, see the legend or enable county severity. County readings identify their source and data mode. **Ask the atlas** accepts typed or voice input for a proposed command.
+6. The **Study menu** (•••) includes the inspector, sources, Earth navigation and **Export study**. The GeoJSON download contains the active sketch, sample roads, assumed closures, scenario time and inputs. On phones, the menu also provides **Compare** and **Map layers & legend**.
 
 ## Evidence and integrations
 
@@ -29,8 +29,8 @@ The shared package supplies scenario, prediction, model metadata, network compar
 | View | Desktop | Phone or tablet |
 | --- | --- | --- |
 | Greater Houston | [Opening atlas, 1440 × 900](docs/qa/houston-hurricane-1440.jpg) | [Phone, 390 × 844](docs/qa/houston-phone-390.jpg) · [Tablet, 768 × 1024](docs/qa/houston-tablet-768.jpg) |
-| Notebook | [Selected road and its geometry](docs/qa/road-notebook-1440.jpg) | [Scenario sheet and editable route](docs/qa/notebook-phone-390.jpg) |
-| Scenario evidence | [Flood footprint and legend](docs/qa/flood-1280.jpg) · [Closure comparison](docs/qa/closures-comparison-1280.jpg) · [Sources](docs/qa/sources-1440.jpg) | |
+| Study sheets | [Selected road and its geometry](docs/qa/road-notebook-1440.jpg) | [Scenario sheet and editable route](docs/qa/notebook-phone-390.jpg) |
+| Scenario evidence | [Layers and legend](docs/qa/map-layers-1440.jpg) · [Flood footprint](docs/qa/flood-1280.jpg) · [Closure comparison](docs/qa/closures-comparison-1280.jpg) · [Sources](docs/qa/sources-1440.jpg) | |
 
 [Interactive 2D Houston map](docs/qa/accessible-map-1440.jpg) · [Earth study-zone index](docs/qa/earth-index-1440.jpg) · [Downtown and Buffalo Bayou zone](docs/qa/zone-1440.jpg)
 
@@ -40,8 +40,6 @@ The [imagery manifest](public/map/provenance.json) gives the provider, service-r
 
 Run `pnpm typecheck`, `pnpm test`, `pnpm contracts:check`, `pnpm openapi:check` and `pnpm build` from the repository root. The build verifies the Cesium assets and both georeferenced WebP files against the manifest.
 
-The November 21, 2026 redesign passed type checking, the production build, contract and OpenAPI checks, 62 frontend tests, and 52 Python tests. Pytest skipped three ML modules because the application environment omits NumPy. Vite reported its size warning for the lazy Cesium bundle.
+The field console passed 66 frontend tests and 52 Python tests. Three optional ML test modules skipped because the application environment omits NumPy. Type checking, contract and OpenAPI verification, and the production build passed. Vite reports its chunk-size warning for the lazy Cesium module.
 
-Chrome passed 13 map interaction groups in 3D and forced 2D, covering pointer and keyboard edits, timeline playback, road selection beneath a flood footprint, closure comparison and reset. Ten tests covered command confirmation, cancellation, stale responses and replay, plus backend graph IDs and source validation. The production bundle also passed with the API and external imagery blocked.
-
-Layout and navigation were checked at 320 × 568, 390 × 844, 720 × 450, 768 × 1024, 1280 × 720 and 1440 × 900. In compact layouts, the three notebook pages open from the bottom. **Edit track on map** and **Edit footprint on map** close the sheet and place keyboard focus on the map.
+Browser checks exercised keyboard and touch operation, panel focus and dismissal, 3D and 2D editing, comparison, measurement, GeoJSON export, fallback data and confirmed commands. The screenshots cover the responsive layout from 320 × 568 to 1440 × 900.

@@ -6,7 +6,10 @@ describe("local map measurements", () => {
   it("takes two points and starts a new measurement on the third", () => {
     const first = addMeasurementPoint([], [-95.4, 29.75]);
     const second = addMeasurementPoint(first, [-95.3, 29.75]);
-    expect(second).toEqual([[-95.4, 29.75], [-95.3, 29.75]]);
+    expect(second).toEqual([
+      [-95.4, 29.75],
+      [-95.3, 29.75],
+    ]);
     expect(distanceKm(second[0], second[1])).toBeCloseTo(9.654, 2);
     expect(addMeasurementPoint(second, [-95.2, 29.8])).toEqual([[-95.2, 29.8]]);
     expect(first).toEqual([[-95.4, 29.75]]);

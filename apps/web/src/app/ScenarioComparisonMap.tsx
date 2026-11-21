@@ -1,11 +1,5 @@
 import { useEffect, useId, useRef, useState, type PointerEvent } from "react";
-import {
-  HOUSTON_ROADS,
-  clamp,
-  deriveAtlas,
-  type AtlasSnapshot,
-  type Point,
-} from "../atlas/domain";
+import { HOUSTON_ROADS, clamp, deriveAtlas, type AtlasSnapshot, type Point } from "../atlas/domain";
 import { timeLabel } from "./FieldTools";
 import aerialManifest from "../../public/map/provenance.json";
 import "./comparison-map.css";
@@ -174,28 +168,36 @@ export function ScenarioComparisonMap({
           <title id={`${id}-title`}>Baseline and edited Houston scenario swipe map</title>
           <desc id={`${id}-description`}>
             Shared archival aerial, north up. Baseline on the left; edited geometry and assumed
-            closures on the right, both at T+{time}. Use the divider to reveal either side.
-            Roads are an authored schematic, not surveyed streets. No flood depth or road safety
-            is inferred.
+            closures on the right, both at T+{time}. Use the divider to reveal either side. Roads
+            are an authored schematic, not surveyed streets. No flood depth or road safety is
+            inferred.
           </desc>
           <defs>
             <clipPath id={baselineClip}>
               <rect width={(split / 100) * WIDTH} height={project.height} />
             </clipPath>
             <clipPath id={editedClip}>
-              <rect x={(split / 100) * WIDTH} width={((100 - split) / 100) * WIDTH} height={project.height} />
+              <rect
+                x={(split / 100) * WIDTH}
+                width={((100 - split) / 100) * WIDTH}
+                height={project.height}
+              />
             </clipPath>
           </defs>
           <rect className="comparison-map-ground" width={WIDTH} height={project.height} />
-          {archives.filter(({ file }) => !failedArchives.includes(file)).map((archive) => (
-            <image
-              key={archive.file}
-              href={archive.url}
-              {...project.image(archive.bounds)}
-              preserveAspectRatio="none"
-              onError={() => setFailedArchives((failed) => [...new Set([...failed, archive.file])])}
-            />
-          ))}
+          {archives
+            .filter(({ file }) => !failedArchives.includes(file))
+            .map((archive) => (
+              <image
+                key={archive.file}
+                href={archive.url}
+                {...project.image(archive.bounds)}
+                preserveAspectRatio="none"
+                onError={() =>
+                  setFailedArchives((failed) => [...new Set([...failed, archive.file])])
+                }
+              />
+            ))}
           <rect className="comparison-map-wash" width={WIDTH} height={project.height} />
           <g clipPath={`url(#${baselineClip})`}>
             <ScenarioOverlay snapshot={baseline} project={project} side="baseline" />
@@ -203,16 +205,25 @@ export function ScenarioComparisonMap({
           <g clipPath={`url(#${editedClip})`}>
             <ScenarioOverlay snapshot={edited} project={project} side="edited" />
           </g>
-          <g className="comparison-map-scale" transform={`translate(${14 * unitsPerPixel} ${project.height - 16 * unitsPerPixel})`}>
-            <path d={`M0 ${-6 * unitsPerPixel}v${6 * unitsPerPixel}h${project.scaleKm}v${-6 * unitsPerPixel}`} />
-            <text x="0" y={-12 * unitsPerPixel} style={{ fontSize: 12 * unitsPerPixel }}>10 km</text>
+          <g
+            className="comparison-map-scale"
+            transform={`translate(${14 * unitsPerPixel} ${project.height - 16 * unitsPerPixel})`}
+          >
+            <path
+              d={`M0 ${-6 * unitsPerPixel}v${6 * unitsPerPixel}h${project.scaleKm}v${-6 * unitsPerPixel}`}
+            />
+            <text x="0" y={-12 * unitsPerPixel} style={{ fontSize: 12 * unitsPerPixel }}>
+              10 km
+            </text>
           </g>
         </svg>
         <div className="comparison-map-sides" aria-hidden="true">
           <span>Baseline</span>
           <span>Edited</span>
         </div>
-        <span className="comparison-map-north" aria-hidden="true">↑ N</span>
+        <span className="comparison-map-north" aria-hidden="true">
+          ↑ N
+        </span>
         <span className="comparison-map-divider" style={{ left: `${split}%` }} aria-hidden="true">
           <span>↔</span>
         </span>
@@ -233,27 +244,47 @@ export function ScenarioComparisonMap({
         />
         {failedArchives.length > 0 && (
           <span className="comparison-map-fallback" role="status">
-            {failedArchives.length === archives.length ? "Archival aerial unavailable" : "Some archival imagery unavailable"};
-            geometry remains geographically aligned.
+            {failedArchives.length === archives.length
+              ? "Archival aerial unavailable"
+              : "Some archival imagery unavailable"}
+            ; geometry remains geographically aligned.
           </span>
         )}
       </div>
       <figcaption>
         <div className="comparison-map-credit">
           <span id={`${id}-scope`}>Illustrative scenarios</span>
-          <a href={aerialManifest.serviceUrl} target="_blank" rel="noreferrer">USDA / USGS aerial</a>
+          <a href={aerialManifest.serviceUrl} target="_blank" rel="noreferrer">
+            USDA / USGS aerial
+          </a>
         </div>
         <details className="comparison-map-disclosure">
           <summary>Legend &amp; sources</summary>
           <ul className="comparison-map-key" aria-label="Map legend">
-            <li><i className={`key-geometry ${edited.mode}`} />{edited.mode === "hurricane" ? "Hypothetical track & 6 km footprint" : "Illustrative flood footprint"}</li>
-            <li><i className="key-road" />Open schematic link</li>
-            <li><i className="key-closure" />Assumed closure</li>
-            <li><i className="key-disconnected" />Disconnected open link</li>
+            <li>
+              <i className={`key-geometry ${edited.mode}`} />
+              {edited.mode === "hurricane"
+                ? "Hypothetical track & 6 km footprint"
+                : "Illustrative flood footprint"}
+            </li>
+            <li>
+              <i className="key-road" />
+              Open schematic link
+            </li>
+            <li>
+              <i className="key-closure" />
+              Assumed closure
+            </li>
+            <li>
+              <i className="key-disconnected" />
+              Disconnected open link
+            </li>
           </ul>
-          <p>Seeded geometry and open sample roads versus your edits and
-            {` ${edited.closedRoadIds.length} assumed ${edited.closedRoadIds.length === 1 ? "closure" : "closures"}`}.
-            Same scenario clock; road flood exposure is unknown.</p>
+          <p>
+            Seeded geometry and open sample roads versus your edits and
+            {` ${edited.closedRoadIds.length} assumed ${edited.closedRoadIds.length === 1 ? "closure" : "closures"}`}
+            . Same scenario clock; road flood exposure is unknown.
+          </p>
           <p>{aerialManifest.sourcePeriod}. Same imagery on both sides, not observed change.</p>
         </details>
       </figcaption>

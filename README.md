@@ -50,10 +50,10 @@ installed separately). Server secrets must never use the `VITE_` prefix.
 
 1. Open the console and select a Houston road to inspect its provenance and
    intersection with the drawn scenario.
-2. Choose **Edit track** to move a storm waypoint, then scrub the timeline.
-   In **Flood**, place and resize the illustrative footprint.
-3. Open **Compare** in the notebook to see how a hypothetical closure changes the sample network.
-4. Choose **Earth** for the geographic overview, select a study zone, and return
+2. Choose **Edit storm track** to move a waypoint, then scrub the timeline.
+   Use **Edit flood footprint** to place and resize the illustrative footprint.
+3. Open **Compare** to slide between the baseline and edited scenario and inspect the sample network.
+4. Choose **Open Earth view** from the study menu for the geographic overview, select a study zone, and return
    to the Houston editor when ready.
 
 The [frontend walkthrough](apps/web/README.md) includes controls, screenshots,
