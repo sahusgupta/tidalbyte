@@ -1,9 +1,4 @@
-import type {
-  CommandProposal,
-  Interpretation,
-  ResponseMeta,
-  Scenario,
-} from "@earthlab/contracts";
+import type { CommandProposal, Interpretation, ResponseMeta, Scenario } from "@earthlab/contracts";
 import {
   jsonPost,
   keys,
@@ -21,7 +16,12 @@ export interface AssistantCapabilities {
   overlayIds: readonly string[];
   canRunAnalysis: boolean;
   canExplain?: boolean;
+  canPlan?: boolean;
+  selectedPlanningEdge?: string | null;
 }
+export type PlanningCommandArgs =
+  | { intent: "compare" | "prioritize_hospitals" | "assume_blocked" | "explain" }
+  | { intent: "resources"; totalBudget: number; crewCapacity: number };
 export type ApprovedCommand = Omit<CommandProposal, "action" | "args"> &
   (
     | { action: "SELECT_REGION"; args: { regionId: "houston-gulf-coast" } }
@@ -32,6 +32,7 @@ export type ApprovedCommand = Omit<CommandProposal, "action" | "args"> &
         args: { overlayId: string; visible: boolean };
       }
     | { action: "EXPLAIN_RESULT"; args: Record<string, never> }
+    | { action: "COMPARE_INTERVENTION"; args: PlanningCommandArgs }
   );
 
 const actions = [
@@ -48,13 +49,7 @@ function isProposal(value: unknown): value is CommandProposal {
     record(value) &&
     keys(
       value,
-      [
-        "commandId",
-        "scenarioVersion",
-        "action",
-        "args",
-        "requiresConfirmation",
-      ],
+      ["commandId", "scenarioVersion", "action", "args", "requiresConfirmation"],
       ["clarification"],
     ) &&
     text(value.commandId, 100) &&
@@ -65,8 +60,7 @@ function isProposal(value: unknown): value is CommandProposal {
     Object.keys(value.args).length <= 16 &&
     typeof value.requiresConfirmation === "boolean" &&
     (value.clarification === undefined ||
-      (typeof value.clarification === "string" &&
-        value.clarification.length <= 2000))
+      (typeof value.clarification === "string" && value.clarification.length <= 2000))
   );
 }
 function isInterpretation(value: unknown): value is Interpretation {
@@ -83,12 +77,9 @@ export function validateProposal(
   interpretedScenario: Scenario,
   currentScenario: Scenario,
   capabilities: AssistantCapabilities,
+  interpretedPlanningEdge?: string | null,
 ): ApprovedCommand {
-  if (
-    !isProposal(proposal) ||
-    !isScenario(interpretedScenario) ||
-    !isScenario(currentScenario)
-  )
+  if (!isProposal(proposal) || !isScenario(interpretedScenario) || !isScenario(currentScenario))
     throw new ServiceError(
       "unsupported",
       "The proposed command does not match the supported contract.",
@@ -102,8 +93,7 @@ export function validateProposal(
       "The scenario changed. Request a new proposal before applying a command.",
     );
   }
-  if (proposal.clarification?.trim())
-    throw new ServiceError("unsupported", proposal.clarification);
+  if (proposal.clarification?.trim()) throw new ServiceError("unsupported", proposal.clarification);
   // The published county-only interpreter uses {visible}. Normalize only that
   // documented form; all other overlay IDs still need an explicit allowlist match.
   const args =
@@ -113,8 +103,7 @@ export function validateProposal(
   let allowed = false;
   switch (proposal.action) {
     case "SELECT_REGION":
-      allowed =
-        keys(args, ["regionId"]) && args.regionId === "houston-gulf-coast";
+      allowed = keys(args, ["regionId"]) && args.regionId === "houston-gulf-coast";
       break;
     case "SELECT_PRESET":
       allowed =
@@ -138,6 +127,41 @@ export function validateProposal(
       break;
     case "EXPLAIN_RESULT":
       allowed = keys(args, []) && capabilities.canExplain === true;
+      break;
+    case "COMPARE_INTERVENTION":
+      allowed =
+        capabilities.canPlan === true &&
+        proposal.requiresConfirmation === true &&
+        ((keys(args, ["intent"]) &&
+          ["compare", "prioritize_hospitals", "assume_blocked", "explain"].includes(
+            String(args.intent),
+          )) ||
+          (keys(args, ["intent", "totalBudget", "crewCapacity"]) &&
+            args.intent === "resources" &&
+            Number.isInteger(args.totalBudget) &&
+            Number(args.totalBudget) >= 0 &&
+            Number(args.totalBudget) <= 200 &&
+            Number.isInteger(args.crewCapacity) &&
+            Number(args.crewCapacity) >= 0 &&
+            Number(args.crewCapacity) <= 6));
+      if (allowed && args.intent === "assume_blocked") {
+        if (
+          !text(capabilities.selectedPlanningEdge, 200) ||
+          !capabilities.selectedPlanningEdge?.trim()
+        )
+          throw new ServiceError(
+            "unsupported",
+            "Select a planning link before proposing an assumed blockage.",
+          );
+        if (
+          interpretedPlanningEdge !== undefined &&
+          interpretedPlanningEdge !== capabilities.selectedPlanningEdge
+        )
+          throw new ServiceError(
+            "stale",
+            "The selected planning link changed. Request a new proposal before applying it.",
+          );
+      }
       break;
   }
   if (!allowed)
@@ -184,10 +208,7 @@ export async function transcribeAudio(
   options: ServiceOptions = {},
 ): Promise<TranscriptionResult> {
   if (audio.size === 0 || audio.size > MAX_AUDIO_BYTES)
-    throw new ServiceError(
-      "unsupported",
-      "Record a short nonempty clip under 4 MiB.",
-    );
+    throw new ServiceError("unsupported", "Record a short nonempty clip under 4 MiB.");
   const form = new FormData();
   const extension = audio.type.includes("mp4")
     ? "m4a"
@@ -211,4 +232,61 @@ export async function transcribeAudio(
     mode: meta.mode,
     warnings: meta.warnings,
   };
+}
+
+/** Narration reads caller-supplied computed text; it never supplies model results. */
+export async function speakPlanSummary(input: string, options: ServiceOptions = {}): Promise<Blob> {
+  const summary = input.trim();
+  if (!summary || summary.length > 2000)
+    throw new ServiceError("unsupported", "A computed summary of 1–2,000 characters is required.");
+  const controller = new AbortController();
+  const abort = () => controller.abort();
+  if (options.signal?.aborted) throw new ServiceError("cancelled", "Narration cancelled.");
+  options.signal?.addEventListener("abort", abort, { once: true });
+  const timeout = setTimeout(abort, options.timeoutMs ?? 25000);
+  try {
+    const base = options.baseUrl ?? import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
+    const response = await (options.fetcher ?? fetch)(
+      `${base.replace(/\/$/, "")}/api/v1/voice/speak`,
+      {
+        ...jsonPost({ text: summary }),
+        signal: controller.signal,
+      },
+    );
+    if (!response.ok) {
+      const body: unknown = await response.json().catch(() => null);
+      const message =
+        record(body) && record(body.error) && text(body.error.message, 4000)
+          ? String(body.error.message)
+          : "Speech narration is unavailable. The computed summary remains available as text.";
+      throw new ServiceError(
+        response.status === 422 ? "unsupported" : "unavailable",
+        message,
+        response.status,
+      );
+    }
+    if (response.headers.get("content-type")?.split(";")[0] !== "audio/mpeg")
+      throw new ServiceError(
+        "invalid_response",
+        "The narration service returned an unsupported audio response.",
+      );
+    const audio = await response.blob();
+    if (!audio.size || audio.size > MAX_AUDIO_BYTES)
+      throw new ServiceError("invalid_response", "The narration audio is empty or exceeds 4 MiB.");
+    if (controller.signal.aborted)
+      throw new ServiceError("unavailable", "Speech narration timed out.");
+    return audio;
+  } catch (error) {
+    if (options.signal?.aborted) throw new ServiceError("cancelled", "Narration cancelled.");
+    if (error instanceof ServiceError) throw error;
+    throw new ServiceError(
+      "unavailable",
+      controller.signal.aborted
+        ? "Speech narration timed out."
+        : "Speech narration could not be reached.",
+    );
+  } finally {
+    clearTimeout(timeout);
+    options.signal?.removeEventListener("abort", abort);
+  }
 }

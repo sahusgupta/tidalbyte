@@ -2,13 +2,15 @@
 
 import os
 import re
+import asyncio
 from email import policy
 from email.parser import BytesHeaderParser
 
 from fastapi import Request
+import httpx
 
 from app.responses import reject
-from app.services.ai import ProviderUnavailable, provider_json, read_limited_body
+from app.services.ai import ProviderUnavailable, provider_json, read_limited_body, reserve_provider_call
 
 MAX_AUDIO_BYTES = 4 * 1024 * 1024
 _MULTIPART_OVERHEAD = 8 * 1024
@@ -105,3 +107,32 @@ async def transcribe_audio(audio: bytes, filename: str, media_type: str) -> tupl
     if not transcript.strip():
         return "", "ElevenLabs detected no speech. Record again or type a command."
     return transcript.strip(), "Transcript provided by ElevenLabs. Review the text before sending it for interpretation."
+
+
+async def narrate_text(text: str) -> bytes:
+    """Read the supplied computed summary verbatim; never generate planning content."""
+    api_key = os.getenv("ELEVENLABS_API_KEY", "").strip()
+    voice_id = os.getenv("ELEVENLABS_VOICE_ID", "").strip()
+    if not api_key or not re.fullmatch(r"[A-Za-z0-9_-]{1,128}", voice_id):
+        reject(503, "voice_unavailable", "Speech narration is not configured. The computed summary remains available as text.")
+    reserve_provider_call("elevenlabs")
+    try:
+        async with asyncio.timeout(15), httpx.AsyncClient(timeout=15, follow_redirects=False) as client:
+            async with client.stream(
+                "POST", f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}",
+                params={"output_format": "mp3_44100_128"},
+                headers={"xi-api-key": api_key, "Accept": "audio/mpeg"}, json={"text": text},
+            ) as response:
+                response.raise_for_status()
+                if response.headers.get("content-type", "").split(";")[0] != "audio/mpeg":
+                    raise ProviderUnavailable
+                audio = bytearray()
+                async for chunk in response.aiter_bytes():
+                    if len(audio) + len(chunk) > MAX_AUDIO_BYTES:
+                        raise ProviderUnavailable
+                    audio.extend(chunk)
+        if not (audio.startswith(b"ID3") or (len(audio) > 1 and audio[0] == 255 and audio[1] & 224 == 224)):
+            raise ProviderUnavailable
+        return bytes(audio)
+    except (TimeoutError, httpx.HTTPError, ProviderUnavailable):
+        reject(503, "voice_unavailable", "Speech narration is unavailable. Read the computed summary or try again.")
