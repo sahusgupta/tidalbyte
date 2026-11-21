@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import {
-  Cartesian2, Cartesian3, Cartographic, Color, Credit, CustomDataSource,
+  BoundingSphere, Cartesian2, Cartesian3, Cartographic, Color, Credit, CustomDataSource,
   DistanceDisplayCondition, Entity, HeadingPitchRange, ImageryLayer, LabelStyle,
   Math as CesiumMath, Matrix4, PolygonHierarchy, PolylineDashMaterialProperty,
   Rectangle, ScreenSpaceEventHandler, ScreenSpaceEventType, SingleTileImageryProvider,
@@ -44,6 +44,7 @@ export default function Globe(props: AtlasMapProps) {
   latest.current = props;
   const dragging = useRef<{ target: DragTarget; track: Point[]; center: Point; radius: number } | null>(null);
   const suppressClickUntil = useRef(0);
+  const lastCameraRequest = useRef<string | null>(null);
   const [preview, setPreview] = useState<{ track?: Point[]; center?: Point; radius?: number } | null>(null);
   const [ready, setReady] = useState(false);
   const [flat, setFlat] = useState(false);
@@ -235,8 +236,21 @@ export default function Globe(props: AtlasMapProps) {
     const viewer = viewerRef.current;
     if (!viewer || !ready || flat) return;
     const target = BOOKMARKS[props.bookmark];
-    viewer.camera.lookAt(Cartesian3.fromDegrees(...target.point), new HeadingPitchRange(0, CesiumMath.toRadians(tilted ? -66 : -90), target.range));
-    viewer.camera.lookAtTransform(Matrix4.IDENTITY);
+    const request = `${props.bookmark}:${props.cameraRevision}:${tilted}`;
+    const changed = lastCameraRequest.current !== null && lastCameraRequest.current !== request;
+    lastCameraRequest.current = request;
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const offset = new HeadingPitchRange(0, CesiumMath.toRadians(tilted ? -66 : -90), target.range);
+    viewer.camera.cancelFlight();
+    if (changed && !reducedMotion) {
+      viewer.camera.flyToBoundingSphere(new BoundingSphere(Cartesian3.fromDegrees(...target.point), 1), {
+        duration: .8, offset,
+        complete: () => { if (!viewer.isDestroyed()) viewer.camera.lookAtTransform(Matrix4.IDENTITY); },
+      });
+    } else {
+      viewer.camera.lookAt(Cartesian3.fromDegrees(...target.point), offset);
+      viewer.camera.lookAtTransform(Matrix4.IDENTITY);
+    }
   }, [props.bookmark, props.cameraRevision, ready, tilted, flat]);
 
   useEffect(() => {

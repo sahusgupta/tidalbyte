@@ -15,6 +15,7 @@ export function FlatMap(props: AtlasMapProps) {
   const [view, setView] = useState({ x: 0, y: 0, width: 1000, height: 760 });
   const [local, setLocal] = useState<{ track: Point[]; center: Point; radius: number } | null>(null);
   const [hoveredRoad, setHoveredRoad] = useState<string | null>(null);
+  const [scaleFactor, setScaleFactor] = useState(1);
   const drag = useRef<{ target: DragTarget | { kind: "pan" }; start: Point; screen: Point; scale: Point; view: typeof view; track: Point[]; center: Point; radius: number; moved: boolean } | null>(null);
   const track = local?.track ?? props.track;
   const center = local?.center ?? props.floodCenter;
@@ -26,6 +27,16 @@ export function FlatMap(props: AtlasMapProps) {
     const scale = props.bookmark === "houston" ? 1 : props.bookmark === "downtown" ? 0.35 : 0.45;
     setView({ x: X(target.point) - 500 * scale, y: Y(target.point) - 380 * scale, width: 1000 * scale, height: 760 * scale });
   }, [props.bookmark, props.cameraRevision]);
+
+  useEffect(() => {
+    const node = svg.current;
+    if (!node) return;
+    const update = () => setScaleFactor(node.getScreenCTM()?.a || 1);
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [view]);
 
   const eventPoint = (event: { clientX: number; clientY: number }): Point => {
     const node = svg.current;
@@ -77,6 +88,8 @@ export function FlatMap(props: AtlasMapProps) {
   };
   const footprint = getFloodPolygon(center, radius);
   const radiusPoint = pointAtRadius(center, radius);
+  const pixelsPerKm = scaleFactor * 1000 / (.85 * 111.32 * Math.cos(props.floodCenter[1] * Math.PI / 180));
+  const scaleKm = [.1, .2, .5, 1, 2, 5, 10, 20, 50].reduce((best, value) => value <= 100 / pixelsPerKm ? value : best, .1);
   return <>
     <svg ref={svg} className="atlas-flat-map" viewBox={`${view.x} ${view.y} ${view.width} ${view.height}`} preserveAspectRatio="xMidYMid slice" role="application" tabIndex={0} aria-label="Interactive 2D Houston aerial atlas. Arrow keys pan; plus and minus zoom. Tab to roads and waypoints." onPointerDown={(event) => begin(event, { kind: "pan" })} onPointerMove={move} onPointerUp={end} onPointerCancel={end} onWheel={(event) => { zoom(event.deltaY > 0 ? 1.12 : .89); }} onKeyDown={(event) => {
       if (event.target !== event.currentTarget) return;
@@ -125,9 +138,10 @@ export function FlatMap(props: AtlasMapProps) {
         if (!feature) return null;
         const ring = feature.geometry.coordinates[0] as Point[];
         const midpoint = ring[Math.floor(ring.length / 2)];
-        return <g key={prediction.countyFips} pointerEvents="none"><polyline points={path(ring)} fill="none" stroke="#d9ddc8" strokeOpacity=".6" strokeWidth="2" strokeDasharray="12 10" vectorEffect="non-scaling-stroke" /><text x={X(midpoint)} y={Y(midpoint)} fontSize="10">{feature.properties.name} · {prediction.predictedSeverity} {prediction.severityUnit} · SCHEMATIC</text></g>;
+        return <g key={prediction.countyFips} pointerEvents="none"><polyline points={path(ring)} fill="none" stroke="#d9ddc8" strokeOpacity=".6" strokeWidth="2" strokeDasharray="12 10" vectorEffect="non-scaling-stroke" /><text x={X(midpoint)} y={Y(midpoint)} fontSize="10">{feature.properties.name} · {prediction.predictedSeverity} {prediction.severityUnit} · SCHEMATIC · {prediction.dataMode === "offline_example" ? "OFFLINE EXAMPLE" : "CONDITIONAL MODEL"}</text></g>;
       })}
     </svg>
+    <div className="atlas-map-scale"><span style={{ width: Math.min(150, Math.max(10, scaleKm * pixelsPerKm)) }} />≈ {scaleKm} km</div>
     <div className="atlas-flat-controls" aria-label="2D map zoom"><button type="button" aria-label="Zoom 2D map in" onClick={() => zoom(.8)}>+</button><button type="button" aria-label="Zoom 2D map out" onClick={() => zoom(1.25)}>−</button></div>
   </>;
 }
