@@ -1,6 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { zoneSizeKm, type Zone } from "../earth/zones";
-import { parseSimulatorMessage, simulatorUrl, toSimulatorZone, zoneMessage } from "./contract";
+import {
+  parseSimulatorMessage,
+  simulatorUrl,
+  toSimulatorZone,
+  zoneMessage,
+} from "./contract";
+import { manageDialogFocus } from "./dialogFocus";
 import "./simulator.css";
 
 export interface SimulatorHostProps {
@@ -10,57 +16,134 @@ export interface SimulatorHostProps {
 }
 
 const EXAMPLE_BASE = "https://your-simulator.example/";
+const READY_TIMEOUT_MS = 12000;
+type Connection = {
+  phase: "connecting" | "ready" | "slow" | "error";
+  message: string;
+};
 
 /** Opens the external street & flood simulator for a zone, or explains how to plug one in. */
-export function SimulatorHost({ zone, onExit, onOpenAtlas }: SimulatorHostProps) {
-  const url = useMemo(() => simulatorUrl(import.meta.env.VITE_SIMULATOR_URL, zone), [zone]);
+export function SimulatorHost({
+  zone,
+  onExit,
+  onOpenAtlas,
+}: SimulatorHostProps) {
+  const url = useMemo(
+    () => simulatorUrl(import.meta.env.VITE_SIMULATOR_URL, zone),
+    [zone],
+  );
   const frame = useRef<HTMLIFrameElement>(null);
+  const dialog = useRef<HTMLElement>(null);
   const heading = useRef<HTMLHeadingElement>(null);
-  const [status, setStatus] = useState(url ? "Connecting to simulator…" : "");
+  const [connection, setConnection] = useState<Connection>({
+    phase: "connecting",
+    message: "",
+  });
+  const [retry, setRetry] = useState(0);
+  const readyTimer = useRef<number | undefined>(undefined);
+  const copyTimer = useRef<number | undefined>(undefined);
+  const copyRevision = useRef(0);
   const [copied, setCopied] = useState(false);
+  const [copyFailed, setCopyFailed] = useState(false);
   const exit = useRef(onExit);
   exit.current = onExit;
 
-  useEffect(() => heading.current?.focus(), [zone.id]);
+  useEffect(() => {
+    copyRevision.current++;
+    if (dialog.current && heading.current)
+      return manageDialogFocus(dialog.current, heading.current, Boolean(url));
+  }, [zone.id, url, retry]);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") exit.current();
+      if (event.key === "Escape" && !event.defaultPrevented) {
+        event.preventDefault();
+        exit.current();
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
   useEffect(() => {
+    setCopied(false);
+    setCopyFailed(false);
+    setConnection({ phase: "connecting", message: "" });
+    window.clearTimeout(copyTimer.current);
     if (!url) return;
+    let deliveredAfterReady = false;
+    readyTimer.current = window.setTimeout(() => {
+      setConnection({
+        phase: "slow",
+        message:
+          "The external simulator has not reported ready. You can keep waiting or open the Houston editor.",
+      });
+    }, READY_TIMEOUT_MS);
     const onMessage = (event: MessageEvent) => {
-      if (event.origin !== url.origin || event.source !== frame.current?.contentWindow) return;
+      if (
+        event.origin !== url.origin ||
+        event.source !== frame.current?.contentWindow
+      )
+        return;
       const message = parseSimulatorMessage(event.data);
       if (!message) return;
       if (message.type === "exit") exit.current();
-      else if (message.type === "ready") setStatus("");
-      else setStatus(message.message);
+      else if (message.type === "ready") {
+        window.clearTimeout(readyTimer.current);
+        setConnection({ phase: "ready", message: "" });
+        // A delayed application may install its listener after the iframe load event.
+        if (!deliveredAfterReady) {
+          deliveredAfterReady = true;
+          frame.current?.contentWindow?.postMessage(
+            zoneMessage(zone),
+            url.origin,
+          );
+        }
+      } else
+        setConnection((current) => ({ ...current, message: message.message }));
     };
     window.addEventListener("message", onMessage);
-    return () => window.removeEventListener("message", onMessage);
-  }, [url]);
+    return () => {
+      window.removeEventListener("message", onMessage);
+      window.clearTimeout(readyTimer.current);
+      window.clearTimeout(copyTimer.current);
+    };
+  }, [url, retry, zone]);
 
-  const sendZone = () => frame.current?.contentWindow?.postMessage(zoneMessage(zone), url!.origin);
+  useEffect(
+    () => () => {
+      copyRevision.current++;
+      window.clearTimeout(copyTimer.current);
+    },
+    [],
+  );
+
+  const sendZone = () =>
+    frame.current?.contentWindow?.postMessage(zoneMessage(zone), url!.origin);
   const [w, s, e, n] = zone.bbox;
   const [x, y] = zoneSizeKm(zone);
   const example = simulatorUrl(EXAMPLE_BASE, zone)!.toString();
   const copy = async () => {
+    const revision = copyRevision.current;
     try {
-      await navigator.clipboard.writeText(JSON.stringify(toSimulatorZone(zone), null, 2));
+      await navigator.clipboard.writeText(
+        JSON.stringify(toSimulatorZone(zone), null, 2),
+      );
+      if (revision !== copyRevision.current) return;
       setCopied(true);
-      window.setTimeout(() => setCopied(false), 1600);
+      setCopyFailed(false);
+      window.clearTimeout(copyTimer.current);
+      copyTimer.current = window.setTimeout(() => setCopied(false), 1600);
     } catch {
+      if (revision !== copyRevision.current) return;
       setCopied(false);
+      setCopyFailed(true);
     }
   };
 
   return (
     <section
+      ref={dialog}
       className={`sim ${url ? "sim-connected" : "sim-waiting"}`}
       role="dialog"
       aria-modal={url ? true : undefined}
@@ -71,71 +154,209 @@ export function SimulatorHost({ zone, onExit, onOpenAtlas }: SimulatorHostProps)
           ← Zones
         </button>
         <div className="sim-title">
-          <span className="sim-eyebrow">Street &amp; flood simulator</span>
+          <span className="sim-eyebrow">
+            {url ? "External simulator" : "Selected Houston area"}
+          </span>
           <h2 id="sim-title" ref={heading} tabIndex={-1}>
             {zone.name}
           </h2>
         </div>
-        <span className="sim-coords" title="Zone bounds: west, south, east, north">
-          {w.toFixed(3)}, {s.toFixed(3)} → {e.toFixed(3)}, {n.toFixed(3)} · {x.toFixed(0)} × {y.toFixed(0)} km
-        </span>
         {url && (
-          <a className="sim-newtab" href={url.toString()} target="_blank" rel="noopener noreferrer">
-            Open in new tab ↗
-          </a>
+          <span
+            className="sim-coords"
+            title="Approximate size of the selected navigation area"
+          >
+            ≈ {x.toFixed(1)} × {y.toFixed(1)} km
+          </span>
+        )}
+        {url && (
+          <div className="sim-toolbar-actions">
+            <button
+              type="button"
+              className="sim-editor-link"
+              onClick={onOpenAtlas}
+            >
+              Open Houston editor
+            </button>
+            <a
+              className="sim-newtab"
+              href={url.toString()}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Open simulator in new tab ↗
+            </a>
+          </div>
         )}
       </div>
 
       {url ? (
         <div className="sim-frame-wrap">
           <iframe
+            key={`${zone.id}:${retry}`}
             ref={frame}
             className="sim-frame"
             title={`Street and flood simulator: ${zone.name}`}
             src={url.toString()}
             onLoad={sendZone}
+            onError={() => {
+              window.clearTimeout(readyTimer.current);
+              setConnection({
+                phase: "error",
+                message:
+                  "The external simulator could not be loaded. The Houston editor remains available.",
+              });
+            }}
+            referrerPolicy="no-referrer"
             sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-pointer-lock allow-downloads"
             allow="fullscreen; xr-spatial-tracking"
           />
-          {status && (
-            <div className="sim-status" role="status">
-              {status}
+          {(connection.phase !== "ready" || connection.message) && (
+            <div className="sim-status" role="status" aria-live="polite">
+              <span>
+                {connection.message || "Connecting to the external simulator…"}
+              </span>
+              {(connection.phase === "slow" ||
+                connection.phase === "error") && (
+                <div className="sim-status-actions">
+                  <button
+                    type="button"
+                    onClick={() => setRetry((value) => value + 1)}
+                  >
+                    Retry connection
+                  </button>
+                  <button type="button" onClick={onOpenAtlas}>
+                    Open Houston editor
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>
       ) : (
         <div className="sim-card">
-          <h3>Simulator not connected yet</h3>
-          <p>
-            The camera is over this zone. When a simulator is plugged in, it opens here, framed to exactly this area.
-            Nothing on this screen is simulation output.
-          </p>
-          <ol>
-            <li>Run the street &amp; flood simulator somewhere reachable from this browser.</li>
-            <li>
-              Add <code>VITE_SIMULATOR_URL=&lt;its URL&gt;</code> to the repository-root <code>.env</code>.
-            </li>
-            <li>Restart the web dev server and open this zone again.</li>
-          </ol>
-          <h4>It will be opened as</h4>
-          <pre className="sim-code">{example}</pre>
-          <h4>and sent this message after it loads</h4>
-          <pre className="sim-code">{JSON.stringify(zoneMessage(zone), null, 2)}</pre>
-          <p className="sim-small">
-            The simulator can reply with <code>{'{ source: "simulator", type: "exit" }'}</code> to return here, or{" "}
-            <code>ready</code> / <code>status</code>. Details: <code>apps/web/src/features/simulator/README.md</code>.
-          </p>
-          <div className="sim-actions">
-            <button type="button" onClick={copy}>
-              {copied ? "Copied" : "Copy zone JSON"}
-            </button>
-            <button type="button" onClick={onOpenAtlas}>
-              Houston scenario atlas
-            </button>
-            <button type="button" className="sim-primary" onClick={onExit}>
-              Back to zones
-            </button>
+          <div className="sim-availability">
+            <span aria-hidden="true" />
+            External simulator not connected
           </div>
+          <p className="sim-area-note">{zone.summary}</p>
+          <div
+            className="sim-area-frame"
+            aria-label={`Selected navigation area, approximately ${x.toFixed(1)} by ${y.toFixed(1)} kilometers`}
+          >
+            <svg viewBox="0 0 320 126" aria-hidden="true">
+              <path
+                d="M16 24h276M16 63h276M16 102h276M46 12v102M154 12v102M262 12v102"
+                className="sim-grid"
+              />
+              <path d="M67 24h174v78H67z" className="sim-bounds" />
+              <path
+                d="M67 36V24h12m150 0h12v12m0 54v12h-12M79 102H67V90"
+                className="sim-corners"
+              />
+              <path
+                d="M154 57v12m-6-6h12M292 31V13m-4 5 4-5 4 5"
+                className="sim-crosshair"
+              />
+              <text x="286" y="47">
+                N
+              </text>
+              <text x="93" y="116">
+                Selected navigation bounds
+              </text>
+            </svg>
+            <div>
+              <span>{zone.area}</span>
+              <strong>
+                ≈ {x.toFixed(1)} × {y.toFixed(1)} km
+              </strong>
+            </div>
+          </div>
+          <section className="sim-editor-callout">
+            <h3>Explore the Houston editor</h3>
+            <p>
+              Draw a hypothetical storm track or flood footprint, inspect the
+              road sample, and compare assumed closures.
+            </p>
+            <button type="button" className="sim-primary" onClick={onOpenAtlas}>
+              Open Houston editor <span aria-hidden="true">↗</span>
+            </button>
+          </section>
+          <p className="sim-disclaimer">
+            No simulation has run for this selected area. The editor uses
+            clearly labeled illustrative scenarios.
+          </p>
+          <details className="sim-extent">
+            <summary>Area coordinates</summary>
+            <dl>
+              <div>
+                <dt>West</dt>
+                <dd>{Math.abs(w).toFixed(3)}° W</dd>
+              </div>
+              <div>
+                <dt>East</dt>
+                <dd>{Math.abs(e).toFixed(3)}° W</dd>
+              </div>
+              <div>
+                <dt>South</dt>
+                <dd>{s.toFixed(3)}° N</dd>
+              </div>
+              <div>
+                <dt>North</dt>
+                <dd>{n.toFixed(3)}° N</dd>
+              </div>
+            </dl>
+            <p>
+              WGS84 navigation bounds. This box is not a forecast or flood
+              extent.
+            </p>
+          </details>
+          <details className="sim-connection-details">
+            <summary>Connection details</summary>
+            <div className="sim-connection-content">
+              <p>
+                An optional street and flood simulator can receive this area’s
+                bounds and center. Connection setup is for the project operator.
+              </p>
+              <ol>
+                <li>
+                  Run the street &amp; flood simulator somewhere reachable from
+                  this browser.
+                </li>
+                <li>
+                  Add <code>VITE_SIMULATOR_URL=&lt;its URL&gt;</code> to the
+                  repository-root <code>.env</code>.
+                </li>
+                <li>Restart the web dev server and open this zone again.</li>
+              </ol>
+              <h4>It will be opened as</h4>
+              <pre className="sim-code">{example}</pre>
+              <h4>and sent this message after it loads</h4>
+              <pre className="sim-code">
+                {JSON.stringify(zoneMessage(zone), null, 2)}
+              </pre>
+              <p className="sim-small">
+                The simulator can reply with{" "}
+                <code>{'{ source: "simulator", type: "exit" }'}</code> to return
+                here, or <code>ready</code> / <code>status</code>. Details:{" "}
+                <code>apps/web/src/features/simulator/README.md</code>.
+              </p>
+              <div className="sim-actions">
+                <button type="button" onClick={copy}>
+                  {copied ? "Copied" : "Copy zone JSON"}
+                </button>
+              </div>
+              {copyFailed && (
+                <p role="status">
+                  Copy unavailable. Select the zone coordinates above to copy
+                  them manually.
+                </p>
+              )}
+            </div>
+          </details>
+          <button type="button" className="sim-return" onClick={onExit}>
+            Choose a different Houston area
+          </button>
         </div>
       )}
     </section>
