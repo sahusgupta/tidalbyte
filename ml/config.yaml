@@ -1,0 +1,12 @@
+{
+  "status": "not_trained",
+  "data_mode": "offline_example",
+  "scope": "selected_positive_outage_warning_hours",
+  "dataset_path": null,
+  "provenance_path": null,
+  "target": null,
+  "features": [],
+  "split_policy": "whole_weather_events_and_time_holdout",
+  "seed": 42,
+  "artifact_path": "ml/artifacts/outage_model.joblib"
+}
