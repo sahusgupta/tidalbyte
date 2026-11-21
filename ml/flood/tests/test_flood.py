@@ -62,13 +62,21 @@ def test_idw_exact_shape_and_bounds():
 @pytest.fixture(scope="module")
 def meta():
     cfg = load_cfg()
-    f = p(cfg["paths"]["artifacts"]) / "flood_model_metadata.json"
+    art = p(cfg["paths"]["artifacts"])
+    f = art / "flood_model_metadata.json"
     if not f.exists():
         pytest.skip("flood model not trained yet")
-    metadata = json.loads(f.read_text())
-    if not p(metadata["artifact"]["path"]).exists():
-        pytest.skip("retrieve the flood artifact as documented in ml/flood/README.md")
-    return cfg, metadata
+    m = json.loads(f.read_text())
+    if not p(m["artifact"]["path"]).exists():
+        pytest.skip("model file not present (weights are not in Git; see ml/flood/README.md to retrieve them)")
+    return cfg, m
+
+
+@pytest.fixture(scope="module")
+def both_models(meta):
+    if not (p("ml/flood/artifacts") / "flood_model_v2.joblib").exists():
+        pytest.skip("v2 model file not present (see ml/flood/README.md)")
+    return meta
 
 
 def test_artifact_matches_metadata(meta):
@@ -84,3 +92,49 @@ def test_holdout_is_the_harris_county_reach(meta):
     assert ev["holdout_group"] == cfg["holdout_group"] == "san_jacinto"
     folds = ev["cv"]["folds"] if "folds" in ev["cv"] else ev["cv"][ev["chosen_feature_set"]]["folds"]
     assert cfg["holdout_group"] not in folds
+
+
+def test_connectivity_gate_drops_isolated_specks():
+    from ml.flood.train_flood_v2 import gate
+
+    prob = np.zeros((7, 7), np.float32)
+    dgw = np.full((7, 7), 1.0, np.float32)
+    streams = np.zeros((7, 7), bool)
+    log_up = np.zeros((7, 7), np.float32)
+    streams[3, 0:3] = True
+    log_up[3, 0:3] = 2.5  # a 300 km2 river along the left of row 3
+    prob[2:5, 0:3] = 0.9  # flooding beside the river
+    prob[0, 6] = 0.9  # isolated speck far from any river
+    out = gate(prob, dgw, 0.5, 2.0, streams, log_up)
+    assert out[2:5, 0:3].min() == 1.0 and out[0, 6] == 0.0
+    assert gate(prob, dgw, 0.5, None, streams, log_up)[0, 6] == 1.0  # no filter keeps it
+
+
+def test_inference_default_is_v1_and_alternative_loads(both_models):
+    from ml.flood.inference import FloodDepthModel
+
+    v1 = FloodDepthModel.load()
+    v2 = FloodDepthModel.load("v2")
+    assert v1.variant == "v1" and v1.metadata["selection"]["status"] == "default"
+    assert v1.metadata["selection"]["selectedFor"] == "emergency routing"
+    assert v2.metadata["selection"]["status"] == "alternative"
+    X = pd.DataFrame({f: np.zeros(3, np.float32) for f in FEATURES})
+    X["hand"] = [0.0, 3.0, 30.0]
+    X["elev"] = [5.0, 10.0, 60.0]
+    X["rain_mm"] = 600.0
+    for m in (v1, v2):
+        d = m.predict(X)
+        assert d.shape == (3,) and (d >= 0).all()
+    assert list(FloodDepthModel.impassable(np.array([0.1, 0.31, 0.8]), "ambulance")) == [False, True, True]
+
+
+def test_inference_rejects_bad_inputs(meta):
+    from ml.flood.inference import FloodDepthModel
+
+    m = FloodDepthModel.load()
+    with pytest.raises(ValueError):
+        m.predict(pd.DataFrame({"hand": [1.0]}))
+    with pytest.raises(ValueError):
+        FloodDepthModel.impassable(np.array([0.2]), "boat")
+    with pytest.raises(ValueError):
+        FloodDepthModel.load("v9")

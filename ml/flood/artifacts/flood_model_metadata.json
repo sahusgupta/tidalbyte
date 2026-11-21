@@ -603,6 +603,54 @@
    "h": 3.5,
    "a": 2.0,
    "b": 2.0
+  },
+  "holdout_all_labeled_cells": {
+   "note": "Re-scored on every labeled land cell of the hold-out reach (the original holdout block used a 300k-cell sample).",
+   "model": {
+    "n": 6701524,
+    "mae": 0.7174,
+    "rmse": 1.3588,
+    "bias": -0.1741,
+    "mae_wet_cells": 1.8002,
+    "csi_15cm": 0.3783,
+    "pod_15cm": 0.7773,
+    "far_15cm": 0.5757,
+    "csi_30cm": 0.3836,
+    "pod_30cm": 0.6863,
+    "far_30cm": 0.5348
+   },
+   "hand_river_size": {
+    "n": 6701524,
+    "mae": 0.9291,
+    "rmse": 1.6287,
+    "bias": 0.2141,
+    "mae_wet_cells": 1.8614,
+    "csi_15cm": 0.3657,
+    "pod_15cm": 0.7017,
+    "far_15cm": 0.567,
+    "csi_30cm": 0.3571,
+    "pod_30cm": 0.6918,
+    "far_30cm": 0.5753
+   },
+   "hand_threshold": {
+    "n": 6701524,
+    "mae": 1.1422,
+    "rmse": 1.8585,
+    "bias": 0.2027,
+    "mae_wet_cells": 2.0813,
+    "csi_15cm": 0.2971,
+    "pod_15cm": 0.6222,
+    "far_15cm": 0.6374,
+    "csi_30cm": 0.2862,
+    "pod_30cm": 0.6087,
+    "far_30cm": 0.6492
+   },
+   "hwm": {
+    "n": 105,
+    "mae": 0.849,
+    "bias": 0.227,
+    "map_mae": 0.631
+   }
   }
  },
  "permutationImportance": [
@@ -683,5 +731,20 @@
   "numpy": "2.5.5"
  },
  "seed": 11,
- "runtimeSeconds": 134.0
+ "runtimeSeconds": 134.0,
+ "selection": {
+  "status": "default",
+  "selectedFor": "emergency routing",
+  "decidedUtc": "2026-11-21T19:34:42+00:00",
+  "decidedBy": "project owner",
+  "reason": "Missing a flooded road is worse than an unnecessary detour: v1 catches 78% of flooded cells on the held-out Harris County reach vs 59% for v2, with lower error at surveyed high-water marks (0.85 m vs 1.12 m). Cost: more false alarms (58% vs 48% of predicted-flooded cells were dry).",
+  "operatingPoint": "cell flooded when predicted depth > 0.15 m; road impassable when depth exceeds the vehicle clearance",
+  "alternative": {
+   "version": "harvey-flood-depth-v2",
+   "artifact": "ml/flood/artifacts/flood_model_v2.joblib",
+   "metadata": "ml/flood/artifacts/flood_model_metadata_v2.json",
+   "use": "cleaner flood-map display (fewer false alarms)"
+  },
+  "comparisonReport": "ml/flood/artifacts/evaluation_report_v1_vs_v2.md"
+ }
 }

@@ -1,46 +1,41 @@
-# Harvey flood-depth model: evaluation (harvey-flood-depth-v1)
+# Harvey flood-depth model: evaluation (v2 vs v1)
 
-Created 2026-11-21T19:18:38+00:00. Artifact sha256 `327fb7ef6a1b3b86…`. Sources and citations: `data/provenance/flood_sources.md`.
+Created 2026-11-21T19:27:27+00:00. v2 artifact sha256 `9f246f527d27e029…`. Sources and citations: `data/provenance/flood_sources.md`. **Selected for emergency routing: v1** (default `flood_model.joblib`; decided 2026-11-21). v2 is kept as `flood_model_v2.joblib` for flood-map display.
 
 **Target:** mean water depth over a 20 m cell during the Hurricane Harvey peak (Aug-Sep 2017), dry ground inside the USGS mapped area counted as 0; open water excluded.
 
-**Protocol:** spatial hold-out by basin; feature set chosen by leave-one-basin-out CV on non-holdout basins; 'san_jacinto' (Harris County reach) tested once. All labels come from one storm (Harvey 2017).
+**v2 method:** Two-part model: scikit-learn HistGradientBoostingClassifier (wet > 15 cm) + HistGradientBoostingRegressor (depth given wet); CV-chosen probability threshold and river-connectivity filter. Chosen by leave-one-basin-out CV on Brazos / San Bernard / coastal: feature set `all`, wet-probability threshold 0.3, connectivity filter `none`.
 
-## Held-out test: San Jacinto reach (Harris County: Kingwood, Humble, Lake Houston)
+**Disclosure:** v2 was developed after seeing v1's hold-out false alarms, so the hold-out reach is no longer fully untouched; v2's settings were selected only on the other basins.
 
-| Predictor | CSI >15 cm | POD | FAR | CSI >30 cm | MAE (m) | MAE wet cells (m) | Bias (m) |
+## Held-out San Jacinto reach (Harris County), every labeled land cell
+
+| Predictor | CSI >15 cm | Flooding caught (POD) | False alarms (FAR) | CSI >30 cm | MAE (m) | MAE wet cells (m) | Bias (m) |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| model | 0.379 | 0.779 | 0.575 | 0.384 | 0.719 | 1.804 | -0.174 |
-| hand_river_size | 0.365 | 0.701 | 0.567 | 0.357 | 0.933 | 1.865 | +0.214 |
-| hand_threshold | 0.297 | 0.621 | 0.638 | 0.286 | 1.147 | 2.085 | +0.204 |
+| model_v2 | 0.382 | 0.590 | 0.481 | 0.376 | 0.712 | 1.754 | -0.115 |
+| model_v1 | 0.378 | 0.777 | 0.576 | 0.384 | 0.717 | 1.800 | -0.174 |
+| hand_river_size | 0.366 | 0.702 | 0.567 | 0.357 | 0.929 | 1.861 | +0.214 |
+| hand_threshold | 0.297 | 0.622 | 0.637 | 0.286 | 1.142 | 2.081 | +0.203 |
 
-**Surveyed high-water marks (105 in the held-out reach):** model MAE 0.849 m (bias +0.227 m); HAND-threshold MAE 1.139 m; the USGS map itself, at 20 m, differs from the marks by 0.631 m (map-to-point discrepancy, not an established error floor).
+**Surveyed high-water marks (105):** v2 MAE 1.116 m (bias +0.402), v1 MAE 0.849 m (bias +0.227), terrain-threshold baseline 1.139 m; USGS map itself at 20 m: 0.631 m.
 
-## Leave-one-basin-out CV (feature-set selection; CSI >15 cm, model / HAND-threshold)
+## What changed
 
-| Feature set | Brazos | San Bernard | Coastal | Mean CSI | Mean MAE (m) |
-|---|---:|---:|---:|---:|---:|
-| all (chosen) | 0.60 / 0.64 | 0.53 / 0.42 | 0.30 / 0.26 | 0.478 | 0.765 |
-| no_abs_elev | 0.56 / 0.64 | 0.49 / 0.42 | 0.27 / 0.26 | 0.441 | 0.874 |
-| no_abs_elev_no_rain | 0.63 / 0.64 | 0.52 / 0.42 | 0.26 / 0.26 | 0.471 | 0.778 |
+- v2 cuts false alarms (FAR 0.58 to 0.48) but misses more flooding (POD 0.78 to 0.59). Overall extent skill (CSI) is unchanged, and depth at surveyed marks is worse because more flood-edge cells are gated to dry.
+- In CV the best threshold sat at the wettest end of the range (0.3): the training basins want *more* water, San Jacinto wants less. Tuning on other basins cannot fix that shift; it needs labels from more places or storms.
+- The river-connectivity filter did not improve CV in any basin, so it is off.
+- Both versions over-flood the low ground around Lake Houston and the southeast. Absolute elevation is the top feature, and low ground mostly flooded in the training basins.
 
-## What drives predictions (permutation importance on held-out reach, MAE increase in m)
+## Choosing an operating point
 
-- Ground elevation: +0.223
-- Local low spot (TPI): +0.128
-- River size: +0.041
-- Impervious surface: +0.034
-- Storm rainfall: +0.032
-- Distance to stream: +0.031
-- Height above nearest stream (HAND): +0.026
-- Depression depth: +0.004
-- Upstream area: +0.003
-- Wetness index (TWI): +0.000
-- Slope: -0.001
+- **Emergency routing:** missing a flooded road is worse than an unnecessary detour, so the higher-recall v1 catches 78 % of flooded cells vs 59 %.
+- **Flood map display:** v2 has visibly less speckle (`holdout_san_jacinto_observed_v1_v2.png`: USGS observed | v1 | v2).
 
-## Known failure mode
+## CV (non-holdout basins, CSI >15 cm, chosen v2 setting)
 
-Over-predicts shallow flooding on higher ground between rivers (false alarms; see `holdout_san_jacinto_observed_vs_predicted.png`, USGS observed left, model right). Training reaches were wetter (Brazos lower 83 % wet) than San Jacinto (27 %).
+- brazos: CSI 0.450, MAE 0.949 m
+- san_bernard: CSI 0.482, MAE 1.087 m
+- coastal: CSI 0.353, MAE 0.508 m
 
 ## Limitations
 
@@ -49,7 +44,3 @@ Over-predicts shallow flooding on higher ground between rivers (false alarms; se
 - Labels are USGS riverine flood documentation along mapped reaches, derived by interpolating surveyed high-water marks over a DEM; they are not observations of street-level ponding in central Houston.
 - Central Houston bayous (Buffalo, Brays, White Oak) are outside the USGS Harvey mapped reaches; predictions there are untested transfer.
 - 20 m cells average out sub-cell terrain (curbs, underpasses); not a substitute for engineering models.
-
-## Interpretation of high-water-mark checks
-
-These marks may also underlie the USGS interpolated depth maps. The comparison is a consistency check, not independent observational validation. The held-out scores use the model trained without San Jacinto; the deployable model is subsequently refitted on all four basin groups.

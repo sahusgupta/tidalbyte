@@ -1,0 +1,587 @@
+{
+ "modelVersion": "harvey-flood-depth-v2",
+ "createdUtc": "2026-11-21T19:27:27+00:00",
+ "dataMode": "trained_observed_event",
+ "target": {
+  "name": "depth",
+  "unit": "m",
+  "definition": "mean water depth over a 20 m cell during the Hurricane Harvey peak (Aug-Sep 2017), dry ground inside the USGS mapped area counted as 0; open water excluded",
+  "source_units_note": "USGS depth rasters are stored in feet; converted to metres (verified against surveyed high-water-mark heights above ground)."
+ },
+ "algorithm": "Two-part model: scikit-learn HistGradientBoostingClassifier (wet > 15 cm) + HistGradientBoostingRegressor (depth given wet); CV-chosen probability threshold and river-connectivity filter",
+ "features": [
+  "elev",
+  "slope_pct",
+  "hand",
+  "dist_stream",
+  "log_up_km2",
+  "log_stream_up_km2",
+  "twi",
+  "tpi",
+  "sink_depth",
+  "imperv",
+  "rain_mm"
+ ],
+ "featureLabels": {
+  "elev": "Ground elevation",
+  "slope_pct": "Slope",
+  "hand": "Height above nearest stream (HAND)",
+  "dist_stream": "Distance to stream",
+  "log_up_km2": "Upstream area",
+  "log_stream_up_km2": "River size",
+  "twi": "Wetness index (TWI)",
+  "tpi": "Local low spot (TPI)",
+  "sink_depth": "Depression depth",
+  "imperv": "Impervious surface",
+  "rain_mm": "Storm rainfall"
+ },
+ "artifact": {
+  "path": "ml/flood/artifacts/flood_model_v2.joblib",
+  "sha256": "9f246f527d27e029f41de74db10f16485d31787545c678f297cfa2340c117983"
+ },
+ "units": {
+  "san_jacinto": {
+   "group": "san_jacinto",
+   "labeled_land_cells": 6701524,
+   "wet_share_15cm": 0.2714,
+   "hwm": 105
+  },
+  "brazos_lower": {
+   "group": "brazos",
+   "labeled_land_cells": 587454,
+   "wet_share_15cm": 0.8339,
+   "hwm": 6
+  },
+  "brazos_upper": {
+   "group": "brazos",
+   "labeled_land_cells": 2279996,
+   "wet_share_15cm": 0.5779,
+   "hwm": 34
+  },
+  "sanbernard_lower": {
+   "group": "san_bernard",
+   "labeled_land_cells": 456666,
+   "wet_share_15cm": 0.5318,
+   "hwm": 10
+  },
+  "sanbernard_middle": {
+   "group": "san_bernard",
+   "labeled_land_cells": 408067,
+   "wet_share_15cm": 0.5439,
+   "hwm": 17
+  },
+  "sanbernard_upper": {
+   "group": "san_bernard",
+   "labeled_land_cells": 280733,
+   "wet_share_15cm": 0.3432,
+   "hwm": 7
+  },
+  "emb1": {
+   "group": "coastal",
+   "labeled_land_cells": 516960,
+   "wet_share_15cm": 0.3901,
+   "hwm": 13
+  },
+  "emb2": {
+   "group": "coastal",
+   "labeled_land_cells": 368778,
+   "wet_share_15cm": 0.1187,
+   "hwm": 11
+  },
+  "tres_palacios": {
+   "group": "coastal",
+   "labeled_land_cells": 206807,
+   "wet_share_15cm": 0.1559,
+   "hwm": 11
+  }
+ },
+ "evaluation": {
+  "policy": "leave-one-basin-out CV over non-holdout basins selects feature set, threshold and connectivity; hold-out 'san_jacinto' scored on every labeled land cell",
+  "disclosure": "v2 was developed after seeing v1's hold-out false alarms, so the hold-out reach is no longer fully untouched; v2's settings were selected only on the other basins.",
+  "chosen": {
+   "feature_set": "all",
+   "tau": 0.3,
+   "connectivity": "none"
+  },
+  "cv_chosen": {
+   "feature_set": "all",
+   "tau": 0.3,
+   "connectivity": "none",
+   "mean_csi_15cm": 0.4284,
+   "mean_mae": 0.8479,
+   "folds": {
+    "brazos": {
+     "n": 2867450,
+     "mae": 0.9485,
+     "rmse": 1.4709,
+     "bias": -0.4767,
+     "mae_wet_cells": 1.2727,
+     "csi_15cm": 0.4503,
+     "pod_15cm": 0.5267,
+     "far_15cm": 0.2436,
+     "csi_30cm": 0.4478,
+     "pod_30cm": 0.53,
+     "far_30cm": 0.2573
+    },
+    "san_bernard": {
+     "n": 1145466,
+     "mae": 1.0869,
+     "rmse": 1.5491,
+     "bias": 0.5612,
+     "mae_wet_cells": 1.1503,
+     "csi_15cm": 0.4823,
+     "pod_15cm": 0.7177,
+     "far_15cm": 0.4048,
+     "csi_30cm": 0.4632,
+     "pod_30cm": 0.7343,
+     "far_30cm": 0.4435
+    },
+    "coastal": {
+     "n": 1092545,
+     "mae": 0.5082,
+     "rmse": 0.737,
+     "bias": 0.4246,
+     "mae_wet_cells": 0.6163,
+     "csi_15cm": 0.3527,
+     "pod_15cm": 0.9815,
+     "far_15cm": 0.6449,
+     "csi_30cm": 0.3423,
+     "pod_30cm": 0.9815,
+     "far_30cm": 0.6554
+    }
+   }
+  },
+  "cv_all": {
+   "all|tau=0.3|none": {
+    "mean_csi_15cm": 0.4284,
+    "mean_mae": 0.8479
+   },
+   "all|tau=0.3|river>=10km2": {
+    "mean_csi_15cm": 0.4223,
+    "mean_mae": 0.8478
+   },
+   "all|tau=0.3|river>=100km2": {
+    "mean_csi_15cm": 0.2496,
+    "mean_mae": 0.8329
+   },
+   "all|tau=0.35|none": {
+    "mean_csi_15cm": 0.423,
+    "mean_mae": 0.8423
+   },
+   "all|tau=0.35|river>=10km2": {
+    "mean_csi_15cm": 0.4171,
+    "mean_mae": 0.8422
+   },
+   "all|tau=0.35|river>=100km2": {
+    "mean_csi_15cm": 0.244,
+    "mean_mae": 0.8301
+   },
+   "all|tau=0.4|none": {
+    "mean_csi_15cm": 0.4179,
+    "mean_mae": 0.8374
+   },
+   "all|tau=0.4|river>=10km2": {
+    "mean_csi_15cm": 0.4126,
+    "mean_mae": 0.8371
+   },
+   "all|tau=0.4|river>=100km2": {
+    "mean_csi_15cm": 0.2393,
+    "mean_mae": 0.8264
+   },
+   "all|tau=0.45|none": {
+    "mean_csi_15cm": 0.4134,
+    "mean_mae": 0.8327
+   },
+   "all|tau=0.45|river>=10km2": {
+    "mean_csi_15cm": 0.4086,
+    "mean_mae": 0.8321
+   },
+   "all|tau=0.45|river>=100km2": {
+    "mean_csi_15cm": 0.2331,
+    "mean_mae": 0.8239
+   },
+   "all|tau=0.5|none": {
+    "mean_csi_15cm": 0.409,
+    "mean_mae": 0.8284
+   },
+   "all|tau=0.5|river>=10km2": {
+    "mean_csi_15cm": 0.4037,
+    "mean_mae": 0.8276
+   },
+   "all|tau=0.5|river>=100km2": {
+    "mean_csi_15cm": 0.2281,
+    "mean_mae": 0.821
+   },
+   "all|tau=0.55|none": {
+    "mean_csi_15cm": 0.4047,
+    "mean_mae": 0.8245
+   },
+   "all|tau=0.55|river>=10km2": {
+    "mean_csi_15cm": 0.3987,
+    "mean_mae": 0.824
+   },
+   "all|tau=0.55|river>=100km2": {
+    "mean_csi_15cm": 0.2233,
+    "mean_mae": 0.8196
+   },
+   "all|tau=0.6|none": {
+    "mean_csi_15cm": 0.4005,
+    "mean_mae": 0.82
+   },
+   "all|tau=0.6|river>=10km2": {
+    "mean_csi_15cm": 0.3939,
+    "mean_mae": 0.8203
+   },
+   "all|tau=0.6|river>=100km2": {
+    "mean_csi_15cm": 0.2166,
+    "mean_mae": 0.8192
+   },
+   "all|tau=0.65|none": {
+    "mean_csi_15cm": 0.396,
+    "mean_mae": 0.8151
+   },
+   "all|tau=0.65|river>=10km2": {
+    "mean_csi_15cm": 0.3906,
+    "mean_mae": 0.8145
+   },
+   "all|tau=0.65|river>=100km2": {
+    "mean_csi_15cm": 0.2115,
+    "mean_mae": 0.8157
+   },
+   "all|tau=0.7|none": {
+    "mean_csi_15cm": 0.3911,
+    "mean_mae": 0.8091
+   },
+   "all|tau=0.7|river>=10km2": {
+    "mean_csi_15cm": 0.3859,
+    "mean_mae": 0.8075
+   },
+   "all|tau=0.7|river>=100km2": {
+    "mean_csi_15cm": 0.2051,
+    "mean_mae": 0.8108
+   },
+   "all|tau=0.75|none": {
+    "mean_csi_15cm": 0.3858,
+    "mean_mae": 0.8027
+   },
+   "all|tau=0.75|river>=10km2": {
+    "mean_csi_15cm": 0.38,
+    "mean_mae": 0.8003
+   },
+   "all|tau=0.75|river>=100km2": {
+    "mean_csi_15cm": 0.1974,
+    "mean_mae": 0.8068
+   },
+   "all|tau=0.8|none": {
+    "mean_csi_15cm": 0.3792,
+    "mean_mae": 0.7953
+   },
+   "all|tau=0.8|river>=10km2": {
+    "mean_csi_15cm": 0.3733,
+    "mean_mae": 0.7934
+   },
+   "all|tau=0.8|river>=100km2": {
+    "mean_csi_15cm": 0.1581,
+    "mean_mae": 0.8134
+   },
+   "all|tau=0.85|none": {
+    "mean_csi_15cm": 0.3709,
+    "mean_mae": 0.7867
+   },
+   "all|tau=0.85|river>=10km2": {
+    "mean_csi_15cm": 0.3651,
+    "mean_mae": 0.7856
+   },
+   "all|tau=0.85|river>=100km2": {
+    "mean_csi_15cm": 0.1498,
+    "mean_mae": 0.8112
+   },
+   "no_abs_elev|tau=0.3|none": {
+    "mean_csi_15cm": 0.3992,
+    "mean_mae": 0.9521
+   },
+   "no_abs_elev|tau=0.3|river>=10km2": {
+    "mean_csi_15cm": 0.3921,
+    "mean_mae": 0.9537
+   },
+   "no_abs_elev|tau=0.3|river>=100km2": {
+    "mean_csi_15cm": 0.2331,
+    "mean_mae": 0.9002
+   },
+   "no_abs_elev|tau=0.35|none": {
+    "mean_csi_15cm": 0.3969,
+    "mean_mae": 0.9416
+   },
+   "no_abs_elev|tau=0.35|river>=10km2": {
+    "mean_csi_15cm": 0.3894,
+    "mean_mae": 0.944
+   },
+   "no_abs_elev|tau=0.35|river>=100km2": {
+    "mean_csi_15cm": 0.2299,
+    "mean_mae": 0.8941
+   },
+   "no_abs_elev|tau=0.4|none": {
+    "mean_csi_15cm": 0.3948,
+    "mean_mae": 0.9309
+   },
+   "no_abs_elev|tau=0.4|river>=10km2": {
+    "mean_csi_15cm": 0.3862,
+    "mean_mae": 0.9337
+   },
+   "no_abs_elev|tau=0.4|river>=100km2": {
+    "mean_csi_15cm": 0.2277,
+    "mean_mae": 0.8871
+   },
+   "no_abs_elev|tau=0.45|none": {
+    "mean_csi_15cm": 0.3928,
+    "mean_mae": 0.92
+   },
+   "no_abs_elev|tau=0.45|river>=10km2": {
+    "mean_csi_15cm": 0.3843,
+    "mean_mae": 0.9224
+   },
+   "no_abs_elev|tau=0.45|river>=100km2": {
+    "mean_csi_15cm": 0.2251,
+    "mean_mae": 0.8801
+   },
+   "no_abs_elev|tau=0.5|none": {
+    "mean_csi_15cm": 0.3908,
+    "mean_mae": 0.909
+   },
+   "no_abs_elev|tau=0.5|river>=10km2": {
+    "mean_csi_15cm": 0.3816,
+    "mean_mae": 0.9108
+   },
+   "no_abs_elev|tau=0.5|river>=100km2": {
+    "mean_csi_15cm": 0.2227,
+    "mean_mae": 0.8727
+   },
+   "no_abs_elev|tau=0.55|none": {
+    "mean_csi_15cm": 0.3885,
+    "mean_mae": 0.8981
+   },
+   "no_abs_elev|tau=0.55|river>=10km2": {
+    "mean_csi_15cm": 0.3787,
+    "mean_mae": 0.9004
+   },
+   "no_abs_elev|tau=0.55|river>=100km2": {
+    "mean_csi_15cm": 0.22,
+    "mean_mae": 0.866
+   },
+   "no_abs_elev|tau=0.6|none": {
+    "mean_csi_15cm": 0.386,
+    "mean_mae": 0.8872
+   },
+   "no_abs_elev|tau=0.6|river>=10km2": {
+    "mean_csi_15cm": 0.3754,
+    "mean_mae": 0.8903
+   },
+   "no_abs_elev|tau=0.6|river>=100km2": {
+    "mean_csi_15cm": 0.2171,
+    "mean_mae": 0.8598
+   },
+   "no_abs_elev|tau=0.65|none": {
+    "mean_csi_15cm": 0.3834,
+    "mean_mae": 0.8759
+   },
+   "no_abs_elev|tau=0.65|river>=10km2": {
+    "mean_csi_15cm": 0.3722,
+    "mean_mae": 0.8784
+   },
+   "no_abs_elev|tau=0.65|river>=100km2": {
+    "mean_csi_15cm": 0.2136,
+    "mean_mae": 0.8526
+   },
+   "no_abs_elev|tau=0.7|none": {
+    "mean_csi_15cm": 0.3802,
+    "mean_mae": 0.8647
+   },
+   "no_abs_elev|tau=0.7|river>=10km2": {
+    "mean_csi_15cm": 0.3697,
+    "mean_mae": 0.8661
+   },
+   "no_abs_elev|tau=0.7|river>=100km2": {
+    "mean_csi_15cm": 0.211,
+    "mean_mae": 0.8452
+   },
+   "no_abs_elev|tau=0.75|none": {
+    "mean_csi_15cm": 0.3762,
+    "mean_mae": 0.8534
+   },
+   "no_abs_elev|tau=0.75|river>=10km2": {
+    "mean_csi_15cm": 0.3665,
+    "mean_mae": 0.8528
+   },
+   "no_abs_elev|tau=0.75|river>=100km2": {
+    "mean_csi_15cm": 0.2084,
+    "mean_mae": 0.8364
+   },
+   "no_abs_elev|tau=0.8|none": {
+    "mean_csi_15cm": 0.3708,
+    "mean_mae": 0.8412
+   },
+   "no_abs_elev|tau=0.8|river>=10km2": {
+    "mean_csi_15cm": 0.3632,
+    "mean_mae": 0.8384
+   },
+   "no_abs_elev|tau=0.8|river>=100km2": {
+    "mean_csi_15cm": 0.2051,
+    "mean_mae": 0.8279
+   },
+   "no_abs_elev|tau=0.85|none": {
+    "mean_csi_15cm": 0.3629,
+    "mean_mae": 0.8278
+   },
+   "no_abs_elev|tau=0.85|river>=10km2": {
+    "mean_csi_15cm": 0.351,
+    "mean_mae": 0.827
+   },
+   "no_abs_elev|tau=0.85|river>=100km2": {
+    "mean_csi_15cm": 0.1982,
+    "mean_mae": 0.8197
+   }
+  },
+  "holdout_group": "san_jacinto",
+  "holdout": {
+   "model_v2": {
+    "n": 6701524,
+    "mae": 0.7122,
+    "rmse": 1.3838,
+    "bias": -0.1152,
+    "mae_wet_cells": 1.7543,
+    "csi_15cm": 0.3816,
+    "pod_15cm": 0.59,
+    "far_15cm": 0.4807,
+    "csi_30cm": 0.3764,
+    "pod_30cm": 0.5954,
+    "far_30cm": 0.4942
+   },
+   "model_v1": {
+    "n": 6701524,
+    "mae": 0.7174,
+    "rmse": 1.3588,
+    "bias": -0.1741,
+    "mae_wet_cells": 1.8002,
+    "csi_15cm": 0.3783,
+    "pod_15cm": 0.7773,
+    "far_15cm": 0.5757,
+    "csi_30cm": 0.3836,
+    "pod_30cm": 0.6863,
+    "far_30cm": 0.5348
+   },
+   "hand_threshold": {
+    "n": 6701524,
+    "mae": 1.1422,
+    "rmse": 1.8585,
+    "bias": 0.2027,
+    "mae_wet_cells": 2.0813,
+    "csi_15cm": 0.2971,
+    "pod_15cm": 0.6222,
+    "far_15cm": 0.6374,
+    "csi_30cm": 0.2862,
+    "pod_30cm": 0.6087,
+    "far_30cm": 0.6492
+   },
+   "hand_river_size": {
+    "n": 6701524,
+    "mae": 0.9291,
+    "rmse": 1.6287,
+    "bias": 0.2141,
+    "mae_wet_cells": 1.8614,
+    "csi_15cm": 0.3657,
+    "pod_15cm": 0.7017,
+    "far_15cm": 0.567,
+    "csi_30cm": 0.3571,
+    "pod_30cm": 0.6918,
+    "far_30cm": 0.5753
+   },
+   "hwm": {
+    "model_v2": {
+     "n": 105,
+     "mae": 1.116,
+     "bias": 0.402,
+     "map_mae": 0.631,
+     "hand_threshold_mae": 1.139
+    },
+    "model_v1": {
+     "n": 105,
+     "mae": 0.849,
+     "bias": 0.227,
+     "map_mae": 0.631
+    }
+   }
+  },
+  "hand_baseline_params": {
+   "h": 3.5,
+   "a": 2.0,
+   "b": 2.0
+  },
+  "cv": {
+   "folds": {
+    "brazos": {
+     "n": 2867450,
+     "mae": 0.9485,
+     "rmse": 1.4709,
+     "bias": -0.4767,
+     "mae_wet_cells": 1.2727,
+     "csi_15cm": 0.4503,
+     "pod_15cm": 0.5267,
+     "far_15cm": 0.2436,
+     "csi_30cm": 0.4478,
+     "pod_30cm": 0.53,
+     "far_30cm": 0.2573
+    },
+    "san_bernard": {
+     "n": 1145466,
+     "mae": 1.0869,
+     "rmse": 1.5491,
+     "bias": 0.5612,
+     "mae_wet_cells": 1.1503,
+     "csi_15cm": 0.4823,
+     "pod_15cm": 0.7177,
+     "far_15cm": 0.4048,
+     "csi_30cm": 0.4632,
+     "pod_30cm": 0.7343,
+     "far_30cm": 0.4435
+    },
+    "coastal": {
+     "n": 1092545,
+     "mae": 0.5082,
+     "rmse": 0.737,
+     "bias": 0.4246,
+     "mae_wet_cells": 0.6163,
+     "csi_15cm": 0.3527,
+     "pod_15cm": 0.9815,
+     "far_15cm": 0.6449,
+     "csi_30cm": 0.3423,
+     "pod_30cm": 0.9815,
+     "far_30cm": 0.6554
+    }
+   }
+  },
+  "chosen_feature_set": "all"
+ },
+ "limitations": [
+  "All labels come from one storm (Hurricane Harvey). Validation is across places, not across storms; skill for other storms (or for slider-driven what-ifs) is unvalidated.",
+  "Rainfall varies only spatially within Harvey (roughly 40-1250 mm storm totals). The model has never seen a modest storm, so low-rain scenarios are extrapolations and should not be shown as predictions.",
+  "Labels are USGS riverine flood documentation along mapped reaches, derived by interpolating surveyed high-water marks over a DEM; they are not observations of street-level ponding in central Houston.",
+  "Central Houston bayous (Buffalo, Brays, White Oak) are outside the USGS Harvey mapped reaches; predictions there are untested transfer.",
+  "20 m cells average out sub-cell terrain (curbs, underpasses); not a substitute for engineering models."
+ ],
+ "environment": {
+  "python": "3.13.18",
+  "sklearn": "1.9.1",
+  "numpy": "2.5.5"
+ },
+ "seed": 11,
+ "runtimeSeconds": 327.9,
+ "selection": {
+  "status": "alternative",
+  "selectedFor": "flood-map display",
+  "decidedUtc": "2026-11-21T19:34:42+00:00",
+  "default": {
+   "version": "harvey-flood-depth-v1",
+   "artifact": "ml/flood/artifacts/flood_model.joblib"
+  }
+ }
+}
