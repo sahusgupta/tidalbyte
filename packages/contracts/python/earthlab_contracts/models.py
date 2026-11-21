@@ -68,6 +68,7 @@ class AllocationIntervention(BaseModel):
     cost: int = Field(..., ge=0, le=100)
     crews: int = Field(..., ge=0, le=6)
     actionId: str = Field(..., max_length=160, min_length=1)
+    accessWithout: AllocationAccess
 
 
 class AllocationStrategy(BaseModel):

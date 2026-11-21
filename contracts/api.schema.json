@@ -285,7 +285,8 @@
         "label",
         "cost",
         "crews",
-        "actionId"
+        "actionId",
+        "accessWithout"
       ],
       "properties": {
         "agency": {
@@ -319,6 +320,9 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 160
+        },
+        "accessWithout": {
+          "$ref": "#/$defs/AllocationAccess"
         }
       },
       "title": "AllocationIntervention"

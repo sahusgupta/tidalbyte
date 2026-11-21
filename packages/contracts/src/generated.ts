@@ -155,6 +155,7 @@ export interface AllocationIntervention {
   cost: number;
   crews: number;
   actionId: string;
+  accessWithout: AllocationAccess;
 }
 export interface AllocationPayoff {
   /**
