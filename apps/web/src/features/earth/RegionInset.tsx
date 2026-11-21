@@ -1,3 +1,4 @@
+import { HOUSTON_ARCHIVE_LAYERS } from "./imagery";
 import { regionBBox, type Region } from "./zones";
 
 /** WGS84 index diagram. Letter keys correspond to the study-zone list below. */
@@ -14,7 +15,7 @@ export function RegionInset({
   const scale = Math.min(252 / ((east - west) * lonScale), 132 / (north - south));
   const x = (lon: number) => 160 + (lon - (east + west) / 2) * scale * lonScale;
   const y = (lat: number) => 78 - (lat - midLat) * scale;
-  const bounds = [-95.9, 29.249921875, -94.7, 30.200078125] as const;
+  const { url, bounds } = HOUSTON_ARCHIVE_LAYERS[0];
   return (
     <figure className="region-inset">
       <svg
@@ -23,7 +24,7 @@ export function RegionInset({
         aria-label="Houston zone index. Lettered boxes locate the study areas listed below."
       >
         <image
-          href="/map/houston-usgs.webp"
+          href={url}
           x={x(bounds[0])}
           y={y(bounds[3])}
           width={x(bounds[2]) - x(bounds[0])}
