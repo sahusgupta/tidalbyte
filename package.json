@@ -7,7 +7,7 @@
   "scripts": {
     "demo:allocation": "node scripts/python.mjs scripts/allocation_demo.py",
     "dev:integrated": "node scripts/dev-integrated.mjs",
-    "dev": "concurrently --kill-others-on-fail --names web,api \"pnpm --filter web dev\" \"pnpm dev:api\"",
+    "dev": "node scripts/dev-integrated.mjs",
     "dev:api": "node scripts/python.mjs -m uvicorn app.main:app --app-dir apps/api --reload --reload-dir apps/api --reload-dir packages/contracts/python --host 127.0.0.1 --port 8000",
     "typecheck": "pnpm --filter @earthlab/contracts typecheck && pnpm --filter web typecheck",
     "test": "pnpm test:web && pnpm test:python",
