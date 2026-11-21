@@ -1,6 +1,6 @@
-import { useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { useAtlasStore } from "./store";
-import { Dial, LayerToggle, timeLabel } from "./FieldTools";
+import { Dial, timeLabel } from "./FieldTools";
 import { Icon } from "./Icon";
 import {
   ASSUMPTION_LIMITS,
@@ -147,19 +147,20 @@ function ScenarioPlate({
 }
 
 export function ScenarioRail({
-  layers,
-  onLayer,
+  onEnsureHazard,
+  onResetLayers,
   inspectMode,
   onEditMap,
 }: {
-  layers: Layers;
-  onLayer: (id: keyof Layers, value: boolean) => void;
+  onEnsureHazard: () => void;
+  onResetLayers: () => void;
   inspectMode: () => void;
   onEditMap: () => void;
 }) {
   const state = useAtlasStore();
   const hurricane = state.mode === "hurricane";
   const [pointIndex, setPointIndex] = useState(0);
+  const typeTitleId = useId();
   const coordinates = useRef<HTMLDetailsElement>(null);
   const idx = Math.min(pointIndex, state.track.length - 1);
   const position = hurricane ? state.track[idx] : state.floodCenter;
@@ -171,7 +172,7 @@ export function ScenarioRail({
   }
   function chooseMode(mode: "flood" | "hurricane") {
     state.setMode(mode);
-    onLayer("hazard", true);
+    onEnsureHazard();
     inspectMode();
   }
   return (
@@ -184,95 +185,86 @@ export function ScenarioRail({
             : "Draw a flood area to see which sample roads it crosses."}
         </p>
       </header>
-      <div className="scenario-choice" role="group" aria-label="Scenario type">
-        <button type="button" aria-pressed={hurricane} onClick={() => chooseMode("hurricane")}>
-          Hurricane
-        </button>
-        <button type="button" aria-pressed={!hurricane} onClick={() => chooseMode("flood")}>
-          Flood
-        </button>
+      <div className="scenario-fields">
+        <section className="scenario-geometry" aria-labelledby={typeTitleId}>
+          <h3 id={typeTitleId}>Scenario type</h3>
+          <div className="scenario-choice" role="group" aria-label="Scenario type">
+            <button type="button" aria-pressed={hurricane} onClick={() => chooseMode("hurricane")}>
+              Hurricane
+            </button>
+            <button type="button" aria-pressed={!hurricane} onClick={() => chooseMode("flood")}>
+              Flood
+            </button>
+          </div>
+          <ScenarioPlate
+            track={state.track}
+            center={state.floodCenter}
+            radius={state.floodRadiusKm}
+            progress={state.progress}
+            duration={state.assumptions.durationHours}
+            hurricane={hurricane}
+          />
+          <button
+            type="button"
+            className="notebook-primary"
+            onClick={() => {
+              onEnsureHazard();
+              onEditMap();
+            }}
+          >
+            <Icon name="edit" size={16} />
+            {hurricane ? "Edit track on map" : "Edit footprint on map"}
+          </button>
+        </section>
+        <section className="notebook-section assumptions">
+          <h3>Scenario parameters</h3>
+          {hurricane ? (
+            <Dial
+              label="Intensity class"
+              unit="/ 5"
+              value={state.assumptions.intensity}
+              min={ASSUMPTION_LIMITS.intensity.min}
+              max={ASSUMPTION_LIMITS.intensity.max}
+              step={ASSUMPTION_LIMITS.intensity.step}
+              onChange={(value) => state.setAssumption("intensity", value)}
+            />
+          ) : (
+            <Dial
+              label="Final radius"
+              unit="km"
+              value={state.floodRadiusKm}
+              min={FLOOD_RADIUS_LIMITS.min}
+              max={FLOOD_RADIUS_LIMITS.max}
+              step={0.25}
+              onChange={(value) => state.setFlood(state.floodCenter, value)}
+            />
+          )}
+          <Dial
+            label="Rainfall"
+            unit="mm"
+            value={state.assumptions.rainfallMm}
+            min={ASSUMPTION_LIMITS.rainfallMm.min}
+            max={ASSUMPTION_LIMITS.rainfallMm.max}
+            step={ASSUMPTION_LIMITS.rainfallMm.step}
+            onChange={(value) => state.setAssumption("rainfallMm", value)}
+          />
+          <Dial
+            label="Duration"
+            unit="h"
+            value={state.assumptions.durationHours}
+            min={ASSUMPTION_LIMITS.durationHours.min}
+            max={ASSUMPTION_LIMITS.durationHours.max}
+            step={ASSUMPTION_LIMITS.durationHours.step}
+            onChange={(value) => state.setAssumption("durationHours", value)}
+          />
+          <p className="notebook-note">
+            {hurricane
+              ? "Rainfall and intensity are scenario notes."
+              : "Rainfall is a scenario note."}{" "}
+            Duration sets the timeline.
+          </p>
+        </section>
       </div>
-      <ScenarioPlate
-        track={state.track}
-        center={state.floodCenter}
-        radius={state.floodRadiusKm}
-        progress={state.progress}
-        duration={state.assumptions.durationHours}
-        hurricane={hurricane}
-      />
-      <button type="button" className="notebook-primary" onClick={onEditMap}>
-        <Icon name="edit" size={16} />
-        {hurricane ? "Edit track on map" : "Edit footprint on map"}
-      </button>
-      <section className="notebook-section assumptions">
-        <h3>Scenario assumptions</h3>
-        {hurricane ? (
-          <Dial
-            label="Intensity class"
-            unit="/ 5"
-            value={state.assumptions.intensity}
-            min={ASSUMPTION_LIMITS.intensity.min}
-            max={ASSUMPTION_LIMITS.intensity.max}
-            step={ASSUMPTION_LIMITS.intensity.step}
-            onChange={(value) => state.setAssumption("intensity", value)}
-          />
-        ) : (
-          <Dial
-            label="Final radius"
-            unit="km"
-            value={state.floodRadiusKm}
-            min={FLOOD_RADIUS_LIMITS.min}
-            max={FLOOD_RADIUS_LIMITS.max}
-            step={0.25}
-            onChange={(value) => state.setFlood(state.floodCenter, value)}
-          />
-        )}
-        <Dial
-          label="Rainfall"
-          unit="mm"
-          value={state.assumptions.rainfallMm}
-          min={ASSUMPTION_LIMITS.rainfallMm.min}
-          max={ASSUMPTION_LIMITS.rainfallMm.max}
-          step={ASSUMPTION_LIMITS.rainfallMm.step}
-          onChange={(value) => state.setAssumption("rainfallMm", value)}
-        />
-        <Dial
-          label="Duration"
-          unit="h"
-          value={state.assumptions.durationHours}
-          min={ASSUMPTION_LIMITS.durationHours.min}
-          max={ASSUMPTION_LIMITS.durationHours.max}
-          step={ASSUMPTION_LIMITS.durationHours.step}
-          onChange={(value) => state.setAssumption("durationHours", value)}
-        />
-        <p className="notebook-note">
-          {hurricane
-            ? "Rainfall and intensity are scenario notes."
-            : "Rainfall is a scenario note."}{" "}
-          Duration sets the timeline.
-        </p>
-      </section>
-      <section className="notebook-section">
-        <h3>Map layers</h3>
-        <LayerToggle
-          label={hurricane ? "Storm track & radius" : "Flood footprint"}
-          styleName="hazard"
-          value={layers.hazard}
-          set={(value) => onLayer("hazard", value)}
-        />
-        <LayerToggle
-          label="Sample road network"
-          styleName="road"
-          value={layers.roads}
-          set={(value) => onLayer("roads", value)}
-        />
-        <LayerToggle
-          label="County severity"
-          styleName="county"
-          value={layers.outages}
-          set={(value) => onLayer("outages", value)}
-        />
-      </section>
       <details ref={coordinates} className="notebook-section coordinate-editor">
         <summary>
           Coordinate editor
@@ -329,6 +321,25 @@ export function ScenarioRail({
           </div>
         )}
       </details>
+      <details className="notebook-section notebook-disclosure scenario-method">
+        <summary>
+          Method & limitations
+          <Icon name="down" size={16} />
+        </summary>
+        <p>
+          {hurricane
+            ? "The track is manually authored. Its marker follows the drawn path across the timeline, with a fixed 6 km inspection circle."
+            : "The footprint is an illustrative circle. It grows from 35% to 100% of the final radius across the timeline."}
+        </p>
+        <p>
+          Rainfall{hurricane ? " and intensity are annotations" : " is an annotation"}, not inputs
+          to a weather or flood model. No flood depth, asset damage or road safety is inferred.
+        </p>
+        <p>
+          County outage estimates use a separate supported warning preset. Editing this geometry
+          does not change those results. Road intersections use the schematic sample network.
+        </p>
+      </details>
       <footer className="notebook-actions">
         <button type="button" onClick={() => state.undo()} disabled={!state.history.length}>
           <Icon name="undo" size={16} />
@@ -341,9 +352,7 @@ export function ScenarioRail({
             if (coordinates.current) coordinates.current.open = false;
             setPointIndex(0);
             inspectMode();
-            onLayer("hazard", true);
-            onLayer("roads", true);
-            onLayer("outages", false);
+            onResetLayers();
           }}
         >
           <Icon name="reset" size={16} />

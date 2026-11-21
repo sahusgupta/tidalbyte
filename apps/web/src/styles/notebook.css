@@ -386,6 +386,100 @@
 .atlas-shell .network-controls .notebook-primary {
   margin-top: 12px;
 }
+
+/* Scenario contents are a field sheet. The console owns its dialog and scroll. */
+.atlas-shell .scenario-page {
+  --paper: #f5f1e7;
+  --ink: #252923;
+  --muted: #535c53;
+  --rule: #d7d7ca;
+  --accent: #8e492c;
+  --active: var(--accent);
+  container-type: inline-size;
+  min-height: 0;
+  padding: 24px;
+  background: var(--paper);
+  color: var(--ink);
+}
+.atlas-shell .scenario-page .notebook-heading {
+  margin-bottom: 24px;
+}
+.atlas-shell .scenario-page .notebook-heading h2 {
+  font-size: 32px;
+  line-height: 1.1;
+  margin-bottom: 8px;
+}
+.atlas-shell .scenario-page .notebook-heading p {
+  max-width: 52ch;
+}
+.atlas-shell .scenario-fields {
+  display: grid;
+  gap: 24px;
+  align-items: start;
+}
+.atlas-shell .scenario-geometry {
+  min-width: 0;
+}
+.atlas-shell .scenario-geometry h3 {
+  margin: 0 0 12px;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 600;
+}
+.atlas-shell .scenario-page .scenario-choice {
+  margin-bottom: 12px;
+  background: #ebe7db;
+  border-color: #c5c7ba;
+}
+.atlas-shell .scenario-page .scenario-choice button[aria-pressed="true"] {
+  background: var(--paper);
+  color: var(--ink);
+  outline: 1px solid #c5c7ba;
+}
+.atlas-shell .scenario-page .scenario-choice button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.atlas-shell .scenario-page .scenario-plate {
+  margin-bottom: 16px;
+}
+.atlas-shell .scenario-page .scenario-plate svg {
+  height: 104px;
+}
+.atlas-shell .scenario-page .scenario-plate text {
+  font-size: 14px;
+}
+.atlas-shell .scenario-page .scenario-plate figcaption {
+  padding-top: 4px;
+  flex-wrap: wrap;
+}
+.atlas-shell .scenario-page .assumptions {
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+.atlas-shell .scenario-page .assumptions .notebook-note {
+  margin-top: 12px;
+}
+.atlas-shell .scenario-page .coordinate-editor,
+.atlas-shell .scenario-page .scenario-method {
+  margin-top: 20px;
+  padding-top: 8px;
+}
+.atlas-shell .scenario-page .notebook-actions {
+  margin-top: 20px;
+  padding-top: 8px;
+  position: static;
+}
+@container (min-width: 480px) {
+  .atlas-shell .scenario-fields {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 32px;
+  }
+  .atlas-shell .scenario-page .scenario-plate svg {
+    height: 112px;
+  }
+}
 @media (max-width: 360px) {
   .atlas-shell .notebook-page {
     padding: 20px;
