@@ -18,6 +18,13 @@ function maplibreWorker(): Plugin {
       mkdirSync(out, { recursive: true })
       for (const file of ['maplibre-gl-worker.mjs'])
         copyFileSync(resolve(maplibreDist, file), resolve(out, file))
+      const mapOut = resolve(root, 'public/map')
+      mkdirSync(mapOut, { recursive: true })
+      for (const file of ['houston-usgs.webp', 'houston-detail-usgs.webp', 'provenance.json'])
+        copyFileSync(resolve(root, '../../apps/web/public/map', file), resolve(mapOut, file))
+      const fontOut = resolve(root, 'public/fonts')
+      mkdirSync(fontOut, { recursive: true })
+      copyFileSync(resolve(root, 'node_modules/@fontsource-variable/source-sans-3/LICENSE'), resolve(fontOut, 'SourceSans3-LICENSE.txt'))
     },
   }
 }

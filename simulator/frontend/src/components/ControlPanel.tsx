@@ -48,16 +48,16 @@ export default function ControlPanel({ meta, controls, preset, onControls, onPre
   const set = (k: keyof Scenario) => (v: number) => onControls({ ...controls, [k]: v })
   const total = controls.rain * controls.duration
   return (
-    <Panel className="w-[272px]">
+    <Panel>
       <header className="flex items-center gap-2.5 border-b border-white/[0.06] px-3.5 py-2.5">
         {!embedded && (
-          <div className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-sky-400 to-blue-600">
+          <div className="sim-panel-symbol">
             <Droplets className="h-4 w-4 text-white" strokeWidth={2.4} />
           </div>
         )}
         <div className="min-w-0 flex-1">
-          <h1 className="text-[13px] font-semibold tracking-tight text-white">{embedded ? 'Storm controls' : 'AquaGrid AI'}</h1>
-          {!embedded && <p className="truncate text-[11px] text-slate-400">Road flooding & emergency routes</p>}
+          <h2 id="storm-panel-title" className="text-[15px] font-semibold text-white">Storm controls</h2>
+          <p className="text-[12px] text-slate-400">Explore a modeled weather scenario</p>
         </div>
         <button
           type="button"
@@ -83,6 +83,7 @@ export default function ControlPanel({ meta, controls, preset, onControls, onPre
                   key={key}
                   type="button"
                   title={p.blurb}
+                  aria-pressed={active}
                   onClick={() => onPreset(key)}
                   className={`group flex items-center gap-1.5 rounded-lg border px-2 py-1.5 text-left text-[11.5px] font-medium transition-all ${
                     extreme ? 'col-span-2' : ''
@@ -106,7 +107,7 @@ export default function ControlPanel({ meta, controls, preset, onControls, onPre
 
         <section>
           <SectionTitle right={<span className="font-mono text-[10.5px] text-slate-500">{preset ? 'preset' : 'custom'}</span>}>
-            Play God
+            Scenario parameters
           </SectionTitle>
           <div className="space-y-4">
             <Slider
@@ -118,7 +119,7 @@ export default function ControlPanel({ meta, controls, preset, onControls, onPre
               step={1}
               display={`${controls.rain.toFixed(0)} mm/h`}
               sub={`${(controls.rain / 25.4).toFixed(1)} in/h`}
-              accent="#38bdf8"
+              accent="#d99a43"
               onChange={set('rain')}
             />
             <Slider
@@ -130,7 +131,7 @@ export default function ControlPanel({ meta, controls, preset, onControls, onPre
               step={0.25}
               display={`${controls.duration.toFixed(controls.duration < 10 ? 2 : 1).replace(/\.?0+$/, '')} h`}
               sub={`${(total / 25.4).toFixed(1)} in total`}
-              accent="#a78bfa"
+              accent="#d99a43"
               onChange={set('duration')}
             />
             <Slider
@@ -142,7 +143,7 @@ export default function ControlPanel({ meta, controls, preset, onControls, onPre
               step={0.05}
               display={`+${controls.surge.toFixed(2)} m`}
               sub={`${(controls.surge * 3.281).toFixed(1)} ft`}
-              accent="#2dd4bf"
+              accent="#6fa6b6"
               onChange={set('surge')}
             />
             <Slider
