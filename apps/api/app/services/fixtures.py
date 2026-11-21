@@ -17,7 +17,7 @@ class OfflineFixtures:
     def __init__(self, fixture_dir: Path = FIXTURE_DIR) -> None:
         self.evaluation = Evaluation.model_validate_json(
             (fixture_dir / "offline-evaluation.json").read_text(encoding="utf-8")
-        ).model_dump(mode="json")
+        ).model_dump(mode="json", exclude_unset=True)
         self.counties = json.loads(
             (fixture_dir / "houston-counties.geojson").read_text(encoding="utf-8")
         )
@@ -52,7 +52,7 @@ class OfflineFixtures:
                 "Scenario does not match the canonical v1 contract.",
                 [{"path": list(item.path), "message": item.message} for item in errors],
             )
-        values = scenario.model_dump(mode="json")
+        values = scenario.model_dump(mode="json", exclude_unset=True)
         self.validate_region(values["regionId"])
         if values["presetEventId"] != self.preset["presetEventId"]:
             reject(404, "unknown_event", "The requested event is not in the offline catalog.")
@@ -77,4 +77,4 @@ class OfflineFixtures:
         result = deepcopy(self.evaluation)
         result["scenario"] = values
         result["predictions"] = [deepcopy(self.predictions[county]) for county in county_ids]
-        return Evaluation.model_validate(result).model_dump(mode="json")
+        return Evaluation.model_validate(result).model_dump(mode="json", exclude_unset=True)

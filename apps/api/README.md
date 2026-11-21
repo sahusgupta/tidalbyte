@@ -30,6 +30,12 @@ owners can replace their respective route stubs without changing the wire contra
 No API credentials are used by this skeleton. `CORS_ORIGINS` is a comma-separated
 allowlist; its default permits local Vite development only.
 
+The unavailable provider routes document their reserved inputs from the canonical
+schemas in OpenAPI. They return `503` before processing those bodies. Optional
+wire fields stay absent when omitted; the required nullable `evaluation` metadata
+remains explicitly `null`. API tests validate actual response envelopes and
+evaluation data against the canonical schemas, in addition to Pydantic shapes.
+
 Requirements proposed to lead: FastAPI 0.116.1, Pydantic 2.11.7, uvicorn 0.35.0,
 jsonschema 4.25.1; tests use pytest 8.4.1 and httpx 0.28.1. The root lockfile owns
 the exact resolved environment.

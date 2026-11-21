@@ -7,7 +7,7 @@ from app.schemas import Evaluation, ResponseEnvelope, Scenario
 router = APIRouter(prefix="/api/v1", tags=["offline example"])
 
 
-@router.get("/catalog/regions", response_model=ResponseEnvelope[list[dict]])
+@router.get("/catalog/regions", response_model=ResponseEnvelope[list[dict]], response_model_exclude_unset=True)
 def regions(request: Request):
     return envelope(
         request,
@@ -21,7 +21,7 @@ def regions(request: Request):
     )
 
 
-@router.get("/catalog/events", response_model=ResponseEnvelope[list[dict]])
+@router.get("/catalog/events", response_model=ResponseEnvelope[list[dict]], response_model_exclude_unset=True)
 def events(request: Request, regionId: str = Query(default=REGION_ID)):
     fixtures = request.app.state.fixtures
     fixtures.validate_region(regionId)
@@ -41,7 +41,7 @@ def events(request: Request, regionId: str = Query(default=REGION_ID)):
     )
 
 
-@router.get("/geo/counties", response_model=ResponseEnvelope[dict])
+@router.get("/geo/counties", response_model=ResponseEnvelope[dict], response_model_exclude_unset=True)
 def counties(request: Request, regionId: str = Query(default=REGION_ID)):
     fixtures = request.app.state.fixtures
     fixtures.validate_region(regionId)
@@ -52,7 +52,7 @@ def counties(request: Request, regionId: str = Query(default=REGION_ID)):
     )
 
 
-@router.post("/scenarios/evaluate", response_model=ResponseEnvelope[Evaluation])
+@router.post("/scenarios/evaluate", response_model=ResponseEnvelope[Evaluation], response_model_exclude_unset=True)
 async def evaluate(scenario: Scenario, request: Request):
     result = request.app.state.fixtures.evaluate(scenario, await request.json())
     return envelope(request, result)

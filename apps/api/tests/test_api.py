@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 
 import pytest
+from earthlab_contracts.validation import validate_contract
 from fastapi.testclient import TestClient
 
 from app.main import create_app
@@ -10,6 +11,7 @@ from app.main import create_app
 def assert_envelope(response, *, status=200):
     assert response.status_code == status
     payload = response.json()
+    validate_contract("Envelope", payload)
     assert set(payload) == {"data", "meta", "error"}
     assert payload["meta"]["mode"] == "offline_example"
     assert payload["meta"]["requestId"] == response.headers["x-request-id"]
@@ -45,6 +47,7 @@ def test_catalog_and_geo_are_explicitly_examples(client):
 
 def test_model_metadata_does_not_claim_training(client):
     metadata = assert_envelope(client.get("/api/v1/models/current"))["data"]
+    validate_contract("ModelMetadata", metadata)
     assert metadata["status"] == "not_trained"
     assert metadata["dataMode"] == "offline_example"
     assert metadata["evaluation"] is None
@@ -57,6 +60,10 @@ def test_evaluation_returns_selected_counties_and_preserves_request(client, scen
     scenario["scenarioVersion"] = 12
     scenario["selection"]["countyFips"] = ["48039", "48201"]
     result = assert_envelope(client.post("/api/v1/scenarios/evaluate", json=scenario))["data"]
+    validate_contract("Evaluation", result)
+    assert "perturbations" not in result["scenario"]
+    assert all("baselineSeverity" not in prediction for prediction in result["predictions"])
+    assert result["modelMetadata"]["evaluation"] is None
     assert result["scenario"]["id"] == "test-selection"
     assert result["scenario"]["scenarioVersion"] == 12
     assert [prediction["countyFips"] for prediction in result["predictions"]] == ["48039", "48201"]
@@ -66,6 +73,7 @@ def test_evaluation_returns_selected_counties_and_preserves_request(client, scen
     # A filtered evaluation must not mutate the cached fixture for the next request.
     scenario["selection"]["countyFips"] = ["48157"]
     again = assert_envelope(client.post("/api/v1/scenarios/evaluate", json=scenario))["data"]
+    validate_contract("Evaluation", again)
     assert [prediction["countyFips"] for prediction in again["predictions"]] == ["48157"]
 
 
@@ -195,3 +203,13 @@ def test_native_openapi_documents_request_and_envelope(client):
     operation = spec["paths"]["/api/v1/scenarios/evaluate"]["post"]
     assert "requestBody" in operation
     assert "422" in operation["responses"]
+    for path, name in [
+        ("/api/v1/network/compare", "NetworkCompareRequest"),
+        ("/api/v1/ai/interpret", "InterpretRequest"),
+        ("/api/v1/voice/speak", "VoiceSpeakRequest"),
+    ]:
+        body = spec["paths"][path]["post"]["requestBody"]
+        assert body["content"]["application/json"]["schema"]["title"] == name
+        assert "$ref" not in json.dumps(body)
+    audio = spec["paths"]["/api/v1/voice/transcribe"]["post"]["requestBody"]
+    assert audio["content"]["multipart/form-data"]["schema"]["properties"]["audio"]["format"] == "binary"
