@@ -1,0 +1,344 @@
+.earth-shell {
+  height: 100svh;
+  min-height: 350px;
+  display: grid;
+  grid-template-rows: 58px minmax(0, 1fr);
+  background: var(--enclosure);
+}
+.earth-stage {
+  --index-width: clamp(292px, 25vw, 365px);
+  --zones-height: 46%;
+  position: relative;
+  overflow: clip;
+  background: #161c19;
+}
+.earth-cesium,
+.earth-failed {
+  position: absolute;
+  inset: 0 0 0 var(--index-width);
+}
+.zone-open .earth-cesium,
+.zone-open .earth-failed {
+  inset: 0 min(460px, 100%) 0 0;
+}
+.earth-cesium .cesium-widget,
+.earth-cesium canvas {
+  outline: none;
+}
+.earth-stage .cesium-viewer-bottom {
+  left: 12px;
+  bottom: 8px;
+  max-width: calc(100% - 76px);
+}
+.earth-stage .cesium-widget-credits {
+  font: 11px var(--mono);
+  color: #edece0;
+  background: #1d2724eb;
+  padding: 3px 6px;
+}
+.earth-stage .cesium-widget-credits a {
+  color: #e6d4b4;
+}
+.earth-zones {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--index-width);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #a5aa99 transparent;
+  color: var(--ink);
+  background: var(--paper);
+  border-right: 1px solid #70796c;
+}
+.earth-zones-head {
+  padding: clamp(20px, 3.2vh, 34px) 22px 16px;
+}
+.earth-zones-head h2 {
+  font:
+    normal 42px/1.04 Georgia,
+    serif;
+  letter-spacing: -1.2px;
+}
+.earth-locator {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 3px 10px;
+  margin-top: 9px;
+  font-size: 13px;
+  color: #49574d;
+}
+.earth-locator span {
+  font: 10.5px var(--mono);
+  color: #546056;
+}
+.region-inset {
+  margin: 0 22px 20px;
+  position: relative;
+  background: #455448;
+}
+.region-inset svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+.region-inset image {
+  filter: saturate(0.45) brightness(0.66);
+}
+.region-inset text {
+  font: 600 11px var(--mono);
+  fill: #fff1d8;
+  paint-order: stroke;
+  stroke: #26312b;
+  stroke-width: 2px;
+}
+.region-inset .index-box {
+  stroke: #eac48a;
+  fill: #25362bb3;
+  stroke-width: 1;
+}
+.region-inset .index-hot .index-box {
+  fill: #ab732b;
+  stroke: white;
+  stroke-width: 2;
+}
+.region-inset .index-north {
+  fill: none;
+  stroke: #eee9db;
+  stroke-width: 1.4;
+}
+.region-inset .index-n {
+  font-size: 9px;
+}
+.region-inset figcaption {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  background: #202922e8;
+  padding: 2px 5px;
+  font: 9px/1.4 var(--mono);
+  color: #f2eedf;
+}
+.earth-index-head {
+  margin: 0 22px;
+  padding-bottom: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #929c8e;
+}
+.earth-index-head h3 {
+  font-size: 14px;
+  font-weight: 650;
+}
+.earth-index-head h3 span {
+  font-weight: 400;
+  color: #586255;
+}
+.earth-region-link {
+  font-size: 12px;
+  color: #344837;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.earth-zones ul {
+  list-style: none;
+  margin: 0;
+  padding: 0 22px 22px;
+}
+.earth-zone {
+  width: 100%;
+  display: grid;
+  align-items: center;
+  grid-template-columns: 23px minmax(0, 1fr) 16px;
+  gap: 10px;
+  padding: 15px 0;
+  text-align: left;
+  border-bottom: 1px solid #bcc0b2;
+}
+.earth-zone.is-hot,
+.earth-zone:hover:not(:disabled) {
+  color: #684e25;
+  background: #e5e3d5;
+  filter: none;
+}
+.earth-zone-ref {
+  display: grid;
+  place-items: center;
+  border: 1px solid #858e7f;
+  width: 21px;
+  height: 21px;
+  font: 600 11px var(--mono);
+}
+.earth-zone.is-hot .earth-zone-ref {
+  color: #fff4df;
+  background: #564923;
+  border-color: transparent;
+}
+.earth-zone-description {
+  display: grid;
+  gap: 4px;
+}
+.earth-zone-name {
+  font-size: 15px;
+  font-weight: 620;
+  line-height: 1.28;
+}
+.earth-zone-meta {
+  font-size: 12px;
+  color: #505d50;
+  line-height: 1.4;
+}
+.earth-zone > svg {
+  transform: rotate(-90deg);
+  color: #63705e;
+}
+.earth-imagery-status {
+  cursor: help;
+}
+.earth-tooltip {
+  position: absolute;
+  z-index: 4;
+  pointer-events: none;
+  max-width: 260px;
+  padding: 6px 9px;
+  font-size: 12px;
+  color: #f3f1e7;
+  background: #19231f;
+  border: 1px solid var(--rule);
+}
+.earth-controls {
+  position: absolute;
+  right: 16px;
+  bottom: 36px;
+  display: grid;
+  background: #1a201d;
+  border: 1px solid var(--rule);
+  z-index: 2;
+}
+.earth-controls button {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  color: #eaece4;
+  font-size: 18px;
+}
+.earth-controls button + button {
+  border-top: 1px solid var(--rule);
+}
+.earth-controls button[aria-pressed="true"] {
+  color: var(--amber);
+}
+.earth-rule {
+  border-top: 1px solid var(--rule);
+}
+.earth-failed {
+  display: grid;
+  align-content: end;
+  justify-content: start;
+  padding: 16px;
+  background: #36453b url("/map/houston-usgs.webp") center/cover no-repeat;
+}
+.earth-failed span {
+  background: #1a201df0;
+  color: #f3eedf;
+  padding: 8px 10px;
+  font-size: 12px;
+}
+.zone-open .earth-controls {
+  right: calc(min(460px, 100%) + 12px);
+}
+@media (max-width: 860px) {
+  .earth-shell {
+    grid-template-rows: 52px minmax(0, 1fr);
+  }
+  .earth-shell .study-location,
+  .earth-shell .earth-imagery-status {
+    display: none;
+  }
+  .earth-shell .product-title {
+    font-size: 17px;
+  }
+  .earth-shell .header-end button {
+    min-height: 44px;
+  }
+  .earth-cesium,
+  .earth-failed {
+    inset: 0 0 var(--zones-height) 0;
+  }
+  .earth-zones {
+    inset: auto 0 0;
+    width: 100%;
+    height: var(--zones-height);
+    border: 0;
+    border-top: 1px solid #9da795;
+  }
+  .earth-zones-head {
+    padding: 16px 18px 12px;
+  }
+  .earth-zones-head h2 {
+    font-size: 32px;
+  }
+  .earth-locator {
+    margin-top: 4px;
+  }
+  .earth-zones .region-inset {
+    display: none;
+  }
+  .earth-index-head {
+    margin: 0 18px;
+    padding: 0;
+    border-bottom: 1px solid #929c8e;
+    min-height: 42px;
+  }
+  .earth-region-link {
+    min-height: 44px;
+  }
+  .earth-zones ul {
+    padding: 0 18px 14px;
+  }
+  .earth-zone {
+    grid-template-columns: minmax(0, 1fr) 16px;
+    padding: 11px 0;
+  }
+  .earth-zone-ref {
+    display: none;
+  }
+  .earth-controls {
+    top: 8px;
+    right: 8px;
+    bottom: auto;
+    grid-auto-flow: column;
+  }
+  .earth-controls button {
+    width: 44px;
+    height: 44px;
+  }
+  .earth-controls button + button {
+    border: 0;
+    border-left: 1px solid var(--rule);
+  }
+  .earth-rule {
+    display: none;
+  }
+  .zone-open .earth-cesium,
+  .zone-open .earth-failed {
+    inset: 0 0 62%;
+  }
+  .zone-open .earth-controls {
+    right: 8px;
+  }
+  .earth-stage .cesium-viewer-bottom {
+    max-width: calc(100% - 12px);
+    left: 6px;
+  }
+}
+@media (max-width: 400px) {
+  .earth-shell .brand-divider {
+    display: none;
+  }
+  .earth-shell .product-title {
+    font-size: 15px;
+  }
+}

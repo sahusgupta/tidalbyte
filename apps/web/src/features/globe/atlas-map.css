@@ -1,0 +1,262 @@
+.atlas-map {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: #283b36;
+  isolation: isolate;
+}
+.atlas-cesium-mount,
+.atlas-cesium-mount .cesium-viewer,
+.atlas-cesium-mount .cesium-viewer-cesiumWidgetContainer,
+.atlas-cesium-mount .cesium-widget,
+.atlas-cesium-mount canvas {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  inset: 0;
+}
+.atlas-map .cesium-viewer-bottom {
+  left: 9px !important;
+  bottom: 5px !important;
+  max-width: calc(100% - 145px) !important;
+  pointer-events: auto;
+}
+.atlas-map .cesium-credit-logoContainer img {
+  height: 16px !important;
+}
+.atlas-map .cesium-credit-textContainer {
+  font: 9px Arial !important;
+  text-shadow: 0 1px 2px #000;
+}
+.atlas-map-credit {
+  position: absolute;
+  left: 12px;
+  bottom: 30px;
+  display: flex;
+  gap: 9px;
+  flex-wrap: wrap;
+  max-width: calc(100% - 160px);
+  font: 10px Arial;
+  color: #eeeadd;
+  background: #17282be8;
+  padding: 6px 9px;
+  pointer-events: none;
+  border-left: 2px solid #98aca0;
+}
+.atlas-map-credit span {
+  color: #becac2;
+  font-size: 9px;
+}
+.atlas-map-navigation {
+  position: absolute;
+  right: 15px;
+  bottom: 29px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  background: #1c2d30f5;
+  border: 1px solid #77857b;
+  padding: 3px;
+  z-index: 3;
+}
+.atlas-map-navigation button {
+  min-width: 34px;
+  min-height: 32px;
+  padding: 5px;
+  border: 0;
+  background: transparent;
+  color: #eee9d8;
+  font: 600 12px Arial;
+  cursor: pointer;
+  border-radius: 0;
+}
+.atlas-map-navigation button:hover {
+  background: #425b55;
+}
+.atlas-map-navigation button:focus-visible {
+  outline: 2px solid #edc888;
+  outline-offset: 1px;
+}
+.atlas-map-navigation .atlas-flat-toggle {
+  font-size: 9px;
+  min-height: 30px;
+  border-top: 1px solid #64766e;
+  margin-top: 3px;
+}
+.atlas-nav-rule {
+  height: 1px;
+  background: #64766e;
+  margin: 3px 0;
+}
+.atlas-map-notice {
+  position: absolute;
+  top: 100px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 70%;
+  font: 11px/1.5 Arial;
+  padding: 10px 13px;
+  background: #243a3af5;
+  color: #f0d4a1;
+  border: 1px solid #bd9c65;
+  z-index: 5;
+}
+.atlas-map-hover {
+  position: absolute;
+  left: 50%;
+  bottom: 82px;
+  transform: translateX(-50%);
+  background: #1b2a2df2;
+  border: 1px solid #7c897a;
+  color: #eee9d8;
+  padding: 8px 12px;
+  font: 11px/1.5 Arial;
+  max-width: 70%;
+  pointer-events: none;
+  z-index: 5;
+}
+.atlas-map-hover:empty {
+  display: none;
+}
+.atlas-map-a11y {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.atlas-flat-map {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  background: #23392f;
+  outline: none;
+}
+.atlas-flat-map:focus-visible {
+  outline: 3px solid #edc888;
+  outline-offset: -4px;
+}
+.atlas-flat-map .flat-aerial {
+  filter: saturate(0.5) brightness(0.73) contrast(1.12);
+}
+.atlas-flat-map .flat-road {
+  cursor: pointer;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.atlas-flat-map .flat-handle {
+  cursor: grab;
+  touch-action: none;
+}
+.atlas-flat-map .flat-handle:focus {
+  stroke: #fff;
+  stroke-width: 5;
+}
+.atlas-flat-map text {
+  font-family: Arial, sans-serif;
+  paint-order: stroke;
+  stroke: #172a2d;
+  stroke-width: 4px;
+  stroke-linejoin: round;
+  fill: #f2ecd7;
+  pointer-events: none;
+}
+.atlas-flat-controls {
+  position: absolute;
+  right: 64px;
+  bottom: 30px;
+  display: flex;
+  background: #1c2d30f5;
+  border: 1px solid #77857b;
+  z-index: 2;
+}
+.atlas-flat-controls button {
+  width: 34px;
+  height: 34px;
+  color: #eee9d8;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+.atlas-flat-controls button:hover {
+  background: #425b55;
+}
+@media (max-width: 767px) {
+  .atlas-map-credit {
+    left: 8px;
+    bottom: 27px;
+    max-width: calc(100% - 86px);
+    font-size: 8px;
+    gap: 4px;
+  }
+  .atlas-map-credit span {
+    font-size: 8px;
+  }
+  .atlas-map-navigation {
+    right: 9px;
+    bottom: 28px;
+  }
+  .atlas-map-navigation button {
+    min-height: 34px;
+  }
+  .atlas-map-hover {
+    bottom: 85px;
+    max-width: 80%;
+    font-size: 10px;
+  }
+  .atlas-map .cesium-viewer-bottom {
+    max-width: calc(100% - 22px) !important;
+  }
+  .atlas-map-notice {
+    top: 125px;
+    max-width: 80%;
+    width: 300px;
+  }
+  .atlas-flat-controls {
+    bottom: 28px;
+    right: 64px;
+  }
+}
+.atlas-map-scale {
+  position: absolute;
+  left: 13px;
+  bottom: 69px;
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  background: #1b2c2ed9;
+  color: #eee9d5;
+  padding: 5px 7px;
+  font: 10px Arial;
+  pointer-events: none;
+}
+.atlas-map-scale > span {
+  display: block;
+  height: 6px;
+  border: 1px solid #e5e4cf;
+  border-top: 0;
+}
+.atlas-flat-map .flat-road:hover {
+  stroke: #f7ce83;
+}
+.atlas-map-navigation button:disabled {
+  opacity: 0.65;
+  cursor: default;
+}
+.atlas-flat-map text {
+  font-size: calc(11px / var(--atlas-map-scale-factor, 1));
+  stroke-width: calc(4px / var(--atlas-map-scale-factor, 1));
+}
+.atlas-flat-map .flat-place-major {
+  font-size: calc(13px / var(--atlas-map-scale-factor, 1));
+}
+.atlas-flat-map .flat-handle:focus {
+  stroke-width: calc(5px / var(--atlas-map-scale-factor, 1));
+}

@@ -1,11 +1,9 @@
 # EarthLab
 
-A desktop-first Earth console for exploring Houston-region weather/outage context.
-This repository currently contains the **prompt 00 lead bootstrap only**: a
-keyless Cesium globe, schematic county overlays, a deterministic offline fixture,
-a validated FastAPI skeleton, frozen shared contracts and CI. No trained model,
-verified historical warning case, infrastructure analysis or AI/voice integration
-is implemented yet. All displayed severity values say **OFFLINE EXAMPLE**.
+EarthLab opens on the Houston Disaster Atlas. Draw a hypothetical hurricane track
+or flood footprint, inspect a sample road, and compare the connectivity of the
+edited network with its baseline. The local demo needs no keys. County outage
+values come from a labeled fixture until a trained model is connected.
 
 ## Run locally
 
@@ -48,15 +46,18 @@ For API environment overrides, export variables in the launching shell (the API
 also accepts the documented Uvicorn `--env-file .env` option if python-dotenv is
 installed separately). Server secrets must never use the `VITE_` prefix.
 
-## Try the bootstrap
+## Try the atlas
 
-1. See Earth rotate; pause orbit or drag the globe. Reduced-motion preferences
-   disable the initial orbit and camera animation.
-2. Select **Fly to Houston** or press **H** outside form fields.
-3. Pin Harris, Fort Bend or Brazoria from the county list or schematic map shapes.
-4. Choose **Run example**. The API validates the request and returns fixed indices.
-5. With only the web server running, choose **Run example** again: local fallback
-   remains available, explicitly labeled as offline.
+1. Open the console and select a Houston road to inspect its provenance and
+   intersection with the drawn scenario.
+2. Choose **Edit track** to move a storm waypoint, then scrub the timeline.
+   In **Flood**, place and resize the illustrative footprint.
+3. Open **Baseline vs alternative** to compare the effects of a hypothetical closure.
+4. Choose **Earth** for the geographic overview, select a study zone, and return
+   to the Houston editor when ready.
+
+The [frontend walkthrough](apps/web/README.md) includes controls, screenshots,
+imagery provenance, and optional service contracts.
 
 The polygons are original schematic rectangles, not official county boundaries.
 The arbitrary event timestamp and severity indices do not describe observed
@@ -73,7 +74,7 @@ pnpm openapi:check
 python scripts/validate_kit.py
 ```
 
-`pnpm test` runs web tests and Python API/contract/ML-guard tests using `.venv`.
+`pnpm test` runs web tests and Python API, contract and ML checks using `.venv`.
 For the original direct Python command, activate `.venv` first, then run
 `python -m pytest apps/api/tests ml/tests`. The API docs are generated from the
 runnable skeleton; schema drift is checked in CI. Regenerate after approved
@@ -83,19 +84,20 @@ contract edits with `pnpm contracts:generate` and `pnpm openapi:generate`.
 python ml/train.py --config ml/config.yaml
 ```
 
-Training deliberately exits **2** until the ML owner implements and validates a
-real pipeline with verified data. It writes no fabricated model or metrics.
+Training needs the separate ML dependencies and prepared dataset. Missing inputs
+produce exit code 2. The training pipelines and evaluation reports are in the
+repository. The application still serves the offline county example.
+See the [ML setup and artifact handoff](ml/README.md).
 
 ## Team handoff
 
 - Lead: root configuration, `packages/contracts`, schemas, CI and integration.
-- Frontend: `apps/web/**`; implement the frontend prompt after pulling bootstrap.
+- Frontend: `apps/web/**`, including the atlas and Earth index.
 - ML/data: `ml/**`, provenance and prediction/model service paths.
 - Infrastructure: network routes/service and independently sourced graph fixture.
 - AI/voice: interpretation/voice routes and provider services.
 
-Only prompt 00 has been executed. Future feature prompts remain separate tasks.
-Read `docs/05-TEAM-PROTOCOL.md` before branching; use isolated worktrees on a shared
+Read `docs/05-TEAM-PROTOCOL.md` before branching. Use isolated worktrees on a shared
 machine. Shared wire changes require a proposal and lead approval. All UI work
 must read and apply the installed `$interface-craft` skill and `docs/04-DESIGN.md`.
 

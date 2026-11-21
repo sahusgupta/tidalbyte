@@ -1,0 +1,15 @@
+# Houston aerial display fixtures
+
+These two bounded, lossy WebP derivatives support offline display in Cesium and the accessible SVG atlas. They are under 0.8 MB each. Raw service downloads are excluded. Exact requested/exported extents, transformation, source period, limitations and credits are recorded in `provenance.json`.
+
+Source: [USGS ImageryOnly service](https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer). Its service metadata describes CONUS NAIP source imagery from 2017–2021 and a June 2024 refresh, credits USDA/USGS, permits tile export, and identifies CONUS orthoimagery as public domain. [USGS reproduction guidance](https://www.usgs.gov/faqs/are-usgs-topographic-maps-copyrighted) identifies the geographically limited imagery exceptions; they do not cover this Houston extract. Retain USDA / USGS credit in the map.
+
+This is archival visualization, not a current road/weather feed or measured flood/terrain evidence. No Google tiles are used, cached, extracted, or used to train models. The map uses an ellipsoid; local tilt is an inspection convenience, not reconstructed terrain or photorealistic buildings.
+
+The atlas opens with these bundled archives only. Best-effort USGS detail is created only below a 15 km camera height inside the Houston study extent. Its coarse parent levels are transparent, so they cannot cover the sharper archive while detail loads. The remote layer is removed on its first provider error or an eight-second loading timeout; the archive and editor remain usable. There is no application tile download, proxy, persistent tile cache, or added redistribution of remote tiles.
+
+Optional `VITE_ATLAS_IMAGERY_URL` with `VITE_ATLAS_IMAGERY_CREDIT` substitutes an explicitly licensed detail template under the same zoom/failure rules. Both variables are required. The visible credit follows the actual renderer: the SVG fallback always displays the bundled USDA/USGS archive credit.
+
+Earth navigation uses bundled, public-domain Natural Earth II globally. Below 350 km over Houston, the same georeferenced archive layers used by the atlas sit above Natural Earth and below optional remote detail. They are hidden at global scale; active-source status follows whichever local reference is visible. Optional USGS detail is geographically bounded to Houston (`[-95.9, 29.24, -94.7, 30.2]`, including Kingwood) and starts only on regional/closer views. We do not request Alaska SPOT imagery or claim public-domain rights for imagery outside this CONUS extent. [The service metadata](https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer?f=pjson) documents the CONUS sources and the Alaska licensing exception; [USGS copyright guidance](https://www.usgs.gov/information-policies-and-instructions/copyrights-and-credits) distinguishes USGS-produced material from credited third-party material.
+
+`storm-eye.svg` is an original EarthLab vector marker (CC0), separate from the aerial reference. It denotes the manually drawn hypothetical scenario, with no observed storm data implied.

@@ -14,4 +14,14 @@ const widgetCss = await readFile(asset("Widgets/CesiumWidget/CesiumWidget.css"),
 assert.ok(widgetCss.length > 0);
 const creditImage = await readFile(asset("Assets/Images/cesium_credit.png"));
 assert.ok(creditImage.length > 0);
-console.log("Verified bundled Cesium imagery, terrain metadata, workers, widget styles and attribution image.");
+const mapFile = (name) => new URL(`../dist/map/${name}`, import.meta.url);
+const aerial = JSON.parse(await readFile(mapFile("provenance.json"), "utf8"));
+assert.equal(aerial.assets.length, 2);
+for (const tile of aerial.assets) {
+  const bytes = await readFile(mapFile(tile.file));
+  assert.equal(bytes.length, tile.bytes);
+  assert.equal(bytes.toString("ascii", 0, 4), "RIFF");
+  assert.equal(bytes.toString("ascii", 8, 12), "WEBP");
+  assert.equal(tile.bboxWgs84.length, 4);
+}
+console.log("Verified Cesium runtime assets, Houston aerial imagery and map provenance.");

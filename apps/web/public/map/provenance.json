@@ -1,0 +1,18 @@
+{
+  "sourceId": "usgs:houston-aerial-display-v1",
+  "title": "Houston bounded archival aerial display references",
+  "provider": "USDA / USGS The National Map",
+  "serviceUrl": "https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer",
+  "termsUrl": "https://www.usgs.gov/faqs/are-usgs-topographic-maps-copyrighted",
+  "serviceRefresh": "June 2024.v1.2",
+  "sourcePeriod": "CONUS NAIP 2017–2021, as reported in service metadata; exact acquisition date per pixel is not supplied by this export",
+  "derivedAt": "2026-11-21",
+  "license": "Public-domain CONUS USGS/USDA imagery. Retain source attribution. Alaska/Hawaii exceptions do not apply to this Houston extract.",
+  "purpose": "Visualization only. Not current conditions, training data, terrain, flood depth, road condition or asset damage evidence.",
+  "derivation": "Two bounded WGS84 JPEG service exports re-encoded to WebP quality 68 using Pillow. Raw service downloads are not committed. No visual content was added or removed.",
+  "assets": [
+    {"file": "houston-usgs.webp", "width": 2560, "height": 2027, "bboxWgs84": [-95.9, 29.249921875, -94.7, 30.200078125], "bytes": 740248, "exportRequest": "export?bbox=-95.9,29.25,-94.7,30.2&bboxSR=4326&imageSR=4326&size=2560,2027&format=jpg&dpi=96&f=json"},
+    {"file": "houston-detail-usgs.webp", "width": 2400, "height": 1763, "bboxWgs84": [-95.570036869, 29.6, -95.079963131, 29.96], "bytes": 777146, "exportRequest": "export?bbox=-95.57,29.60,-95.08,29.96&bboxSR=4326&imageSR=4326&size=2400,1763&format=jpg&dpi=96&f=json"}
+  ],
+  "limitations": ["Mixed dates and resolution; regional source includes some no-data areas around the bay.", "Ellipsoid display without a measured elevation model; tilt does not imply modeled terrain or buildings.", "Road graph, storm tracks and flood footprints are separate labeled project-generated hypothetical geometry."]
+}
