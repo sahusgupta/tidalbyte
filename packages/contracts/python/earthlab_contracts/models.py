@@ -8,6 +8,162 @@ from typing import Any, Literal
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, RootModel
 
 
+class AllocationAgency(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    budget: int = Field(..., ge=0, le=100)
+    clinicWeight: int = Field(..., ge=0, le=10)
+    shelterWeight: int = Field(..., ge=0, le=10)
+    crewCapacity: int = Field(..., ge=0, le=6)
+
+
+class AllocationAgencies(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    health: AllocationAgency
+    shelter: AllocationAgency
+
+
+class BlockedEdgeId(RootModel[str]):
+    root: str = Field(..., max_length=160, min_length=1)
+
+
+class ImpairedEdgeId(RootModel[str]):
+    root: str = Field(..., max_length=160, min_length=1)
+
+
+class AllocationUtilities(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    health: float
+    shelter: float
+
+
+class AllocationSpend(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    health: int = Field(..., ge=0, le=100)
+    shelter: int = Field(..., ge=0, le=100)
+
+
+class AllocationAccess(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    clinic: float = Field(..., ge=0.0, le=1.0)
+    shelter: float = Field(..., ge=0.0, le=1.0)
+
+
+class AllocationIntervention(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    agency: Literal['health', 'shelter']
+    assetId: str = Field(..., max_length=200, min_length=1)
+    label: str = Field(..., max_length=160, min_length=1)
+    cost: int = Field(..., ge=0, le=100)
+    crews: int = Field(..., ge=0, le=6)
+    actionId: str = Field(..., max_length=160, min_length=1)
+    accessWithout: AllocationAccess
+
+
+class ClinicItem(RootModel[str]):
+    root: str = Field(..., max_length=160, min_length=1)
+
+
+class ShelterItem(RootModel[str]):
+    root: str = Field(..., max_length=160, min_length=1)
+
+
+class AllocationPaths(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    clinic: list[ClinicItem] = Field(..., max_length=5)
+    shelter: list[ShelterItem] = Field(..., max_length=5)
+
+
+class Assumption(RootModel[str]):
+    root: str = Field(..., max_length=2000, min_length=1)
+
+
+class SourceId(RootModel[str]):
+    root: str = Field(..., max_length=160, min_length=1)
+
+
+class Limitation(RootModel[str]):
+    root: str = Field(..., max_length=2000, min_length=1)
+
+
+class AllocationFootprint(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    longitude: float = Field(..., ge=-95.8, le=-94.95)
+    latitude: float = Field(..., ge=29.45, le=30.05)
+    radiusKm: float = Field(..., ge=0.5, le=15.0)
+
+
+class AllocationCandidate(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    agency: Literal['health', 'shelter']
+    assetId: str = Field(..., max_length=200, min_length=1)
+    label: str = Field(..., max_length=160, min_length=1)
+    cost: int = Field(..., ge=0, le=100)
+    crews: int = Field(..., ge=0, le=6)
+    actionId: str = Field(..., max_length=160, min_length=1)
+    equipment: int = Field(..., ge=0, le=10)
+    hours: float = Field(..., ge=0.0, le=48.0)
+    effectAssumption: str = Field(..., max_length=2000, min_length=1)
+    source: str = Field(..., max_length=500, min_length=1)
+    exposed: bool
+    status: Literal['available', 'impaired', 'blocked', 'unknown']
+
+
+class HealthAction(RootModel[str]):
+    root: str = Field(..., max_length=160, min_length=1)
+
+
+class ShelterAction(RootModel[str]):
+    root: str = Field(..., max_length=160, min_length=1)
+
+
+class AllocationPayoff(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    healthActions: list[HealthAction] = Field(..., max_length=5, min_length=0)
+    shelterActions: list[ShelterAction] = Field(..., max_length=5, min_length=0)
+    utilities: AllocationUtilities
+    feasible: bool
+
+
+class AllocationEvaluation(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    regionId: Literal['houston-gulf-coast']
+    graphSource: str = Field(..., max_length=200, min_length=1)
+    phase: Literal['mitigation', 'response']
+    scenarioLabel: str = Field(..., max_length=250, min_length=1)
+    assumptions: list[Assumption] = Field(..., max_length=24, min_length=1)
+    scenarioVersion: Literal[1]
+    graphVersion: str = Field(..., max_length=200, min_length=1)
+    assumptionSetId: str = Field(..., max_length=200, min_length=1)
+    dataMode: Literal['illustrative']
+    sourceIds: list[SourceId] = Field(..., max_length=20, min_length=1)
+    limitations: list[Limitation] = Field(..., max_length=30, min_length=1)
+    timestampUtc: AwareDatetime
+    candidates: list[AllocationCandidate] = Field(..., max_length=20, min_length=0)
+    baselineAccess: AllocationAccess
+
+
 class CountyFip(RootModel[str]):
     root: str = Field(..., pattern='^[0-9]{5}$')
 
@@ -85,7 +241,7 @@ class TrainingDatasetId(RootModel[str]):
     root: str = Field(..., max_length=200, min_length=1)
 
 
-class Limitation(RootModel[str]):
+class Limitation2(RootModel[str]):
     root: str = Field(..., max_length=200, min_length=1)
 
 
@@ -104,14 +260,14 @@ class ModelMetadata(BaseModel):
         ..., max_length=100, min_length=0
     )
     evaluation: EvaluationMetrics | None = None
-    limitations: list[Limitation] = Field(..., max_length=30, min_length=1)
+    limitations: list[Limitation2] = Field(..., max_length=30, min_length=1)
 
 
 class Note(RootModel[str]):
     root: str = Field(..., max_length=200, min_length=1)
 
 
-class SourceId(RootModel[str]):
+class SourceId2(RootModel[str]):
     root: str = Field(..., max_length=200, min_length=1)
 
 
@@ -127,7 +283,7 @@ class Prediction(BaseModel):
     scope: Literal['selected_positive_outage_warning_hours']
     baselineSeverity: float | None = Field(None, ge=0.0)
     notes: list[Note] = Field(..., max_length=30, min_length=1)
-    sourceIds: list[SourceId] = Field(..., max_length=30, min_length=1)
+    sourceIds: list[SourceId2] = Field(..., max_length=30, min_length=1)
 
 
 class Disclaimer(RootModel[str]):
@@ -154,7 +310,7 @@ class ResponseMeta(BaseModel):
     )
     requestId: str = Field(..., max_length=200, min_length=1)
     mode: Literal['historical_context', 'exploratory_what_if', 'offline_example']
-    sourceIds: list[SourceId] = Field(..., max_length=30, min_length=0)
+    sourceIds: list[SourceId2] = Field(..., max_length=30, min_length=0)
     warnings: list[Warning] = Field(..., max_length=30, min_length=0)
 
 
@@ -201,7 +357,7 @@ class PlanComparison(BaseModel):
     )
     baseline: ConnectivityMetrics
     proposal: ConnectivityMetrics
-    limitations: list[Limitation] = Field(..., max_length=30, min_length=1)
+    limitations: list[Limitation2] = Field(..., max_length=30, min_length=1)
     graphSource: str = Field(..., max_length=200, min_length=1)
     mode: Literal['hypothetical_connectivity']
 
@@ -251,10 +407,87 @@ class VoiceSpeakRequest(BaseModel):
     text: str = Field(..., max_length=2000, min_length=1)
 
 
+class AllocationRequest(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    regionId: Literal['houston-gulf-coast']
+    phase: Literal['mitigation', 'response']
+    crewCapacity: int = Field(..., ge=0, le=6)
+    agencies: AllocationAgencies
+    scenarioVersion: Literal[1]
+    totalBudget: int = Field(..., ge=0, le=200)
+    equipmentCapacity: int = Field(..., ge=0, le=10)
+    horizonHours: int = Field(..., ge=1, le=48)
+    blockedEdgeIds: list[BlockedEdgeId] = Field(..., max_length=5, min_length=0)
+    impairedEdgeIds: list[ImpairedEdgeId] = Field(..., max_length=5, min_length=0)
+    bargainingWeight: int = Field(..., ge=1, le=9)
+    effectPercent: int = Field(..., ge=0, le=100)
+    footprint: AllocationFootprint | None = None
+
+
+class AllocationFrame(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    hour: float = Field(..., ge=0.0, le=48.0)
+    access: AllocationAccess
+    serviceEdges: AllocationPaths
+
+
+class AllocationStrategy(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    id: Literal['independent', 'coordinated', 'bargaining']
+    utilities: AllocationUtilities
+    spend: AllocationSpend
+    crewsUsed: int = Field(..., ge=0, le=6)
+    access: AllocationAccess
+    interventions: list[AllocationIntervention] = Field(
+        ..., max_length=12, min_length=0
+    )
+    jointUtility: float
+    gains: AllocationUtilities
+    nashProduct: float
+    explanation: str = Field(..., max_length=2000, min_length=1)
+    weightedAccess: float = Field(..., ge=0.0, le=1.0)
+    equipmentUsed: int = Field(..., ge=0, le=10)
+    completionHours: float = Field(..., ge=0.0, le=48.0)
+    frames: list[AllocationFrame] = Field(..., max_length=6, min_length=1)
+
+
+class AllocationResult(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    regionId: Literal['houston-gulf-coast']
+    graphSource: str = Field(..., max_length=200, min_length=1)
+    phase: Literal['mitigation', 'response']
+    scenarioLabel: str = Field(..., max_length=250, min_length=1)
+    assumptions: list[Assumption] = Field(..., max_length=24, min_length=1)
+    scenarioVersion: Literal[1]
+    graphVersion: str = Field(..., max_length=200, min_length=1)
+    assumptionSetId: str = Field(..., max_length=200, min_length=1)
+    dataMode: Literal['illustrative']
+    sourceIds: list[SourceId] = Field(..., max_length=20, min_length=1)
+    limitations: list[Limitation] = Field(..., max_length=30, min_length=1)
+    timestampUtc: AwareDatetime
+    candidates: list[AllocationCandidate] = Field(..., max_length=20, min_length=0)
+    baselineAccess: AllocationAccess
+    strategies: list[AllocationStrategy] = Field(..., max_length=3, min_length=3)
+    payoffMatrix: list[AllocationPayoff] = Field(..., max_length=16, min_length=1)
+    equilibriumVerified: bool
+    agreement: bool
+
+
 class EarthLabContracts(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
     )
+    allocationRequest: AllocationRequest | None = None
+    allocationResult: AllocationResult | None = None
+    allocationEvaluation: AllocationEvaluation | None = None
     scenario: Scenario | None = None
     commandProposal: CommandProposal | None = None
     featureSpec: FeatureSpec | None = None

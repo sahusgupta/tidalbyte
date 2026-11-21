@@ -47,6 +47,9 @@ Neither Gemini nor ElevenLabs may commit changes automatically. Validate county 
 - `POST /api/v1/network/compare` -> PlanComparison
 - `POST /api/v1/network/preview` -> illustrative graph features with before/after activity and access paths
 - `GET /api/v1/network/strategy` -> two-agency payoffs, equilibria and joint maxima for the fixed example
+- `GET /api/v1/allocation/demo` returns the seeded Houston mitigation request.
+- `POST /api/v1/allocation/scenarios/evaluate` accepts an AllocationRequest and returns declared disruptions, exposure, eligible actions, baseline service access and provenance.
+- `POST /api/v1/allocation/plans/compare` accepts that same request and returns the evaluation plus the three strategies, their costs and payoffs, selected edge IDs, leave-one-action-out access, and equilibrium/agreement flags. Allocation scenario version 1 identifies the supported data revision. The command controller separately tracks edits for confirmation.
 - `POST /api/v1/ai/interpret` `{text,scenarioSummary}` -> structured command proposal + clarifications
 - `POST /api/v1/voice/transcribe` multipart audio -> `{transcript}`
 - `POST /api/v1/voice/speak` `{text}` -> audio response (optional)

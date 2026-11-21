@@ -52,6 +52,7 @@ installed separately). Server secrets must never use the `VITE_` prefix.
 2. Open **Compare** to inspect the local sketch. Expand **Infrastructure network** for interventions, connectivity and the two-agency protection game on its own illustrative graph.
 3. Choose **Ask the atlas** to type a request or review a recording transcript. Review the proposed action before applying it. Without provider keys, the API labels its built-in command interpreter and fixed sample transcript.
 4. The **Study menu** opens the Downtown **Flood simulator** or the **Earth view** with all five Houston study zones.
+5. Choose **Study menu → Resource planning** for the mitigation and response scenarios. Adjust shared resources and agency preferences, compare the three strategies, then inspect the selected links on the atlas. **Before**, **After** and the play control show when each modeled action takes effect. Run both reference cases from a terminal with `pnpm demo:allocation`. See the [planning and regional verification handoff](docs/handoffs/houston-resource-planning.md).
 
 ### Run the atlas and flood simulator together
 
@@ -59,6 +60,8 @@ Complete the [simulator setup](simulator/README.md), then run `pnpm dev:integrat
 
 The [frontend walkthrough](apps/web/README.md) includes controls, screenshots,
 imagery provenance, and optional service contracts.
+
+Restart the integrated launcher after changing Python code or refreshing a regional hospital catalog. The separate `pnpm dev:api` command supports automatic reload during API development.
 
 The polygons are original schematic rectangles, not official county boundaries.
 The arbitrary event timestamp and severity indices do not describe observed

@@ -4,6 +4,7 @@ import { Icon } from "./Icon";
 
 export type StudyPage =
   | "scenario"
+  | "allocation"
   | "inspector"
   | "county"
   | "compare"
@@ -14,6 +15,7 @@ export type StudyPage =
 
 const titles: Record<StudyPage, string> = {
   scenario: "Scenario settings",
+  allocation: "Resource planning",
   inspector: "Road inspector",
   county: "County evidence",
   compare: "Compare scenarios",
@@ -215,6 +217,7 @@ export function StudyMenu({
     { page: "scenario", label: "Scenario settings", icon: "hurricane" },
     { page: "inspector", label: "Inspect a road", icon: "road" },
     { page: "compare", label: "Compare scenarios", icon: "compare" },
+    { page: "allocation", label: "Resource planning", icon: "atlas" },
     { page: "layers", label: "Map layers & legend", icon: "layers" },
     { page: "ask", label: "Ask the atlas", icon: "ask" },
     { page: "sources", label: "Sources & assumptions", icon: "book" },

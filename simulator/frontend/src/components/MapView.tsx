@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import DeckGL from '@deck.gl/react'
+import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
+import DeckGL, { type DeckGLRef } from '@deck.gl/react'
 import {
   BitmapLayer,
   IconLayer,
@@ -132,6 +132,47 @@ function pointAlong(coords: LonLat[], cum: number[], f: number): LonLat {
 }
 
 export default function MapView({ meta, roads, buildings, result, buildingMode, showWater, storm, onPick }: Props) {
+  const deckRef = useRef<DeckGLRef>(null)
+  const pointers = useRef(new Set<number>())
+  const groundTap = useRef<{ id: number; x: number; y: number } | null>(null)
+  const releasePointer = (event: PointerEvent) => {
+    pointers.current.delete(event.pointerId)
+    if (groundTap.current?.id === event.pointerId) groundTap.current = null
+  }
+  useEffect(() => {
+    const cancel = () => { pointers.current.clear(); groundTap.current = null }
+    window.addEventListener('pointerup', releasePointer)
+    window.addEventListener('pointercancel', releasePointer)
+    window.addEventListener('blur', cancel)
+    return () => {
+      window.removeEventListener('pointerup', releasePointer)
+      window.removeEventListener('pointercancel', releasePointer)
+      window.removeEventListener('blur', cancel)
+    }
+  }, [])
+  const startGroundTap = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!(event.target instanceof Element) || event.target.closest('button,a,input,select,.maplibregl-control-container')) return
+    pointers.current.add(event.pointerId)
+    if (pointers.current.size !== 1 || (event.pointerType === 'mouse' && event.button !== 0)) { groundTap.current = null; return }
+    groundTap.current = { id: event.pointerId, x: event.clientX, y: event.clientY }
+  }
+  const moveGroundTap = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const tap = groundTap.current
+    if (tap?.id === event.pointerId && Math.hypot(event.clientX - tap.x, event.clientY - tap.y) > 6) groundTap.current = null
+  }
+  const finishGroundTap = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const tap = groundTap.current
+    pointers.current.delete(event.pointerId)
+    groundTap.current = null
+    if (!tap || tap.id !== event.pointerId || pointers.current.size || Math.hypot(event.clientX - tap.x, event.clientY - tap.y) > 6) return
+    const box = event.currentTarget.getBoundingClientRect()
+    const x = event.clientX - box.left, y = event.clientY - box.top
+    const viewport = deckRef.current?.deck?.getViewports({ x, y })[0]
+    if (!viewport) return
+    // Ground routing pins need the active camera's ground plane, not a GPU object/depth pick.
+    const coordinate = viewport.unproject([x - viewport.x, y - viewport.y], { targetZ: 0 })
+    if (coordinate.slice(0, 2).every(Number.isFinite)) onPick([coordinate[0], coordinate[1]])
+  }
   const [view, setView] = useState<ViewState>(meta.region.view)
   const [viewOptions, setViewOptions] = useState(false)
   const [imageryWarning, setImageryWarning] = useState(false)
@@ -428,21 +469,20 @@ export default function MapView({ meta, roads, buildings, result, buildingMode, 
   }
 
   return (
-    <><DeckGL
+    <><div className="sim-deck-surface" onPointerDownCapture={startGroundTap} onPointerMoveCapture={moveGroundTap} onPointerUpCapture={finishGroundTap} onPointerCancelCapture={() => { pointers.current.clear(); groundTap.current = null }} onContextMenuCapture={() => { groundTap.current = null }}><DeckGL
+      ref={deckRef}
       viewState={view}
       onViewStateChange={({ viewState }) => setView(viewState as ViewState)}
       controller={{ inertia: 250 }}
+      onInteractionStateChange={({ isDragging }) => { if (isDragging) groundTap.current = null }}
       layers={[...baseLayers, ...routeLayers, ...ambulance, ...markerLayers]}
       effects={effects}
       getTooltip={getTooltip}
-      onClick={(info) => {
-        if (info.coordinate) onPick([info.coordinate[0], info.coordinate[1]])
-      }}
     >
       <Map reuseMaps mapStyle={BASEMAP} onError={() => setImageryWarning(true)} attributionControl={{ compact: false, customAttribution: 'USDA / USGS · 2017–2021 aerial archive' }}>
         <ScaleControl position="bottom-left" unit="metric" maxWidth={100} />
       </Map>
-    </DeckGL>
+    </DeckGL></div>
     {imageryWarning && <p className="sim-imagery-warning" role="status">Some imagery could not load. Scenario geometry remains visible.</p>}
     <div className="sim-map-controls" ref={controlsRef} role="group" aria-label="Map camera controls">
       <button type="button" aria-label="Zoom in" onClick={() => setView((current) => ({ ...current, zoom: Math.min(19, current.zoom + 0.5) }))}><Plus size={18} /></button>

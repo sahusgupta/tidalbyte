@@ -1,5 +1,6 @@
 @import 'tailwindcss';
 @import '@fontsource-variable/source-sans-3/index.css';
+.sim-deck-surface { position: absolute; inset: 0; }
 @theme {
  --font-sans:'Source Sans 3 Variable',sans-serif; --font-mono:ui-monospace,'Cascadia Mono',Menlo,monospace;
  --radius-md:2px; --radius-lg:2px; --radius-xl:2px; --radius-2xl:2px;
