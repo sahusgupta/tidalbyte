@@ -160,7 +160,7 @@ export function SimulatorHost({
         </button>
         <div className="sim-title">
           <span className="sim-eyebrow">
-            {url ? "External simulator" : "Selected Houston area"}
+            {url ? "Houston flood simulator" : "Selected Houston area"}
           </span>
           <h2 id="sim-title" ref={heading} tabIndex={-1}>
             {zone.name}
@@ -180,16 +180,19 @@ export function SimulatorHost({
               type="button"
               className="sim-editor-link"
               onClick={onOpenAtlas}
+              aria-label="Open Houston editor"
             >
-              Open Houston editor
+              Atlas
             </button>
             <a
               className="sim-newtab"
               href={url.toString()}
               target="_blank"
               rel="noopener noreferrer"
+              aria-label="Open simulator in new tab"
+              title="Open simulator in new tab"
             >
-              Open simulator in new tab ↗
+              ↗
             </a>
           </div>
         )}

@@ -392,7 +392,7 @@ export default function EarthView({
 
   const inZone = activeZoneId !== null;
   return (
-    <div className={`earth-shell ${inZone ? "zone-open" : ""}`}>
+    <div className={`earth-shell ${inZone ? "zone-open" : ""} ${paused ? "simulator-open" : ""}`}>
       {!inZone && (
         <a
           className="skip"

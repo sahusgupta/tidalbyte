@@ -1,6 +1,8 @@
 # Export OpenAPI for the AI and voice routes
 
-Status: pending lead approval.
+Approved for integration on 2026-11-21. The shared export includes the graph,
+command interpretation and transcription routes. The atlas consumer validates
+the scenario version, displays provider warnings and reviews transcripts and proposals.
 
 Prompt 04 enables the existing v1 `POST /api/v1/ai/interpret` and
 `POST /api/v1/voice/transcribe` endpoints. Their bootstrap OpenAPI entries

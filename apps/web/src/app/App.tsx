@@ -35,7 +35,7 @@ const instructions: Partial<Record<EditorTool, string>> = {
   flood: "Place the center or drag the edge to resize",
 };
 
-export function App({ onEarth }: { onEarth?: () => void } = {}) {
+export function App({ onEarth, onSimulator }: { onEarth?: () => void; onSimulator?: () => void } = {}) {
   const s = useAtlasStore();
   const hurricane = s.mode === "hurricane";
   const [layers, setLayers] = useState<Layers>(initialLayers);
@@ -244,6 +244,7 @@ export function App({ onEarth }: { onEarth?: () => void } = {}) {
             <StudyMenu
               onOpen={openPage}
               onEarth={onEarth}
+              onSimulator={onSimulator}
               onExport={() => downloadStudy(snapshotOf(s))}
             />
           )}
@@ -289,15 +290,23 @@ export function App({ onEarth }: { onEarth?: () => void } = {}) {
               scenario={scenario}
               getCurrentScenario={() => makeScenario(useAtlasStore.getState().version)}
               capabilities={{
-                presetEventIds: [],
+                presetEventIds: [offlineScenario.presetEventId],
                 overlayIds: ["roads", "hazard", "outages"],
                 canRunAnalysis: true,
-                canExplain: false,
+                canExplain: true,
               }}
               onCommand={async (cmd) => {
                 switch (cmd.action) {
                   case "SELECT_REGION":
                     useAtlasStore.getState().flyTo("houston");
+                    return;
+                  case "SELECT_PRESET":
+                    useAtlasStore.getState().flyTo("houston");
+                    layer("outages", true);
+                    openPage("county");
+                    return;
+                  case "EXPLAIN_RESULT":
+                    openPage("county");
                     return;
                   case "RUN_ANALYSIS":
                     await evaluationQuery.refetch();

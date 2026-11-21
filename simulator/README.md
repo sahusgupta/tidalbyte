@@ -1,48 +1,30 @@
-# Houston flood and routing simulator
+# Houston flood simulator
 
-Standalone AquaGrid source used by EarthLab's zone iframe. Includes five Houston
-regions, a Downtown & Buffalo Bayou default, preset fallback, and pin-to-hospital
-routing with visible Start/Destination labels, a solid green route and estimated time.
-The original simulator styling is preserved.
+AquaGrid opens in the atlas from the Study menu or from any of the five Earth study zones. The standalone map supports the same regional datasets, storm presets, overlays, impact estimates and pin-to-hospital routes.
 
-## Local setup
+## Prepare a region
 
-From this directory, create a Python 3.13 environment and install dependencies:
+Use Python 3.13. From the repository root on Windows, run:
 
-```sh
-python3.13 -m venv .venv
-.venv/bin/python -m pip install -r requirements.txt
-cd backend
-../.venv/bin/python -m aquagrid.pipeline.build --region downtown-buffalo-bayou
-../.venv/bin/python -m aquagrid.model.train --region downtown-buffalo-bayou
-../.venv/bin/python -m uvicorn aquagrid.api:app --port 8000
+```powershell
+python -m venv simulator/.venv
+simulator/.venv/Scripts/python.exe -m pip install -r simulator/requirements.txt
+npm ci --prefix simulator/frontend
+cd simulator/backend
+../.venv/Scripts/python.exe -m aquagrid.pipeline.build --region downtown-buffalo-bayou
+../.venv/Scripts/python.exe -m aquagrid.model.train --region downtown-buffalo-bayou
 ```
 
-The build downloads geographic data and training takes additional time. Repeat
-build/train for `medical-center-brays`, `meyerland`, `ship-channel`, and
-`kingwood-lake-houston` as needed. Generated data and trained model artifacts are
-excluded from Git; a fresh clone needs those steps or separately supplied artifacts.
+On macOS or Linux, use `python3.13` to create the environment and `.venv/bin/python` in place of `.venv/Scripts/python.exe` in these paths.
 
-In another terminal, from `simulator/frontend`:
+Build downloads regional geography. Training fits a flood-depth surrogate to a process-based simulator. Generated files live under `simulator/data/` and are excluded from Git. An existing prepared region, including its model, can be placed in `simulator/data/processed/<region-id>/`. Additional region IDs are `medical-center-brays`, `meyerland`, `ship-channel` and `kingwood-lake-houston`.
 
-```sh
-npm ci
-npm run dev -- --port 5174
-```
+## Open the map
 
-Open http://localhost:5174. For EarthLab embedding, set
-`VITE_SIMULATOR_URL=http://localhost:5174/` in EarthLab's local configuration and
-restart its Vite server. Keep EarthLab's existing iframe integration unchanged.
+After completing the [atlas setup](../README.md), run `pnpm dev:integrated` from the repository root. Open the [Houston atlas](http://127.0.0.1:5173) and choose **Study menu → Flood simulator**. **Open Earth view** lists all zones. The [standalone map](http://127.0.0.1:5174) also accepts `?region=<id>`. The [AquaGrid region catalog](http://127.0.0.1:8001/api/regions) reports which regions are built.
 
-## Checks and limitations
+For standalone development, start Uvicorn with `python -m uvicorn aquagrid.api:app --port 8000` from `simulator/backend` using the simulator environment, and `npm run dev -- --port 5174` from `simulator/frontend`. Set the frontend process variable `AQUAGRID_API` when its API runs at a different address. To embed a separately served simulator, set `VITE_SIMULATOR_URL` to its public URL before starting or building the atlas. A static deployment of the simulator must forward its `/api/` requests to the AquaGrid backend.
 
-`npm run typecheck` passes in the original working frontend. Browser verification
-confirmed Houston-only region choices, dropped-pin routing, solid green paths,
-estimated time/distance and visible From/To labels. A fresh-clone rebuild has not
-been performed. This directory snapshots the previously unversioned sibling
-`frontend/` and `backend/`; currently running servers still use those siblings.
+## Interpretation
 
-The model is a surrogate trained against a process-based simulator. Estimates do
-not include live traffic or verified current road conditions. Routing treats roads
-as undirected and applies vehicle-specific modeled flood thresholds; it is not
-operational navigation or a guarantee that a road is safe.
+The route estimate uses the selected vehicle and modeled road depths. Travel time excludes live traffic. Roads are treated as undirected. Route availability in this scenario does not establish current road safety or emergency access.

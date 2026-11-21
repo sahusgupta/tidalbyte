@@ -39,7 +39,7 @@ _NON_COMMANDS = {
     "UNSUPPORTED": UNSUPPORTED,
     "UNAVAILABLE_EVENT": UNAVAILABLE_EVENT,
     "SET_PARAMETER": "Scenario feature edits are unavailable until validated model feature ranges exist.",
-    "COMPARE_INTERVENTION": "Illustrative network comparisons are unavailable until a supported graph is connected.",
+    "COMPARE_INTERVENTION": "To compare illustrative interventions, open Compare scenarios and choose a network action.",
 }
 _INTENT_SCHEMA = {
     "type": "object",

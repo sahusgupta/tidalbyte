@@ -1,7 +1,8 @@
 # Simulator hand-off
 
-EarthLab does not include a street & flood simulator. It opens an external one for the zone the
-user picked on the globe. Zones live in `../earth/zones.ts`.
+EarthLab includes the [AquaGrid flood simulator](../../../../../simulator/README.md).
+After setup, `pnpm dev:integrated` runs it alongside the atlas and connects the
+selected Houston zone. Zones live in `../earth/zones.ts`.
 
 ## Plug a simulator in
 
@@ -20,7 +21,7 @@ zone notes, an approximate size and coordinates, and a prominent **Open Houston
 editor** action. No simulation output is shown there. Developer setup, the example
 URL, and the zone message stay under the collapsed **Connection details** section.
 
-The connected host also keeps **Open Houston editor** visible. Each zone gets a
+The connected host keeps an **Atlas** return button visible. Each zone gets a
 fresh iframe and readiness state. If the simulator has not reported ready after
 12 seconds, the host offers Retry connection and the editor while continuing to
 listen for readiness. A ready message resends the zone once, covering simulators

@@ -35,6 +35,71 @@
         "title": "ApiError",
         "type": "object"
       },
+      "Clarification": {
+        "maxLength": 200,
+        "minLength": 1,
+        "title": "Clarification",
+        "type": "string"
+      },
+      "CommandProposal": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "enum": [
+              "SELECT_REGION",
+              "SELECT_PRESET",
+              "SET_PARAMETER",
+              "RUN_ANALYSIS",
+              "TOGGLE_OVERLAY",
+              "COMPARE_INTERVENTION",
+              "EXPLAIN_RESULT"
+            ],
+            "title": "Action",
+            "type": "string"
+          },
+          "args": {
+            "additionalProperties": true,
+            "title": "Args",
+            "type": "object"
+          },
+          "clarification": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Clarification"
+          },
+          "commandId": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Commandid",
+            "type": "string"
+          },
+          "requiresConfirmation": {
+            "title": "Requiresconfirmation",
+            "type": "boolean"
+          },
+          "scenarioVersion": {
+            "minimum": 1.0,
+            "title": "Scenarioversion",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "commandId",
+          "scenarioVersion",
+          "action",
+          "args",
+          "requiresConfirmation"
+        ],
+        "title": "CommandProposal",
+        "type": "object"
+      },
       "ConnectivityMetrics": {
         "additionalProperties": false,
         "properties": {
@@ -195,6 +260,35 @@
           "max"
         ],
         "title": "FeatureSpec",
+        "type": "object"
+      },
+      "Interpretation": {
+        "additionalProperties": false,
+        "properties": {
+          "clarifications": {
+            "items": {
+              "$ref": "#/components/schemas/Clarification"
+            },
+            "maxItems": 10,
+            "minItems": 0,
+            "title": "Clarifications",
+            "type": "array"
+          },
+          "proposal": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CommandProposal"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "clarifications"
+        ],
+        "title": "Interpretation",
         "type": "object"
       },
       "Limitation": {
@@ -460,6 +554,41 @@
         "title": "ResponseEnvelope[Evaluation]",
         "type": "object"
       },
+      "ResponseEnvelope_Interpretation_": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Interpretation"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ApiError"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        },
+        "required": [
+          "data",
+          "meta",
+          "error"
+        ],
+        "title": "ResponseEnvelope[Interpretation]",
+        "type": "object"
+      },
       "ResponseEnvelope_ModelMetadata_": {
         "additionalProperties": false,
         "properties": {
@@ -565,6 +694,45 @@
           "error"
         ],
         "title": "ResponseEnvelope[dict]",
+        "type": "object"
+      },
+      "ResponseEnvelope_dict_str__str__": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ApiError"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        },
+        "required": [
+          "data",
+          "meta",
+          "error"
+        ],
+        "title": "ResponseEnvelope[dict[str, str]]",
         "type": "object"
       },
       "ResponseEnvelope_list_dict__": {
@@ -954,10 +1122,20 @@
               }
             }
           },
-          "description": "Reserved v1 input shape. This bootstrap returns 503 before processing any provider request.",
+          "description": "Text and the complete active Scenario. The server returns a proposal or clarification.",
           "required": true
         },
         "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseEnvelope_Interpretation_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
           "404": {
             "content": {
               "application/json": {
@@ -968,6 +1146,9 @@
             },
             "description": "Unknown region, event or route"
           },
+          "413": {
+            "description": "Request exceeds 32 KiB"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -977,6 +1158,9 @@
               }
             },
             "description": "Invalid or unsupported input"
+          },
+          "429": {
+            "description": "Provider request limit reached"
           },
           "503": {
             "content": {
@@ -991,7 +1175,7 @@
         },
         "summary": "Interpret",
         "tags": [
-          "unavailable integrations"
+          "command interpretation"
         ]
       }
     },
@@ -1768,7 +1952,7 @@
         },
         "summary": "Speak",
         "tags": [
-          "unavailable integrations"
+          "voice"
         ]
       }
     },
@@ -1793,10 +1977,20 @@
               }
             }
           },
-          "description": "Reserved audio upload. The bootstrap returns 503 without reading or sending audio.",
+          "description": "Upload one WebM, Ogg, WAV, or MP4 recording using the audio field.",
           "required": true
         },
         "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseEnvelope_dict_str__str__"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
           "404": {
             "content": {
               "application/json": {
@@ -1807,6 +2001,9 @@
             },
             "description": "Unknown region, event or route"
           },
+          "413": {
+            "description": "Audio exceeds 4 MiB"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -1816,6 +2013,9 @@
               }
             },
             "description": "Invalid or unsupported input"
+          },
+          "429": {
+            "description": "Provider request limit reached"
           },
           "503": {
             "content": {
@@ -1830,7 +2030,7 @@
         },
         "summary": "Transcribe",
         "tags": [
-          "unavailable integrations"
+          "voice"
         ]
       }
     },

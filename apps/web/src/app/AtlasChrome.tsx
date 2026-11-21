@@ -203,10 +203,12 @@ export function StudyDialog({
 export function StudyMenu({
   onOpen,
   onEarth,
+  onSimulator,
   onExport,
 }: {
   onOpen: OpenPage;
   onEarth?: () => void;
+  onSimulator?: () => void;
   onExport: () => void;
 }) {
   const destinations = [
@@ -232,6 +234,15 @@ export function StudyMenu({
           Export study <small>GeoJSON</small>
         </span>
       </button>
+      {onSimulator && (
+        <button onClick={onSimulator}>
+          <Icon name="flood" />
+          <span>
+            Flood simulator <small>Downtown</small>
+          </span>
+          <Icon name="arrow" size={14} />
+        </button>
+      )}
       {onEarth && (
         <button onClick={onEarth}>
           <Icon name="globe" />
