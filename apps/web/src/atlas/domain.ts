@@ -1,7 +1,7 @@
 /** Local editor data only. These shapes are not backend or ML wire contracts. */
 export type Point = [number, number];
 export type AtlasMode = "hurricane" | "flood";
-export type EditorTool = "inspect" | "track" | "flood" | "closure";
+export type EditorTool = "inspect" | "track" | "flood" | "closure" | "measure";
 export type BookmarkId = "houston" | "downtown" | "bayou" | "channel";
 
 export interface RoadSegment {

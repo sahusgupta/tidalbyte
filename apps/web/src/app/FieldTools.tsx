@@ -1,7 +1,8 @@
-import { useId } from "react";
+import { useId, type CSSProperties } from "react";
 import { Icon } from "./Icon";
 import type { Point } from "../atlas/domain";
 import { distanceKm } from "../features/globe/mapGeometry";
+import "../styles/field-tools.css";
 
 export function Dial({
   label,
@@ -37,10 +38,13 @@ export function Dial({
         max={max}
         step={step}
         value={value}
+        aria-valuetext={`${value} ${unit}`}
         onChange={(e) => onChange(Number(e.target.value))}
-        style={{
-          backgroundImage: `linear-gradient(to right, var(--active) ${(100 * (value - min)) / (max - min)}%, var(--rule) 0)`,
-        }}
+        style={
+          {
+            "--field-progress": `${(100 * (value - min)) / (max - min)}%`,
+          } as CSSProperties
+        }
       />
     </div>
   );
@@ -79,12 +83,14 @@ export const timeLabel = (hours: number) => {
 };
 
 export function Timeline({
+  caption,
   progress,
   playing,
   duration,
   onScrub,
   onPlay,
 }: {
+  caption: string;
   progress: number;
   playing: boolean;
   duration: number;
@@ -93,33 +99,44 @@ export function Timeline({
 }) {
   const labels = [0, 0.25, 0.5, 0.75, 1];
   return (
-    <section className="timeline" aria-label="Scenario timeline">
+    <section className="timeline atlas-timeline" aria-label="Scenario timeline">
       <button
+        type="button"
         className="play"
         aria-label={playing ? "Pause timeline" : "Play timeline"}
         onClick={onPlay}
       >
-        <Icon name={playing ? "pause" : "play"} size={19} />
+        <Icon name={playing ? "pause" : "play"} size={18} />
       </button>
       <div className="time-read">
-        <div className="kicker">Scenario time</div>
-        <span>T+{timeLabel(progress * duration)}</span>
+        <span className="time-caption">{caption}</span>
+        <output>T+{timeLabel(progress * duration)}</output>
       </div>
       <div className="time-axis">
         <input
           aria-label="Scenario time scrubber"
+          aria-valuetext={`${timeLabel(progress * duration)} elapsed of ${timeLabel(duration)} scenario hours`}
           type="range"
           min="0"
           max="1000"
           value={Math.round(progress * 1000)}
           onChange={(e) => onScrub(Number(e.target.value) / 1000)}
-          style={{
-            backgroundImage: `linear-gradient(to right,var(--amber) ${progress * 100}%,#424b47 0)`,
-          }}
+          style={
+            {
+              "--field-progress": `${progress * 100}%`,
+            } as CSSProperties
+          }
         />
-        <div className="time-ticks">
-          {labels.map((r) => (
-            <span key={r}>{Number((r * duration).toFixed(1))} h</span>
+        <div className="time-ticks" aria-hidden="true">
+          {labels.map((r, index) => (
+            <span
+              key={r}
+              className={
+                index === 1 || index === 3 ? "time-quarter" : undefined
+              }
+            >
+              {Number((r * duration).toFixed(1))} h
+            </span>
           ))}
         </div>
       </div>
@@ -134,7 +151,15 @@ export function RoadSketch({
   points: Point[];
   closed: boolean;
 }) {
-  const lengthKm = points.slice(1).reduce((sum, point, index) => sum + distanceKm(points[index], point), 0);
+  if (points.length < 2)
+    return (
+      <figure className="segment-instrument">
+        <figcaption>Segment geometry unavailable</figcaption>
+      </figure>
+    );
+  const lengthKm = points
+    .slice(1)
+    .reduce((sum, point, index) => sum + distanceKm(points[index], point), 0);
   const mid = points[Math.floor(points.length / 2)] ?? [-95.37, 29.76];
   const xy = points.map((p) => [
     (p[0] - mid[0]) * Math.cos((mid[1] * Math.PI) / 180),
@@ -155,40 +180,39 @@ export function RoadSketch({
   return (
     <figure className="segment-instrument">
       <svg
-      className={"road-sketch" + (closed ? " closed" : "")}
-      viewBox="0 0 220 72"
-      aria-label={`Selected fixture segment, ${lengthKm.toFixed(1)} kilometers along ${points.length} authored vertices`}
-      role="img"
-    >
-      <text x={line[0][0] - 8} y={Math.max(10, line[0][1] - 8)} textAnchor="end" className="segment-end-label">A</text>
-      <text x={line.at(-1)![0] + 8} y={Math.min(67, line.at(-1)![1] + 12)} className="segment-end-label">B</text>
-      <path
-        d="M0 18h220M0 36h220M0 54h220M36 0v72M72 0v72M108 0v72M144 0v72M180 0v72"
-        stroke="currentColor"
-        opacity=".09"
-      />
-      <polyline
-        points={line.map((p) => p.join(",")).join(" ")}
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="5"
-        strokeLinejoin="round"
-        strokeLinecap="round"
-        strokeDasharray={closed ? "7 4" : undefined}
-      />
-      {[line[0], line[line.length - 1]].map((p, i) => (
-        <circle
-          key={i}
-          cx={p[0]}
-          cy={p[1]}
-          r="4"
-          fill="var(--paper)"
+        className={"road-sketch" + (closed ? " closed" : "")}
+        viewBox="0 0 220 72"
+        aria-label={`Selected fixture segment, ${lengthKm.toFixed(1)} kilometers along ${points.length} authored vertices`}
+        role="img"
+      >
+        <polyline
+          points={line.map((p) => p.join(",")).join(" ")}
+          fill="none"
           stroke="currentColor"
-          strokeWidth="2"
+          strokeWidth="2.5"
+          strokeLinejoin="round"
+          strokeLinecap="round"
+          strokeDasharray={closed ? "7 4" : undefined}
         />
-      ))}
+        {[line[0], line[line.length - 1]].map((p, i) => (
+          <circle
+            key={i}
+            cx={p[0]}
+            cy={p[1]}
+            r="3"
+            fill="var(--paper, #faf8f1)"
+            stroke="currentColor"
+            strokeWidth="1.5"
+          />
+        ))}
       </svg>
-      <figcaption><span>Fixture geometry</span><strong>{lengthKm.toFixed(1)} <small>km</small></strong><span>{points.length} vertices</span></figcaption>
+      <figcaption>
+        <span>Sketched segment</span>
+        <strong>
+          {lengthKm.toFixed(1)} <small>km</small>
+        </strong>
+        <span>{points.length} points</span>
+      </figcaption>
     </figure>
   );
 }

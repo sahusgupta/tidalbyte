@@ -21,7 +21,7 @@ const proposal = (changes: Partial<CommandProposal> = {}): CommandProposal => ({
   requiresConfirmation: false,
   ...changes,
 });
-const envelope = (data: unknown) =>
+const envelope = (data: unknown, warnings: string[] = []) =>
   new Response(
     JSON.stringify({
       data,
@@ -29,7 +29,7 @@ const envelope = (data: unknown) =>
         requestId: "test",
         mode: "offline_example",
         sourceIds: ["project:test"],
-        warnings: [],
+        warnings,
       },
       error: null,
     }),
@@ -39,11 +39,17 @@ describe("backend proposal validation", () => {
   it("returns a typed proposal without dispatching any action", async () => {
     const fetcher = vi
       .fn<typeof fetch>()
-      .mockResolvedValue(envelope({ proposal: proposal(), clarifications: [] }));
-    const result = await interpretText("Show the flood layer", offlineScenario, {
-      fetcher,
-      baseUrl: "http://test",
-    });
+      .mockResolvedValue(
+        envelope({ proposal: proposal(), clarifications: [] }),
+      );
+    const result = await interpretText(
+      "Show the flood layer",
+      offlineScenario,
+      {
+        fetcher,
+        baseUrl: "http://test",
+      },
+    );
     expect(result.interpretation.proposal?.action).toBe("TOGGLE_OVERLAY");
     expect(result.mode).toBe("offline_example");
     expect(JSON.parse(String(fetcher.mock.calls[0][1]?.body))).toEqual({
@@ -54,11 +60,22 @@ describe("backend proposal validation", () => {
 
   it("accepts only an exact supported overlay switch", () => {
     expect(
-      validateProposal(proposal(), offlineScenario, offlineScenario, capabilities).action,
+      validateProposal(
+        proposal(),
+        offlineScenario,
+        offlineScenario,
+        capabilities,
+      ).action,
     ).toBe("TOGGLE_OVERLAY");
     expect(() =>
       validateProposal(
-        proposal({ args: { overlayId: "flood", visible: true, url: "https://untrusted.example" } }),
+        proposal({
+          args: {
+            overlayId: "flood",
+            visible: true,
+            url: "https://untrusted.example",
+          },
+        }),
         offlineScenario,
         offlineScenario,
         capabilities,
@@ -74,6 +91,20 @@ describe("backend proposal validation", () => {
     ).toThrow("not supported");
   });
 
+  it("normalizes only the published county-only overlay form to an enabled outages layer", () => {
+    const county = proposal({ args: { visible: true } });
+    expect(
+      validateProposal(county, offlineScenario, offlineScenario, {
+        ...capabilities,
+        overlayIds: ["outages"],
+      }).args,
+    ).toEqual({ overlayId: "outages", visible: true });
+    expect(() =>
+      validateProposal(county, offlineScenario, offlineScenario, capabilities),
+    ).toThrow("not supported");
+    expect(county.args).toEqual({ visible: true });
+  });
+
   it("rechecks scenario version and full inputs at confirmation time", () => {
     expect(() =>
       validateProposal(
@@ -85,9 +116,9 @@ describe("backend proposal validation", () => {
     ).toThrow("scenario changed");
     const changed = structuredClone(offlineScenario);
     changed.selection.countyFips = ["48201"];
-    expect(() => validateProposal(proposal(), offlineScenario, changed, capabilities)).toThrow(
-      "scenario changed",
-    );
+    expect(() =>
+      validateProposal(proposal(), offlineScenario, changed, capabilities),
+    ).toThrow("scenario changed");
   });
 
   it.each(["SET_PARAMETER", "COMPARE_INTERVENTION"] as const)(
@@ -106,17 +137,18 @@ describe("backend proposal validation", () => {
 
   it("only runs county analysis for historical unmodified inputs", () => {
     const command = proposal({ action: "RUN_ANALYSIS", args: {} });
-    expect(validateProposal(command, offlineScenario, offlineScenario, capabilities).action).toBe(
-      "RUN_ANALYSIS",
-    );
+    expect(
+      validateProposal(command, offlineScenario, offlineScenario, capabilities)
+        .action,
+    ).toBe("RUN_ANALYSIS");
     const scenario = {
       ...offlineScenario,
       modelMode: "exploratory_what_if" as const,
       perturbations: { rainfall: 50 },
     };
-    expect(() => validateProposal(command, scenario, scenario, capabilities)).toThrow(
-      "not supported",
-    );
+    expect(() =>
+      validateProposal(command, scenario, scenario, capabilities),
+    ).toThrow("not supported");
   });
 
   it("fails explicitly when Gemini is unavailable rather than parsing text locally", async () => {
@@ -143,21 +175,107 @@ describe("backend proposal validation", () => {
       .fn<typeof fetch>()
       .mockResolvedValue(envelope({ transcript: "Show the flood layer" }));
     expect(
-      await transcribeAudio(new Blob(["audio-data"], { type: "audio/webm" }), { fetcher }),
-    ).toBe("Show the flood layer");
+      await transcribeAudio(new Blob(["audio-data"], { type: "audio/webm" }), {
+        fetcher,
+      }),
+    ).toMatchObject({
+      transcript: "Show the flood layer",
+      mode: "offline_example",
+      warnings: [],
+    });
     expect(fetcher.mock.calls[0][1]?.body).toBeInstanceOf(FormData);
     expect(fetcher.mock.calls[0][1]?.headers).toBeUndefined();
   });
 
-  it("rejects empty audio and malformed transcripts", async () => {
+  it("rejects empty/oversized audio but preserves an empty no-speech transcript", async () => {
     const fetcher = vi.fn<typeof fetch>();
-    await expect(transcribeAudio(new Blob([]), { fetcher })).rejects.toMatchObject({
+    await expect(
+      transcribeAudio(new Blob([]), { fetcher }),
+    ).rejects.toMatchObject({
       code: "unsupported",
     });
     expect(fetcher).not.toHaveBeenCalled();
+    await expect(
+      transcribeAudio(new Blob([new Uint8Array(4 * 1024 * 1024 + 1)]), {
+        fetcher,
+      }),
+    ).rejects.toMatchObject({ code: "unsupported" });
+    expect(fetcher).not.toHaveBeenCalled();
     fetcher.mockResolvedValue(envelope({ transcript: "" }));
-    await expect(transcribeAudio(new Blob(["audio"]), { fetcher })).rejects.toMatchObject({
-      code: "invalid_response",
+    await expect(
+      transcribeAudio(new Blob(["audio"]), { fetcher }),
+    ).resolves.toMatchObject({ transcript: "" });
+  });
+
+  it("retains sample/provider warnings rather than presenting a fallback as transcribed speech", async () => {
+    const warnings = [
+      "OFFLINE EXAMPLE: Sample transcript. ElevenLabs is unconfigured.",
+    ];
+    const result = await transcribeAudio(new Blob(["audio"]), {
+      fetcher: vi
+        .fn<typeof fetch>()
+        .mockResolvedValue(
+          envelope(
+            { transcript: "Show the Houston offline example" },
+            warnings,
+          ),
+        ),
     });
+    expect(result.warnings).toEqual(warnings);
+    const interpretation = await interpretText(
+      "Show Houston",
+      offlineScenario,
+      {
+        fetcher: vi
+          .fn<typeof fetch>()
+          .mockResolvedValue(
+            envelope({ proposal: proposal(), clarifications: [] }, [
+              "Built-in interpreter",
+            ]),
+          ),
+      },
+    );
+    expect(interpretation.warnings).toEqual(["Built-in interpreter"]);
+  });
+
+  it("allows provider deadlines longer than the default six-second request timeout", async () => {
+    vi.useFakeTimers();
+    try {
+      const interpretation = interpretText("Show Houston", offlineScenario, {
+        fetcher: vi
+          .fn<typeof fetch>()
+          .mockImplementation(
+            () =>
+              new Promise((resolve) =>
+                setTimeout(
+                  () =>
+                    resolve(
+                      envelope({ proposal: proposal(), clarifications: [] }),
+                    ),
+                  9000,
+                ),
+              ),
+          ),
+      });
+      await vi.advanceTimersByTimeAsync(9000);
+      await expect(interpretation).resolves.toHaveProperty("interpretation");
+      const transcript = transcribeAudio(new Blob(["audio"]), {
+        fetcher: vi
+          .fn<typeof fetch>()
+          .mockImplementation(
+            () =>
+              new Promise((resolve) =>
+                setTimeout(
+                  () => resolve(envelope({ transcript: "Hello" })),
+                  13000,
+                ),
+              ),
+          ),
+      });
+      await vi.advanceTimersByTimeAsync(13000);
+      await expect(transcript).resolves.toHaveProperty("transcript", "Hello");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

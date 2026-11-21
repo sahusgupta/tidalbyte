@@ -45,6 +45,8 @@ Neither Gemini nor ElevenLabs may commit changes automatically. Validate county 
 - `GET /api/v1/models/current` -> target/unit/splits/baseline metrics/limitations
 - `GET /api/v1/network?regionId=...` -> illustrative/source-aware GeoJSON graph
 - `POST /api/v1/network/compare` -> PlanComparison
+- `POST /api/v1/network/preview` -> illustrative graph features with before/after activity and access paths
+- `GET /api/v1/network/strategy` -> two-agency payoffs, equilibria and joint maxima for the fixed example
 - `POST /api/v1/ai/interpret` `{text,scenarioSummary}` -> structured command proposal + clarifications
 - `POST /api/v1/voice/transcribe` multipart audio -> `{transcript}`
 - `POST /api/v1/voice/speak` `{text}` -> audio response (optional)

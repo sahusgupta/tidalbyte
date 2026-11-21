@@ -62,7 +62,11 @@
   margin-left: auto;
 }
 .sim-newtab {
-  font-size: 12px;
+  display: grid;
+  place-items: center;
+  min-width: 44px;
+  min-height: 44px;
+  font-size: 19px;
   color: #d9c8a8;
 }
 .sim-toolbar-actions {
@@ -338,8 +342,24 @@
     display: none;
   }
   .sim-newtab {
-    min-height: 32px;
-    display: inline-flex;
-    align-items: center;
+    min-height: 44px;
+  }
+  .sim-connected .sim-bar {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    padding: 6px 8px;
+    gap: 8px;
+  }
+  .sim-connected .sim-title h2 {
+    font-size: clamp(15px, 4vw, 20px);
+    line-height: 1.08;
+  }
+  .sim-connected .sim-eyebrow {
+    font-size: 9px;
+    letter-spacing: 0.03em;
+  }
+  .sim-connected .sim-toolbar-actions {
+    flex-wrap: nowrap;
+    gap: 0;
   }
 }

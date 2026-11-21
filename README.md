@@ -48,13 +48,14 @@ installed separately). Server secrets must never use the `VITE_` prefix.
 
 ## Try the atlas
 
-1. Open the console and select a Houston road to inspect its provenance and
-   intersection with the drawn scenario.
-2. Choose **Edit track** to move a storm waypoint, then scrub the timeline.
-   In **Flood**, place and resize the illustrative footprint.
-3. Open **Baseline vs alternative** to compare the effects of a hypothetical closure.
-4. Choose **Earth** for the geographic overview, select a study zone, and return
-   to the Houston editor when ready.
+1. Select a road on the map to inspect its source and intersection with the scenario. Choose **Gulf approach** to edit the storm, then play or scrub the timeline.
+2. Open **Compare** to inspect the local sketch. Expand **Infrastructure network** for interventions, connectivity and the two-agency protection game on its own illustrative graph.
+3. Choose **Ask the atlas** to type a request or review a recording transcript. Review the proposed action before applying it. Without provider keys, the API labels its built-in command interpreter and fixed sample transcript.
+4. The **Study menu** opens the Downtown **Flood simulator** or the **Earth view** with all five Houston study zones.
+
+### Run the atlas and flood simulator together
+
+Complete the [simulator setup](simulator/README.md), then run `pnpm dev:integrated` from the repository root. This starts the atlas at [port 5173](http://127.0.0.1:5173), its API at 8000, the flood map at [port 5174](http://127.0.0.1:5174), and AquaGrid at 8001. Each frontend talks to its own API. Prepared regional data and a trained AquaGrid artifact enable flood depths, impacts and modeled hospital routes. The county example and illustrative graph run independently with `pnpm dev`.
 
 The [frontend walkthrough](apps/web/README.md) includes controls, screenshots,
 imagery provenance, and optional service contracts.

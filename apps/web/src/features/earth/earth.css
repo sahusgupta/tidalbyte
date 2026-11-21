@@ -12,6 +12,12 @@
   overflow: clip;
   background: #161c19;
 }
+.earth-shell.simulator-open {
+  grid-template-rows: minmax(0, 1fr);
+}
+.simulator-open > .mast {
+  display: none;
+}
 .earth-cesium,
 .earth-failed {
   position: absolute;

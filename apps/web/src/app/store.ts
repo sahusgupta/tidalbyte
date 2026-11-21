@@ -84,7 +84,7 @@ export const useAtlasStore = create<AtlasState>((set, get) => ({
     set((state) => ({ ...edit(state, { ...snapshotOf(state), mode }), tool: "inspect" }));
   },
   setTool: (tool) => {
-    if (["inspect", "track", "flood", "closure"].includes(tool)) set({ tool });
+    if (["inspect", "track", "flood", "closure", "measure"].includes(tool)) set({ tool });
   },
   setTrack: (track) => {
     if (
