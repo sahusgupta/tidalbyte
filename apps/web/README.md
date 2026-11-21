@@ -32,6 +32,7 @@ The shared package supplies scenario, prediction, model metadata, network compar
 | Flood and closures | [Footprint and legend, 1280 × 720](docs/qa/flood-1280.jpg) · [Comparison](docs/qa/closures-comparison-1280.jpg) | [Scenario controls](docs/qa/editor-tablet-768.jpg) · [Road inspector](docs/qa/inspector-tablet-768.jpg) |
 | Context            | [County fixture](docs/qa/county-context-1280.jpg) · [Sources](docs/qa/sources-1440.jpg)                         |                                                                                                         |
 
+[Phone atlas, 390 × 844](docs/qa/houston-phone-390.jpg) · [Earth study-zone index](docs/qa/earth-index-1440.jpg) · [Downtown and Buffalo Bayou zone](docs/qa/zone-1440.jpg)
 
 The [imagery manifest](public/map/provenance.json) lists the provider, service-reported acquisition period, bounds and byte sizes for each aerial reference. Houston opens with bundled aerial imagery. Earth opens with bundled Natural Earth imagery. Closer Houston views can load online USGS detail. To use an additional licensed XYZ template in the atlas, set `VITE_ATLAS_IMAGERY_URL` and `VITE_ATLAS_IMAGERY_CREDIT`. The bundled images remain available if that provider fails.
 
@@ -43,7 +44,6 @@ Run `pnpm typecheck`, `pnpm test` and `pnpm build` from the repository root. The
 
 The browser checks cover pointer placement and dragging in 3D and forced WebGL fallback, timeline playback, keyboard editing, road selection beneath a flood footprint, closure comparisons and reset. Command tests exercise confirmation, unsupported actions, stale responses and replay. Backend graph tests verify catalog edge IDs and reject comparisons from a different source. Successful provider responses in the two test-backend screenshots are controlled test inputs.
 
-Viewport reviews covered 1440 × 900, 1280 × 720 and 768 × 1024. The first refinement moved the legend away from attribution and removed overlapping map labels. The second condensed the short-desktop controls and kept map and drawer scroll positions independent.
+Viewport reviews covered 390 × 844, 720 × 450, 768 × 1024, 1280 × 720 and 1440 × 900. The phone has dedicated touch targets for the map tools and drawers. Keyboard users can skip directly to the atlas or the Earth index, open a zone, and return focus to its entry.
 
-
-On November 21, 2026, type checking, the production build, shared contract checks and the OpenAPI check passed. The suite passed 54 frontend tests and 53 Python tests. Chrome passed 11 interaction groups in 3D and forced WebGL fallback, the flood-picking regression, and nine command/network checks. The built application also passed with all API and external imagery requests blocked. Vite reports a size warning for the lazy Cesium bundle.
+On November 21, 2026, type checking, the production build, shared contract checks and the OpenAPI check passed. The suite passed 62 frontend tests and 53 Python tests. Chrome passed 11 scenario interaction groups in 3D and forced WebGL fallback, the flood-picking regression, and nine command/network checks. The built application also passed navigation and scenario checks with API and external imagery requests blocked. Vite reports a size warning for the lazy Cesium bundle.

@@ -306,8 +306,9 @@
     display: none;
   }
   .earth-controls {
+    top: 8px;
     right: 8px;
-    bottom: calc(var(--zones-height) + 8px);
+    bottom: auto;
     grid-auto-flow: column;
   }
   .earth-controls button {
@@ -327,11 +328,9 @@
   }
   .zone-open .earth-controls {
     right: 8px;
-    bottom: calc(62% + 8px);
   }
   .earth-stage .cesium-viewer-bottom {
     max-width: calc(100% - 12px);
-    bottom: 62px;
     left: 6px;
   }
 }
