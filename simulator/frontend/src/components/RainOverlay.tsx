@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { startRain, type RainState } from '../lib/rainRenderer'
+import { dropCount, startRain, type RainState } from '../lib/rainRenderer'
 
 type Props = { rain: number; wind: number; severity: number }
 
@@ -14,45 +14,74 @@ export default function RainOverlay({ rain, wind, severity }: Props) {
     const host = hostRef.current
     if (!host) return
     const preference = window.matchMedia('(prefers-reduced-motion: reduce)')
-    const read = (): RainState => ({
-      ...weather.current, width: host.clientWidth, height: host.clientHeight,
-      dpr: Math.min(window.devicePixelRatio || 1, 1.5), reduce: preference.matches,
-    })
-    // A fresh canvas per mount also supports React StrictMode effect replay.
-    let canvas = document.createElement('canvas')
-    canvas.style.cssText = 'width:100%;height:100%;display:block'
-    host.appendChild(canvas)
+    let state: RainState
+    let canvas: HTMLCanvasElement | undefined
     let worker: Worker | undefined
     let stop: (() => void) | undefined
-    const fallback = () => {
-      worker?.terminate()
-      worker = undefined
-      const replacement = canvas.cloneNode() as HTMLCanvasElement
-      canvas.replaceWith(replacement)
-      canvas = replacement
-      stop = startRain(canvas, read)
+    let allowWorker = 'transferControlToOffscreen' in HTMLCanvasElement.prototype
+    const release = () => {
+      if (worker) {
+        worker.onmessage = worker.onerror = null
+        worker.terminate()
+        worker = undefined
+      }
+      stop?.()
+      stop = undefined
+      canvas?.remove()
+      canvas = undefined
     }
-    try {
-      if (!canvas.transferControlToOffscreen) throw new Error('Offscreen canvas unavailable')
-      worker = new Worker(new URL('../lib/rain.worker.ts', import.meta.url), { type: 'module' })
-      worker.onerror = fallback
-      const offscreen = canvas.transferControlToOffscreen()
-      worker.postMessage({ canvas: offscreen, state: read() }, [offscreen])
-    } catch {
-      fallback()
+    const settled = () => {
+      release()
+      // The worker can finish fading just as the user selects a new storm.
+      update()
     }
-    const update = () => worker?.postMessage({ state: read() })
+    const update = () => {
+      state = {
+        ...weather.current, width: host.clientWidth, height: host.clientHeight,
+        dpr: Math.min(window.devicePixelRatio || 1, 1.5), reduce: preference.matches,
+      }
+      if (state.reduce || !state.width || !state.height || document.hidden) {
+        release()
+        return
+      }
+      if (canvas) {
+        worker?.postMessage({ state })
+        return
+      }
+      if (!dropCount(state.rain)) return
+      canvas = document.createElement('canvas')
+      canvas.style.cssText = 'width:100%;height:100%;display:block'
+      host.appendChild(canvas)
+      if (allowWorker) {
+        const fallback = () => {
+          allowWorker = false
+          settled() // A transferred canvas needs to be replaced for the main thread.
+        }
+        try {
+          worker = new Worker(new URL('../lib/rain.worker.ts', import.meta.url), { type: 'module' })
+          worker.onmessage = ({ data }) => { if (data === 'idle') settled() }
+          worker.onerror = (event) => { event.preventDefault(); fallback() }
+          const offscreen = canvas.transferControlToOffscreen()
+          worker.postMessage({ canvas: offscreen, state }, [offscreen])
+        } catch {
+          fallback()
+        }
+      } else {
+        stop = startRain(canvas, () => state, settled)
+      }
+    }
     publish.current = update
     const observer = new ResizeObserver(update)
     observer.observe(host)
     preference.addEventListener('change', update)
+    document.addEventListener('visibilitychange', update)
+    update()
     return () => {
       publish.current = null
       observer.disconnect()
       preference.removeEventListener('change', update)
-      worker?.terminate()
-      stop?.()
-      canvas.remove()
+      document.removeEventListener('visibilitychange', update)
+      release()
     }
   }, [])
 

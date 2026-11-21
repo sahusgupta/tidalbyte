@@ -5,6 +5,6 @@ self.onmessage = (event: MessageEvent<{ state: RainState; canvas?: OffscreenCanv
   state = event.data.state
   if (event.data.canvas) {
     stop?.()
-    stop = startRain(event.data.canvas, () => state)
+    stop = startRain(event.data.canvas, () => state, () => self.postMessage('idle'))
   }
 }
