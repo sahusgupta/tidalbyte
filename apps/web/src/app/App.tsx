@@ -228,6 +228,11 @@ export function App({
             <span>{planner.run.offline ? "Offline example" : strategyNames[planner.strategy.id]}</span>
             <button aria-label="Exit resource planning" onClick={() => { setPlanning(false); focusMap(); }}><Icon name="close" size={16}/></button>
           </div>
+          <details className="plan-key"><summary>Map key</summary>
+            <p><i className="work"/>Completed action <i className="access"/>Service path</p>
+            <p><i className="closed"/>Assumed disruption <i className="circle"/>Exposure circle</p>
+            <small>Fictional links. Paths show the declared disruption at the selected hour.</small>
+          </details>
         </div>}
         {!planning && hint && (
           <div className="field-map-hint">

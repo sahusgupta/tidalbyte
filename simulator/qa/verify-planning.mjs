@@ -100,11 +100,18 @@ try {
       .getByRole("button", { name: /main link.*modeled action complete/i });
     await link.waitFor();
     const line = link.locator("polyline").first();
-    const point = await line.evaluate((e) => {
-      const p = e
-        .getPointAtLength(e.getTotalLength() / 2)
-        .matrixTransform(e.getScreenCTM());
-      return { x: p.x, y: p.y };
+    const point = await line.evaluate(async (e) => {
+      const midpoint = () => e.getPointAtLength(e.getTotalLength() / 2).matrixTransform(e.getScreenCTM());
+      const role = e.closest('[role="button"]');
+      let p = midpoint();
+      for (let i = 0; i < 60; i++) {
+        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        const next = midpoint();
+        if (Math.hypot(next.x - p.x, next.y - p.y) < 0.05 && role.contains(document.elementFromPoint(next.x,next.y)))
+          return {x:next.x, y:next.y};
+        p = next;
+      }
+      throw new Error("The recommended link did not settle at a visible touch target.");
     });
     if (mobile) await page.touchscreen.tap(point.x, point.y);
     else await page.mouse.click(point.x, point.y);

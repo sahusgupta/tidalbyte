@@ -1,6 +1,15 @@
 .study-dialog.page-allocation {
   width: min(520px, calc(100vw - 28px));
 }
+.study-dialog.page-allocation::backdrop {background:#15241a33;}
+.plan-key {border-top:1px solid #536254;font-size:12px;}
+.plan-key summary {padding:4px 0;cursor:pointer;}
+.plan-key p {display:flex;gap:6px;align-items:center;margin:4px 0;}
+.plan-key small {display:block;max-width:240px;color:#c5cbbb;}
+.plan-key i {width:16px;border-top:3px solid #cdecc4;display:inline-block;}
+.plan-key .access {border-color:#a5d2cf;}
+.plan-key .closed {border-top:2px dashed #e7a48d;}
+.plan-key .circle {border-top:2px dashed #aec9c0;}
 .planning-ledger {
   color: #293c33;
   background: #f2efe5;

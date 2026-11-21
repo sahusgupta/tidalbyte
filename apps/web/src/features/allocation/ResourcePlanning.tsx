@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import type { AllocationRequest } from "@earthlab/contracts";
 import { PlanningInputs } from "./PlanningInputs";
+import { SpeakPlanSummary } from "../assistant/SpeakPlanSummary";
 import { agencyNames, strategyNames, type Planner } from "./usePlanner";
 import { Icon } from "../../app/Icon";
 import "./planning.css";
@@ -353,6 +354,7 @@ export function ResourcePlanning({
       <details className="plan-fold">
         <summary>Plan summary</summary>
         <p>{planSummary}</p>
+        <SpeakPlanSummary text={planSummary} />
       </details>
     </section>
   );

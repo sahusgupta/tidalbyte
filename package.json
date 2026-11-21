@@ -5,6 +5,7 @@
   "packageManager": "pnpm@10.12.1",
   "engines": { "node": ">=22.12.0 <23", "pnpm": "10.12.1" },
   "scripts": {
+    "demo:allocation": "node scripts/python.mjs scripts/allocation_demo.py",
     "dev:integrated": "node scripts/dev-integrated.mjs",
     "dev": "concurrently --kill-others-on-fail --names web,api \"pnpm --filter web dev\" \"pnpm dev:api\"",
     "dev:api": "node scripts/python.mjs -m uvicorn app.main:app --app-dir apps/api --reload --reload-dir apps/api --reload-dir packages/contracts/python --host 127.0.0.1 --port 8000",
