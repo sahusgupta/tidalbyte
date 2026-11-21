@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/earthlab/command.v1.schema.json",
+  "title": "EarthLab Command Proposal V1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "commandId",
+    "scenarioVersion",
+    "action",
+    "args",
+    "requiresConfirmation"
+  ],
+  "properties": {
+    "commandId": {
+      "type": "string"
+    },
+    "scenarioVersion": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "action": {
+      "enum": [
+        "SELECT_REGION",
+        "SELECT_PRESET",
+        "SET_PARAMETER",
+        "RUN_ANALYSIS",
+        "TOGGLE_OVERLAY",
+        "COMPARE_INTERVENTION",
+        "EXPLAIN_RESULT"
+      ]
+    },
+    "args": {
+      "type": "object"
+    },
+    "requiresConfirmation": {
+      "type": "boolean"
+    },
+    "clarification": {
+      "type": "string"
+    }
+  }
+}

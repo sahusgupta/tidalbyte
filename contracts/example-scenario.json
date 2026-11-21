@@ -1,0 +1,16 @@
+{
+  "id": "houston-history-01",
+  "regionId": "houston-gulf-coast",
+  "presetEventId": "example-warning-001",
+  "scenarioVersion": 1,
+  "selection": {
+    "countyFips": [
+      "48201"
+    ],
+    "warningTypes": [
+      "example-warning"
+    ],
+    "eventTimeUtc": "2024-01-01T00:00:00Z"
+  },
+  "modelMode": "historical_context"
+}

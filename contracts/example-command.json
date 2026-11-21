@@ -1,0 +1,9 @@
+{
+  "commandId": "demo-command-01",
+  "scenarioVersion": 1,
+  "action": "SELECT_PRESET",
+  "args": {
+    "presetEventId": "example-warning-001"
+  },
+  "requiresConfirmation": false
+}

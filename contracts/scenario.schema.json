@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/earthlab/scenario.v1.schema.json",
+  "title": "EarthLab Scenario V1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "regionId",
+    "presetEventId",
+    "scenarioVersion",
+    "selection",
+    "modelMode"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "regionId": {
+      "const": "houston-gulf-coast"
+    },
+    "presetEventId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "scenarioVersion": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "selection": {
+      "type": "object",
+      "required": [
+        "countyFips",
+        "warningTypes",
+        "eventTimeUtc"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "countyFips": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[0-9]{5}$"
+          }
+        },
+        "warningTypes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "eventTimeUtc": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "modelMode": {
+      "enum": [
+        "historical_context",
+        "exploratory_what_if"
+      ]
+    },
+    "perturbations": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "number"
+      }
+    }
+  }
+}
