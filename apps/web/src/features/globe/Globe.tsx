@@ -116,7 +116,7 @@ export default function Globe(props: AtlasMapProps) {
       { point: [-95.185, 29.735] as Point, name: "SHIP CHANNEL", size: 11 },
       { point: [-95.395, 29.711] as Point, name: "MEDICAL CENTER", size: 10 },
       { point: [-95.12, 29.68] as Point, name: "PASADENA", size: 10 },
-    ]) group.reference.entities.add({ position: Cartesian3.fromDegrees(...place.point, 120), label: label(place.name, { font: `600 ${place.size}px Arial`, pixelOffset: new Cartesian2(0, 0), distanceDisplayCondition: new DistanceDisplayCondition(0, place.size < 12 ? 90000 : 180000) }) });
+    ]) group.reference.entities.add({ position: Cartesian3.fromDegrees(...place.point, 120), label: label(place.name, { font: `600 ${place.size}px Arial`, pixelOffset: new Cartesian2(place.name === "BUFFALO BAYOU" ? -24 : 0, place.name === "BUFFALO BAYOU" ? -18 : 0), distanceDisplayCondition: new DistanceDisplayCondition(0, place.size < 12 ? 90000 : 180000) }) });
 
     const handler = new ScreenSpaceEventHandler(viewer.canvas);
     const pick = (position: Cartesian2) => {
