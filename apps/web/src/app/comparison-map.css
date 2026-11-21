@@ -1,0 +1,247 @@
+.scenario-comparison-map {
+  --comparison-paper: var(--paper, #faf8f1);
+  --comparison-ink: var(--ink, #252923);
+  --comparison-muted: var(--muted, #535c53);
+  --comparison-rule: var(--rule, #d9ddd3);
+  --comparison-accent: var(--accent, #983f24);
+  margin: 0 0 24px;
+  color: var(--comparison-ink);
+  font: 14px/1.5 var(--body, "Source Sans 3 Variable", sans-serif);
+}
+.scenario-comparison-map .comparison-map-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.scenario-comparison-map .comparison-map-heading h3 {
+  margin: 0;
+  color: inherit;
+  font-size: 16px;
+  font-weight: 600;
+}
+.scenario-comparison-map .comparison-map-heading > span {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+}
+.scenario-comparison-map .comparison-map-frame {
+  position: relative;
+  height: clamp(240px, 44vh, 420px);
+  overflow: hidden;
+  border: 1px solid #626a5c;
+  background: #67705d;
+  cursor: ew-resize;
+  touch-action: pan-y;
+  user-select: none;
+}
+.scenario-comparison-map .comparison-map-frame > svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.scenario-comparison-map .comparison-map-ground { fill: #8c9484; }
+.scenario-comparison-map .comparison-map-wash { fill: #18251b; opacity: 0.16; }
+.scenario-comparison-map .comparison-footprint {
+  fill: #dda35c;
+  fill-opacity: 0.18;
+  stroke: #f4c37c;
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+.scenario-comparison-map .comparison-footprint.flood {
+  fill: #78b9b3;
+  fill-opacity: 0.3;
+  stroke: #b2e0d9;
+}
+.scenario-comparison-map .comparison-road {
+  fill: none;
+  stroke: #f7f4e9;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+  filter: drop-shadow(0 1px 1px #1b241e);
+}
+.scenario-comparison-map .comparison-road.closed {
+  stroke: #f1a28a;
+  stroke-width: 4;
+  stroke-dasharray: 6 5;
+}
+.scenario-comparison-map .comparison-road.disconnected {
+  stroke: #d0c0df;
+  stroke-dasharray: 2 5;
+}
+.scenario-comparison-map .comparison-track polyline {
+  fill: none;
+  stroke: #ffd191;
+  stroke-width: 3;
+  vector-effect: non-scaling-stroke;
+  filter: drop-shadow(0 1px 1px #252923);
+}
+.scenario-comparison-map .comparison-track circle {
+  fill: #252923;
+  stroke: #ffd191;
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}
+.scenario-comparison-map .comparison-center {
+  fill: #faf8f1;
+  stroke: #983f24;
+  stroke-width: 2.5;
+  vector-effect: non-scaling-stroke;
+}
+.scenario-comparison-map .comparison-map-sides {
+  position: absolute;
+  inset: 12px 12px auto;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  pointer-events: none;
+}
+.scenario-comparison-map .comparison-map-sides span,
+.scenario-comparison-map .comparison-map-north {
+  padding: 4px 9px;
+  color: #252923;
+  background: #faf8f1;
+  font-size: 14px;
+  font-weight: 600;
+}
+.scenario-comparison-map .comparison-map-north {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  pointer-events: none;
+}
+.scenario-comparison-map .comparison-map-divider {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  transform: translateX(-50%);
+  background: #faf8f1;
+  box-shadow: 0 0 0 1px #25292399;
+  pointer-events: none;
+}
+.scenario-comparison-map .comparison-map-divider > span {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid #252923;
+  border-radius: 50%;
+  background: #faf8f1;
+  color: #252923;
+  font-size: 24px;
+  transform: translate(-50%, -50%);
+}
+.scenario-comparison-map .comparison-map-scale path {
+  fill: none;
+  stroke: #faf8f1;
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+.scenario-comparison-map .comparison-map-scale text {
+  fill: #faf8f1;
+  stroke: #252923;
+  stroke-width: 3;
+  paint-order: stroke;
+  font-size: 16px;
+  font-family: sans-serif;
+}
+.scenario-comparison-map .comparison-map-control {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 0 12px;
+  padding-top: 10px;
+}
+.scenario-comparison-map .comparison-map-control label { font-weight: 600; }
+.scenario-comparison-map .comparison-map-control output {
+  color: var(--comparison-muted);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.scenario-comparison-map .comparison-map-control input {
+  box-sizing: border-box;
+  grid-column: 1 / -1;
+  width: 100%;
+  height: 44px;
+  margin: 0;
+  accent-color: var(--comparison-accent);
+  cursor: ew-resize;
+}
+.scenario-comparison-map .comparison-map-control input:focus-visible {
+  outline: 2px solid var(--comparison-accent);
+  outline-offset: 2px;
+}
+.scenario-comparison-map:has(input:focus-visible) .comparison-map-divider > span {
+  outline: 3px solid #983f24;
+  outline-offset: 3px;
+}
+.scenario-comparison-map .comparison-map-key {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  padding: 0;
+  margin: 0 0 10px;
+  list-style: none;
+  font-size: 12px;
+}
+.scenario-comparison-map .comparison-map-key li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.scenario-comparison-map .comparison-map-key i {
+  width: 20px;
+  height: 0;
+  border-top: 2px solid #535c53;
+}
+.scenario-comparison-map .comparison-map-key .key-geometry { border-color: #8a601b; }
+.scenario-comparison-map .comparison-map-key .key-geometry.flood { border-color: #317d75; }
+.scenario-comparison-map .comparison-map-key .key-closure { border-top: 3px dashed #983f24; }
+.scenario-comparison-map .comparison-map-key .key-disconnected { border-top: 3px dotted #79618d; }
+.scenario-comparison-map figcaption p {
+  margin: 8px 0 0;
+  color: var(--comparison-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.scenario-comparison-map figcaption .comparison-map-attribution { font-size: 12px; }
+.scenario-comparison-map .comparison-map-fallback {
+  position: absolute;
+  right: 12px;
+  bottom: 48px;
+  left: 12px;
+  padding: 6px 10px;
+  background: #faf8f1;
+  color: #252923;
+  font-size: 13px;
+}
+.comparison-page > .comparison-detail {
+  border-top: 1px solid var(--rule, #d9ddd3);
+  padding-top: 4px;
+}
+.comparison-page > .comparison-detail > summary {
+  min-height: 44px;
+  padding-block: 10px;
+  box-sizing: border-box;
+  cursor: pointer;
+  color: var(--ink, #252923);
+  font-size: 15px;
+  font-weight: 600;
+}
+.comparison-page > .comparison-detail > summary:focus-visible {
+  outline: 2px solid var(--accent, #983f24);
+  outline-offset: 2px;
+}
+@media (max-width: 480px) {
+  .scenario-comparison-map .comparison-map-control { grid-template-columns: 1fr; }
+  .scenario-comparison-map .comparison-map-control output { margin-top: 2px; }
+  .scenario-comparison-map .comparison-map-control input { grid-column: 1; }
+  .scenario-comparison-map .comparison-map-sides { inset: 8px 8px auto; }
+}

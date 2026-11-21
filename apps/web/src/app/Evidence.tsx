@@ -4,6 +4,7 @@ import { BASELINE, HOUSTON_ROADS, deriveAtlas, type Point } from "../atlas/domai
 import { useAtlasStore } from "./store";
 import { Icon } from "./Icon";
 import { RoadSketch, timeLabel } from "./FieldTools";
+import { ScenarioComparisonMap } from "./ScenarioComparisonMap";
 
 type Derived = ReturnType<typeof deriveAtlas>;
 function coordinate(point: Point) {
@@ -170,7 +171,13 @@ export function Comparison({
   children: React.ReactNode;
 }) {
   const state = useAtlasStore();
-  const base = deriveAtlas({ ...BASELINE, mode: state.mode, progress: state.progress });
+  const baseline = {
+    ...BASELINE,
+    mode: state.mode,
+    progress: state.progress,
+    assumptions: { ...BASELINE.assumptions, durationHours: state.assumptions.durationHours },
+  };
+  const base = deriveAtlas(baseline);
   const rows = [
     [
       state.mode === "hurricane" ? "Track points" : "Current footprint",
@@ -195,50 +202,54 @@ export function Comparison({
         <h2>Before & after</h2>
         <p>The open-road baseline and your edited scenario, at the same timeline position.</p>
       </header>
-      <table className="notebook-table">
-        <caption>
-          Hypothetical fixture · T+{timeLabel(state.progress * state.assumptions.durationHours)}
-        </caption>
-        <thead>
-          <tr>
-            <th scope="col">Measure</th>
-            <th scope="col">Base</th>
-            <th scope="col">Edited</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map(([label, baseline, edited]) => (
-            <tr key={label}>
-              <th scope="row">{label}</th>
-              <td>{baseline}</td>
-              <td className={baseline !== edited ? "changed-value" : undefined}>{edited}</td>
+      <ScenarioComparisonMap baseline={baseline} edited={state} />
+      <details className="comparison-detail">
+        <summary>Comparison details &amp; evidence</summary>
+        <table className="notebook-table">
+          <caption>
+            Hypothetical fixture · T+{timeLabel(state.progress * state.assumptions.durationHours)}
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col">Measure</th>
+              <th scope="col">Base</th>
+              <th scope="col">Edited</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
-      <dl className="comparison-coordinates">
-        <div>
-          <dt>{state.mode === "hurricane" ? "Storm center" : "Footprint center"} · base</dt>
-          <dd>
-            {coordinate(state.mode === "hurricane" ? base.stormPosition : BASELINE.floodCenter)}
-          </dd>
-        </div>
-        <div>
-          <dt>Edited center</dt>
-          <dd>
-            {coordinate(state.mode === "hurricane" ? current.stormPosition : state.floodCenter)}
-          </dd>
-        </div>
-      </dl>
-      <p className="notebook-note">
-        Reachability starts at the fixture reference node. Assumed closures change connections in
-        this sample; they do not establish road safety.
-      </p>
-      {children}
-      <CountyEvidence
-        evaluation={evaluation}
-        serviceStatus={`Both cases use the same county preset. ${serviceStatus}`}
-      />
+          </thead>
+          <tbody>
+            {rows.map(([label, baseline, edited]) => (
+              <tr key={label}>
+                <th scope="row">{label}</th>
+                <td>{baseline}</td>
+                <td className={baseline !== edited ? "changed-value" : undefined}>{edited}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <dl className="comparison-coordinates">
+          <div>
+            <dt>{state.mode === "hurricane" ? "Storm center" : "Footprint center"} · base</dt>
+            <dd>
+              {coordinate(state.mode === "hurricane" ? base.stormPosition : BASELINE.floodCenter)}
+            </dd>
+          </div>
+          <div>
+            <dt>Edited center</dt>
+            <dd>
+              {coordinate(state.mode === "hurricane" ? current.stormPosition : state.floodCenter)}
+            </dd>
+          </div>
+        </dl>
+        <p className="notebook-note">
+          Reachability starts at the fixture reference node. Assumed closures change connections in
+          this sample; they do not establish road safety.
+        </p>
+        {children}
+        <CountyEvidence
+          evaluation={evaluation}
+          serviceStatus={`Both cases use the same county preset. ${serviceStatus}`}
+        />
+      </details>
     </section>
   );
 }
