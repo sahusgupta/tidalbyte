@@ -30,10 +30,9 @@ def create_app(*, fixture_dir: Path = FIXTURE_DIR) -> FastAPI:
 
     application = FastAPI(
         title="EarthLab API",
-        version="1.0.0",
+        version="1.1.0",
         description=(
-            "Bootstrap: deterministic OFFLINE EXAMPLE output only. "
-            "No trained model or verified historical event is available. "
+            "Houston scenario atlas with illustrative infrastructure planning and a county offline example. "
             "All application endpoints use {data, meta, error}; /openapi.json and documentation pages use native formats."
         ),
         lifespan=lifespan,

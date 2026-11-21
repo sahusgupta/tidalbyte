@@ -1,6 +1,9 @@
 // Generated from contracts/*.schema.json. Run pnpm contracts:generate. Do not edit.
 
 export interface EarthLabContracts {
+  allocationRequest?: AllocationRequest;
+  allocationResult?: AllocationResult;
+  allocationEvaluation?: AllocationEvaluation;
   scenario?: Scenario;
   commandProposal?: CommandProposal;
   featureSpec?: FeatureSpec;
@@ -17,6 +20,187 @@ export interface EarthLabContracts {
   interpretRequest?: InterpretRequest;
   interpretation?: Interpretation;
   voiceSpeakRequest?: VoiceSpeakRequest;
+}
+export interface AllocationRequest {
+  regionId: 'houston-gulf-coast';
+  phase: 'mitigation' | 'response';
+  crewCapacity: number;
+  agencies: AllocationAgencies;
+  scenarioVersion: 1;
+  totalBudget: number;
+  equipmentCapacity: number;
+  horizonHours: number;
+  /**
+   * @minItems 0
+   * @maxItems 5
+   */
+  blockedEdgeIds: string[];
+  /**
+   * @minItems 0
+   * @maxItems 5
+   */
+  impairedEdgeIds: string[];
+  bargainingWeight: number;
+  effectPercent: number;
+  footprint: AllocationFootprint | null;
+}
+export interface AllocationAgencies {
+  health: AllocationAgency;
+  shelter: AllocationAgency;
+}
+export interface AllocationAgency {
+  budget: number;
+  clinicWeight: number;
+  shelterWeight: number;
+  crewCapacity: number;
+}
+export interface AllocationFootprint {
+  longitude: number;
+  latitude: number;
+  radiusKm: number;
+}
+export interface AllocationResult {
+  regionId: 'houston-gulf-coast';
+  graphSource: string;
+  phase: 'mitigation' | 'response';
+  scenarioLabel: string;
+  /**
+   * @minItems 1
+   * @maxItems 24
+   */
+  assumptions: string[];
+  scenarioVersion: 1;
+  graphVersion: string;
+  assumptionSetId: string;
+  dataMode: 'illustrative';
+  /**
+   * @minItems 1
+   * @maxItems 20
+   */
+  sourceIds: string[];
+  /**
+   * @minItems 1
+   * @maxItems 30
+   */
+  limitations: string[];
+  timestampUtc: string;
+  /**
+   * @minItems 0
+   * @maxItems 20
+   */
+  candidates: AllocationCandidate[];
+  baselineAccess: AllocationAccess;
+  /**
+   * @minItems 3
+   * @maxItems 3
+   */
+  strategies: AllocationStrategy[];
+  /**
+   * @minItems 1
+   * @maxItems 16
+   */
+  payoffMatrix: AllocationPayoff[];
+  equilibriumVerified: boolean;
+  agreement: boolean;
+}
+export interface AllocationCandidate {
+  agency: 'health' | 'shelter';
+  assetId: string;
+  label: string;
+  cost: number;
+  crews: number;
+  actionId: string;
+  equipment: number;
+  hours: number;
+  effectAssumption: string;
+  source: string;
+  exposed: boolean;
+  status: 'available' | 'impaired' | 'blocked' | 'unknown';
+}
+export interface AllocationAccess {
+  clinic: number;
+  shelter: number;
+}
+export interface AllocationStrategy {
+  id: 'independent' | 'coordinated' | 'bargaining';
+  utilities: AllocationUtilities;
+  spend: AllocationSpend;
+  crewsUsed: number;
+  access: AllocationAccess;
+  /**
+   * @minItems 0
+   * @maxItems 12
+   */
+  interventions: AllocationIntervention[];
+  jointUtility: number;
+  gains: AllocationUtilities;
+  nashProduct: number;
+  explanation: string;
+  weightedAccess: number;
+  equipmentUsed: number;
+  completionHours: number;
+}
+export interface AllocationUtilities {
+  health: number;
+  shelter: number;
+}
+export interface AllocationSpend {
+  health: number;
+  shelter: number;
+}
+export interface AllocationIntervention {
+  agency: 'health' | 'shelter';
+  assetId: string;
+  label: string;
+  cost: number;
+  crews: number;
+  actionId: string;
+}
+export interface AllocationPayoff {
+  /**
+   * @minItems 0
+   * @maxItems 5
+   */
+  healthActions: string[];
+  /**
+   * @minItems 0
+   * @maxItems 5
+   */
+  shelterActions: string[];
+  utilities: AllocationUtilities;
+  feasible: boolean;
+}
+export interface AllocationEvaluation {
+  regionId: 'houston-gulf-coast';
+  graphSource: string;
+  phase: 'mitigation' | 'response';
+  scenarioLabel: string;
+  /**
+   * @minItems 1
+   * @maxItems 24
+   */
+  assumptions: string[];
+  scenarioVersion: 1;
+  graphVersion: string;
+  assumptionSetId: string;
+  dataMode: 'illustrative';
+  /**
+   * @minItems 1
+   * @maxItems 20
+   */
+  sourceIds: string[];
+  /**
+   * @minItems 1
+   * @maxItems 30
+   */
+  limitations: string[];
+  timestampUtc: string;
+  /**
+   * @minItems 0
+   * @maxItems 20
+   */
+  candidates: AllocationCandidate[];
+  baselineAccess: AllocationAccess;
 }
 export interface Scenario {
   id: string;

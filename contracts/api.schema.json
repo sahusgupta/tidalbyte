@@ -3,6 +3,15 @@
   "additionalProperties": false,
   "required": [],
   "properties": {
+    "allocationRequest": {
+      "$ref": "#/$defs/AllocationRequest"
+    },
+    "allocationResult": {
+      "$ref": "#/$defs/AllocationResult"
+    },
+    "allocationEvaluation": {
+      "$ref": "#/$defs/AllocationEvaluation"
+    },
     "scenario": {
       "$ref": "#/$defs/Scenario"
     },
@@ -56,6 +65,736 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://example.local/earthlab/api.v1.schema.json",
   "$defs": {
+    "AllocationAgency": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "budget",
+        "clinicWeight",
+        "shelterWeight",
+        "crewCapacity"
+      ],
+      "properties": {
+        "budget": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "clinicWeight": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10
+        },
+        "shelterWeight": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10
+        },
+        "crewCapacity": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 6
+        }
+      },
+      "title": "AllocationAgency"
+    },
+    "AllocationAgencies": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "health",
+        "shelter"
+      ],
+      "properties": {
+        "health": {
+          "$ref": "#/$defs/AllocationAgency"
+        },
+        "shelter": {
+          "$ref": "#/$defs/AllocationAgency"
+        }
+      },
+      "title": "AllocationAgencies"
+    },
+    "AllocationRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "regionId",
+        "phase",
+        "crewCapacity",
+        "agencies",
+        "scenarioVersion",
+        "totalBudget",
+        "equipmentCapacity",
+        "horizonHours",
+        "blockedEdgeIds",
+        "impairedEdgeIds",
+        "bargainingWeight",
+        "effectPercent",
+        "footprint"
+      ],
+      "properties": {
+        "regionId": {
+          "type": "string",
+          "const": "houston-gulf-coast"
+        },
+        "phase": {
+          "type": "string",
+          "enum": [
+            "mitigation",
+            "response"
+          ]
+        },
+        "crewCapacity": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 6
+        },
+        "agencies": {
+          "$ref": "#/$defs/AllocationAgencies"
+        },
+        "scenarioVersion": {
+          "type": "integer",
+          "const": 1
+        },
+        "totalBudget": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 200
+        },
+        "equipmentCapacity": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10
+        },
+        "horizonHours": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 48
+        },
+        "blockedEdgeIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "minItems": 0,
+          "maxItems": 5,
+          "uniqueItems": true
+        },
+        "impairedEdgeIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "minItems": 0,
+          "maxItems": 5,
+          "uniqueItems": true
+        },
+        "bargainingWeight": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9
+        },
+        "effectPercent": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "footprint": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AllocationFootprint"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "title": "AllocationRequest"
+    },
+    "AllocationUtilities": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "health",
+        "shelter"
+      ],
+      "properties": {
+        "health": {
+          "type": "number"
+        },
+        "shelter": {
+          "type": "number"
+        }
+      },
+      "title": "AllocationUtilities"
+    },
+    "AllocationSpend": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "health",
+        "shelter"
+      ],
+      "properties": {
+        "health": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "shelter": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        }
+      },
+      "title": "AllocationSpend"
+    },
+    "AllocationAccess": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "clinic",
+        "shelter"
+      ],
+      "properties": {
+        "clinic": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "shelter": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      },
+      "title": "AllocationAccess"
+    },
+    "AllocationIntervention": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "agency",
+        "assetId",
+        "label",
+        "cost",
+        "crews",
+        "actionId"
+      ],
+      "properties": {
+        "agency": {
+          "type": "string",
+          "enum": [
+            "health",
+            "shelter"
+          ]
+        },
+        "assetId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "cost": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "crews": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 6
+        },
+        "actionId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        }
+      },
+      "title": "AllocationIntervention"
+    },
+    "AllocationStrategy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "utilities",
+        "spend",
+        "crewsUsed",
+        "access",
+        "interventions",
+        "jointUtility",
+        "gains",
+        "nashProduct",
+        "explanation",
+        "weightedAccess",
+        "equipmentUsed",
+        "completionHours"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "enum": [
+            "independent",
+            "coordinated",
+            "bargaining"
+          ]
+        },
+        "utilities": {
+          "$ref": "#/$defs/AllocationUtilities"
+        },
+        "spend": {
+          "$ref": "#/$defs/AllocationSpend"
+        },
+        "crewsUsed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 6
+        },
+        "access": {
+          "$ref": "#/$defs/AllocationAccess"
+        },
+        "interventions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AllocationIntervention"
+          },
+          "minItems": 0,
+          "maxItems": 12
+        },
+        "jointUtility": {
+          "type": "number"
+        },
+        "gains": {
+          "$ref": "#/$defs/AllocationUtilities"
+        },
+        "nashProduct": {
+          "type": "number"
+        },
+        "explanation": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "weightedAccess": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "equipmentUsed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10
+        },
+        "completionHours": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 48
+        }
+      },
+      "title": "AllocationStrategy"
+    },
+    "AllocationResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "regionId",
+        "graphSource",
+        "phase",
+        "scenarioLabel",
+        "assumptions",
+        "scenarioVersion",
+        "graphVersion",
+        "assumptionSetId",
+        "dataMode",
+        "sourceIds",
+        "limitations",
+        "timestampUtc",
+        "candidates",
+        "baselineAccess",
+        "strategies",
+        "payoffMatrix",
+        "equilibriumVerified",
+        "agreement"
+      ],
+      "properties": {
+        "regionId": {
+          "type": "string",
+          "const": "houston-gulf-coast"
+        },
+        "graphSource": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "phase": {
+          "type": "string",
+          "enum": [
+            "mitigation",
+            "response"
+          ]
+        },
+        "scenarioLabel": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 250
+        },
+        "assumptions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          },
+          "minItems": 1,
+          "maxItems": 24
+        },
+        "scenarioVersion": {
+          "type": "integer",
+          "const": 1
+        },
+        "graphVersion": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "assumptionSetId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "dataMode": {
+          "type": "string",
+          "const": "illustrative"
+        },
+        "sourceIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "minItems": 1,
+          "maxItems": 20
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          },
+          "minItems": 1,
+          "maxItems": 30
+        },
+        "timestampUtc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "candidates": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AllocationCandidate"
+          },
+          "minItems": 0,
+          "maxItems": 20
+        },
+        "baselineAccess": {
+          "$ref": "#/$defs/AllocationAccess"
+        },
+        "strategies": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AllocationStrategy"
+          },
+          "minItems": 3,
+          "maxItems": 3
+        },
+        "payoffMatrix": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AllocationPayoff"
+          },
+          "minItems": 1,
+          "maxItems": 16
+        },
+        "equilibriumVerified": {
+          "type": "boolean"
+        },
+        "agreement": {
+          "type": "boolean"
+        }
+      },
+      "title": "AllocationResult"
+    },
+    "AllocationFootprint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "longitude",
+        "latitude",
+        "radiusKm"
+      ],
+      "properties": {
+        "longitude": {
+          "type": "number",
+          "minimum": -95.8,
+          "maximum": -94.95
+        },
+        "latitude": {
+          "type": "number",
+          "minimum": 29.45,
+          "maximum": 30.05
+        },
+        "radiusKm": {
+          "type": "number",
+          "minimum": 0.5,
+          "maximum": 15
+        }
+      },
+      "title": "AllocationFootprint"
+    },
+    "AllocationCandidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "agency",
+        "assetId",
+        "label",
+        "cost",
+        "crews",
+        "actionId",
+        "equipment",
+        "hours",
+        "effectAssumption",
+        "source",
+        "exposed",
+        "status"
+      ],
+      "properties": {
+        "agency": {
+          "type": "string",
+          "enum": [
+            "health",
+            "shelter"
+          ]
+        },
+        "assetId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "cost": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "crews": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 6
+        },
+        "actionId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "equipment": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10
+        },
+        "hours": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 48
+        },
+        "effectAssumption": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "source": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        },
+        "exposed": {
+          "type": "boolean"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "available",
+            "impaired",
+            "blocked",
+            "unknown"
+          ]
+        }
+      },
+      "title": "AllocationCandidate"
+    },
+    "AllocationPayoff": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "healthActions",
+        "shelterActions",
+        "utilities",
+        "feasible"
+      ],
+      "properties": {
+        "healthActions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "minItems": 0,
+          "maxItems": 5
+        },
+        "shelterActions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "minItems": 0,
+          "maxItems": 5
+        },
+        "utilities": {
+          "$ref": "#/$defs/AllocationUtilities"
+        },
+        "feasible": {
+          "type": "boolean"
+        }
+      },
+      "title": "AllocationPayoff"
+    },
+    "AllocationEvaluation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "regionId",
+        "graphSource",
+        "phase",
+        "scenarioLabel",
+        "assumptions",
+        "scenarioVersion",
+        "graphVersion",
+        "assumptionSetId",
+        "dataMode",
+        "sourceIds",
+        "limitations",
+        "timestampUtc",
+        "candidates",
+        "baselineAccess"
+      ],
+      "properties": {
+        "regionId": {
+          "type": "string",
+          "const": "houston-gulf-coast"
+        },
+        "graphSource": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "phase": {
+          "type": "string",
+          "enum": [
+            "mitigation",
+            "response"
+          ]
+        },
+        "scenarioLabel": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 250
+        },
+        "assumptions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          },
+          "minItems": 1,
+          "maxItems": 24
+        },
+        "scenarioVersion": {
+          "type": "integer",
+          "const": 1
+        },
+        "graphVersion": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "assumptionSetId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "dataMode": {
+          "type": "string",
+          "const": "illustrative"
+        },
+        "sourceIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "minItems": 1,
+          "maxItems": 20
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          },
+          "minItems": 1,
+          "maxItems": 30
+        },
+        "timestampUtc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "candidates": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AllocationCandidate"
+          },
+          "minItems": 0,
+          "maxItems": 20
+        },
+        "baselineAccess": {
+          "$ref": "#/$defs/AllocationAccess"
+        }
+      },
+      "title": "AllocationEvaluation"
+    },
     "Scenario": {
       "$ref": "scenario.schema.json"
     },
