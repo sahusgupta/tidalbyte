@@ -71,25 +71,20 @@ class AllocationIntervention(BaseModel):
     accessWithout: AllocationAccess
 
 
-class AllocationStrategy(BaseModel):
+class ClinicItem(RootModel[str]):
+    root: str = Field(..., max_length=160, min_length=1)
+
+
+class ShelterItem(RootModel[str]):
+    root: str = Field(..., max_length=160, min_length=1)
+
+
+class AllocationPaths(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
     )
-    id: Literal['independent', 'coordinated', 'bargaining']
-    utilities: AllocationUtilities
-    spend: AllocationSpend
-    crewsUsed: int = Field(..., ge=0, le=6)
-    access: AllocationAccess
-    interventions: list[AllocationIntervention] = Field(
-        ..., max_length=12, min_length=0
-    )
-    jointUtility: float
-    gains: AllocationUtilities
-    nashProduct: float
-    explanation: str = Field(..., max_length=2000, min_length=1)
-    weightedAccess: float = Field(..., ge=0.0, le=1.0)
-    equipmentUsed: int = Field(..., ge=0, le=10)
-    completionHours: float = Field(..., ge=0.0, le=48.0)
+    clinic: list[ClinicItem] = Field(..., max_length=5)
+    shelter: list[ShelterItem] = Field(..., max_length=5)
 
 
 class Assumption(RootModel[str]):
@@ -429,6 +424,37 @@ class AllocationRequest(BaseModel):
     bargainingWeight: int = Field(..., ge=1, le=9)
     effectPercent: int = Field(..., ge=0, le=100)
     footprint: AllocationFootprint | None = None
+
+
+class AllocationFrame(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    hour: float = Field(..., ge=0.0, le=48.0)
+    access: AllocationAccess
+    serviceEdges: AllocationPaths
+
+
+class AllocationStrategy(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    id: Literal['independent', 'coordinated', 'bargaining']
+    utilities: AllocationUtilities
+    spend: AllocationSpend
+    crewsUsed: int = Field(..., ge=0, le=6)
+    access: AllocationAccess
+    interventions: list[AllocationIntervention] = Field(
+        ..., max_length=12, min_length=0
+    )
+    jointUtility: float
+    gains: AllocationUtilities
+    nashProduct: float
+    explanation: str = Field(..., max_length=2000, min_length=1)
+    weightedAccess: float = Field(..., ge=0.0, le=1.0)
+    equipmentUsed: int = Field(..., ge=0, le=10)
+    completionHours: float = Field(..., ge=0.0, le=48.0)
+    frames: list[AllocationFrame] = Field(..., max_length=6, min_length=1)
 
 
 class AllocationResult(BaseModel):
