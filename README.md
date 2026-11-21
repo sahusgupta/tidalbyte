@@ -1,11 +1,9 @@
 # EarthLab
 
-A desktop-first Earth console for exploring Houston-region weather/outage context.
-This repository currently contains the **prompt 00 lead bootstrap only**: a
-keyless Cesium globe, schematic county overlays, a deterministic offline fixture,
-a validated FastAPI skeleton, frozen shared contracts and CI. No trained model,
-verified historical warning case, infrastructure analysis or AI/voice integration
-is implemented yet. All displayed severity values say **OFFLINE EXAMPLE**.
+EarthLab opens on the Houston Disaster Atlas. Draw a hypothetical hurricane track
+or flood footprint, inspect a sample road, and compare the connectivity of the
+edited network with its baseline. The local demo needs no keys. County outage
+values come from a labeled fixture until a trained model is connected.
 
 ## Run locally
 
@@ -48,15 +46,19 @@ For API environment overrides, export variables in the launching shell (the API
 also accepts the documented Uvicorn `--env-file .env` option if python-dotenv is
 installed separately). Server secrets must never use the `VITE_` prefix.
 
-## Try the bootstrap
+## Try the atlas
 
-1. See Earth rotate; pause orbit or drag the globe. Reduced-motion preferences
-   disable the initial orbit and camera animation.
-2. Select **Fly to Houston** or press **H** outside form fields.
-3. Pin Harris, Fort Bend or Brazoria from the county list or schematic map shapes.
-4. Choose **Run example**. The API validates the request and returns fixed indices.
-5. With only the web server running, choose **Run example** again: local fallback
-   remains available, explicitly labeled as offline.
+1. Select a road on the map to inspect its source and intersection with the scenario. Choose **Gulf approach** to edit the storm, then play or scrub the timeline.
+2. Open **Compare** to inspect the local sketch. Expand **Infrastructure network** for interventions, connectivity and the two-agency protection game on its own illustrative graph.
+3. Choose **Ask the atlas** to type a request or review a recording transcript. Review the proposed action before applying it. Without provider keys, the API labels its built-in command interpreter and fixed sample transcript.
+4. The **Study menu** opens the Downtown **Flood simulator** or the **Earth view** with all five Houston study zones.
+
+### Run the atlas and flood simulator together
+
+Complete the [simulator setup](simulator/README.md), then run `pnpm dev:integrated` from the repository root. This starts the atlas at [port 5173](http://127.0.0.1:5173), its API at 8000, the flood map at [port 5174](http://127.0.0.1:5174), and AquaGrid at 8001. Each frontend talks to its own API. Prepared regional data and a trained AquaGrid artifact enable flood depths, impacts and modeled hospital routes. The county example and illustrative graph run independently with `pnpm dev`.
+
+The [frontend walkthrough](apps/web/README.md) includes controls, screenshots,
+imagery provenance, and optional service contracts.
 
 The polygons are original schematic rectangles, not official county boundaries.
 The arbitrary event timestamp and severity indices do not describe observed
@@ -73,7 +75,7 @@ pnpm openapi:check
 python scripts/validate_kit.py
 ```
 
-`pnpm test` runs web tests and Python API/contract/ML-guard tests using `.venv`.
+`pnpm test` runs web tests and Python API, contract and ML checks using `.venv`.
 For the original direct Python command, activate `.venv` first, then run
 `python -m pytest apps/api/tests ml/tests`. The API docs are generated from the
 runnable skeleton; schema drift is checked in CI. Regenerate after approved
@@ -83,19 +85,20 @@ contract edits with `pnpm contracts:generate` and `pnpm openapi:generate`.
 python ml/train.py --config ml/config.yaml
 ```
 
-Training deliberately exits **2** until the ML owner implements and validates a
-real pipeline with verified data. It writes no fabricated model or metrics.
+Training needs the separate ML dependencies and prepared dataset. Missing inputs
+produce exit code 2. The training pipelines and evaluation reports are in the
+repository. The application still serves the offline county example.
+See the [ML setup and artifact handoff](ml/README.md).
 
 ## Team handoff
 
 - Lead: root configuration, `packages/contracts`, schemas, CI and integration.
-- Frontend: `apps/web/**`; implement the frontend prompt after pulling bootstrap.
+- Frontend: `apps/web/**`, including the atlas and Earth index.
 - ML/data: `ml/**`, provenance and prediction/model service paths.
 - Infrastructure: network routes/service and independently sourced graph fixture.
 - AI/voice: interpretation/voice routes and provider services.
 
-Only prompt 00 has been executed. Future feature prompts remain separate tasks.
-Read `docs/05-TEAM-PROTOCOL.md` before branching; use isolated worktrees on a shared
+Read `docs/05-TEAM-PROTOCOL.md` before branching. Use isolated worktrees on a shared
 machine. Shared wire changes require a proposal and lead approval. All UI work
 must read and apply the installed `$interface-craft` skill and `docs/04-DESIGN.md`.
 

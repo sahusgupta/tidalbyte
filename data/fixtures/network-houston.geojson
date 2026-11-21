@@ -1,0 +1,19 @@
+{
+  "type": "FeatureCollection",
+  "regionId": "houston-gulf-coast",
+  "sourceId": "project:houston-illustrative-network-v1",
+  "attribution": "EarthLab original fictional planning fixture. Schematic geometry and assumed weights.",
+  "license": "CC0-1.0",
+  "features": [
+    {"type":"Feature","id":"staging","geometry":{"type":"Point","coordinates":[-95.46,29.76]},"properties":{"kind":"node","role":"origin","name":"Staging point"}},
+    {"type":"Feature","id":"junction","geometry":{"type":"Point","coordinates":[-95.38,29.76]},"properties":{"kind":"node","role":"junction","name":"Central junction"}},
+    {"type":"Feature","id":"clinic","geometry":{"type":"Point","coordinates":[-95.31,29.80]},"properties":{"kind":"node","role":"facility","name":"Example clinic","serviceWeight":9}},
+    {"type":"Feature","id":"shelter","geometry":{"type":"Point","coordinates":[-95.30,29.70]},"properties":{"kind":"node","role":"facility","name":"Example shelter","serviceWeight":3}},
+    {"type":"Feature","id":"bypass","geometry":{"type":"Point","coordinates":[-95.42,29.71]},"properties":{"kind":"node","role":"junction","name":"Bypass junction"}},
+    {"type":"Feature","id":"main-link","geometry":{"type":"LineString","coordinates":[[-95.46,29.76],[-95.38,29.76]]},"properties":{"kind":"edge","from":"staging","to":"junction","travelCost":2}},
+    {"type":"Feature","id":"bypass-west","geometry":{"type":"LineString","coordinates":[[-95.46,29.76],[-95.42,29.71]]},"properties":{"kind":"edge","from":"staging","to":"bypass","travelCost":2}},
+    {"type":"Feature","id":"bypass-east","geometry":{"type":"LineString","coordinates":[[-95.42,29.71],[-95.38,29.76]]},"properties":{"kind":"edge","from":"bypass","to":"junction","travelCost":3}},
+    {"type":"Feature","id":"north-link","geometry":{"type":"LineString","coordinates":[[-95.38,29.76],[-95.31,29.80]]},"properties":{"kind":"edge","from":"junction","to":"clinic","travelCost":3}},
+    {"type":"Feature","id":"south-link","geometry":{"type":"LineString","coordinates":[[-95.38,29.76],[-95.30,29.70]]},"properties":{"kind":"edge","from":"junction","to":"shelter","travelCost":4}}
+  ]
+}

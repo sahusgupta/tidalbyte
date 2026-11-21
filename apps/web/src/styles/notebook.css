@@ -1,0 +1,493 @@
+/* Field-note refinement using unslop by Damir Sokolovsky (@heydamir), CC BY 4.0. */
+.atlas-shell .notebook-page {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: 100%;
+  padding: 24px;
+  color: var(--ink, #252923);
+  background: var(--paper, #faf8f1);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.atlas-shell .notebook-heading {
+  margin-bottom: 20px;
+}
+.atlas-shell .notebook-heading h2 {
+  margin: 0 0 12px;
+  color: var(--ink, #252923);
+  font: 400 42px/1.04 var(--display, Georgia, serif);
+  letter-spacing: -0.025em;
+  overflow-wrap: break-word;
+}
+.atlas-shell .road-page .notebook-heading h2 {
+  font-size: 34px;
+  line-height: 1.1;
+}
+.atlas-shell .notebook-page p,
+.atlas-shell .county-evidence p,
+.atlas-shell .network-controls p {
+  margin: 8px 0 0;
+  color: var(--muted, #535c53);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.atlas-shell .notebook-heading p {
+  margin: 0;
+}
+.atlas-shell .notebook-page .notebook-note,
+.atlas-shell .county-evidence .notebook-note {
+  font-size: 12px;
+  line-height: 1.5;
+}
+.atlas-shell .notebook-section {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--rule, #d9ddd3);
+}
+.atlas-shell .notebook-section h3 {
+  margin: 0 0 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink, #252923);
+  line-height: 1.4;
+}
+.atlas-shell .scenario-choice {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  margin: 0 0 16px;
+  border: 1px solid var(--rule, #d9ddd3);
+  border-radius: 4px;
+}
+.atlas-shell .scenario-choice button {
+  min-height: 44px;
+  border: 0;
+  border-radius: 2px;
+  background: transparent;
+  color: var(--muted, #535c53);
+  font: inherit;
+  cursor: pointer;
+}
+.atlas-shell .scenario-choice button[aria-pressed="true"] {
+  color: var(--accent, #983f24);
+  background: #ede9df;
+  font-weight: 600;
+}
+.atlas-shell .scenario-plate {
+  margin: 0 0 20px;
+  color: var(--accent, #983f24);
+}
+.atlas-shell .scenario-plate svg {
+  width: 100%;
+  height: 112px;
+  display: block;
+  overflow: visible;
+}
+.atlas-shell .scenario-plate text {
+  fill: var(--muted, #535c53);
+  font: inherit;
+  font-size: 12px;
+}
+.atlas-shell .scenario-plate figcaption {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 8px;
+  color: var(--muted, #535c53);
+  font-size: 12px;
+}
+.atlas-shell .scenario-plate time {
+  color: var(--ink, #252923);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.atlas-shell .notebook-primary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--accent, #983f24);
+  border-radius: 4px;
+  background: var(--accent, #983f24);
+  color: #fffdf8;
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+}
+.atlas-shell .notebook-primary:hover:not(:disabled) {
+  background: #80331d;
+  border-color: #80331d;
+}
+.atlas-shell .notebook-primary.applied {
+  background: transparent;
+  color: var(--ink, #252923);
+  border-color: #aeb5a7;
+}
+.atlas-shell .notebook-primary.applied:hover {
+  background: #eeece3;
+}
+.atlas-shell .notebook-page button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.atlas-shell .notebook-page button:focus-visible,
+.atlas-shell .notebook-page select:focus-visible,
+.atlas-shell .notebook-page summary:focus-visible {
+  outline: 2px solid var(--accent, #983f24);
+  outline-offset: 3px;
+}
+.atlas-shell .notebook-field {
+  display: grid;
+  gap: 8px;
+  margin-top: 16px;
+  color: var(--muted, #535c53);
+  font-size: 12px;
+}
+.atlas-shell .notebook-field select {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 8px;
+  border: 1px solid #b6bcb0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--ink, #252923);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+.atlas-shell .notebook-field select option {
+  background: var(--paper, #faf8f1);
+}
+.atlas-shell .coordinate-editor summary,
+.atlas-shell .notebook-disclosure summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  cursor: pointer;
+  color: var(--ink, #252923);
+  font-size: 14px;
+  font-weight: 500;
+  list-style: none;
+}
+.atlas-shell .coordinate-editor summary::-webkit-details-marker,
+.atlas-shell .notebook-disclosure summary::-webkit-details-marker {
+  display: none;
+}
+.atlas-shell .coordinate-editor[open] summary svg,
+.atlas-shell .notebook-disclosure[open] summary svg {
+  transform: rotate(180deg);
+}
+.atlas-shell .coordinate-readout {
+  display: block;
+  margin: 16px 0 12px;
+  color: var(--ink, #252923);
+  font: 13px/1.5 var(--mono, monospace);
+  font-variant-numeric: tabular-nums;
+}
+.atlas-shell .coordinate-nudge {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+}
+.atlas-shell .coordinate-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 8px;
+}
+.atlas-shell .coordinate-nudge button,
+.atlas-shell .coordinate-actions button {
+  min-width: 0;
+  min-height: 44px;
+  padding: 8px 4px;
+  border: 1px solid var(--rule, #d9ddd3);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--ink, #252923);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.atlas-shell .coordinate-nudge button:hover:not(:disabled),
+.atlas-shell .coordinate-actions button:hover:not(:disabled) {
+  background: #eeece3;
+}
+.atlas-shell .notebook-actions {
+  position: sticky;
+  bottom: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 24px;
+  padding: 12px 0 0;
+  border-top: 1px solid var(--rule, #d9ddd3);
+  background: var(--paper, #faf8f1);
+  z-index: 1;
+}
+.atlas-shell .notebook-actions button {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 0;
+  background: transparent;
+  color: var(--ink, #252923);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.atlas-shell .notebook-actions button:hover:not(:disabled) {
+  color: var(--accent, #983f24);
+}
+.atlas-shell .notebook-page .notebook-finding {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink, #252923);
+  font-size: 14px;
+  font-weight: 500;
+}
+.atlas-shell .finding-mark {
+  flex-shrink: 0;
+  width: 6px;
+  height: 6px;
+  border: 1px solid var(--muted, #535c53);
+  border-radius: 50%;
+}
+.atlas-shell .finding-mark.intersects {
+  border-color: var(--accent, #983f24);
+  background: var(--accent, #983f24);
+}
+.atlas-shell .exposure-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.atlas-shell .notebook-section .notebook-primary {
+  margin-top: 16px;
+}
+.atlas-shell .notebook-text-action {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink, #252923);
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  cursor: pointer;
+}
+.atlas-shell .source-identifiers {
+  overflow-wrap: anywhere;
+}
+.atlas-shell .notebook-page .source-identifiers,
+.atlas-shell .network-controls .source-identifiers {
+  font-size: 12px;
+}
+.atlas-shell .notebook-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  margin: 20px 0;
+  font-size: 13px;
+  line-height: 1.4;
+  font-variant-numeric: tabular-nums;
+}
+.atlas-shell .notebook-table caption {
+  text-align: start;
+  color: var(--muted, #535c53);
+  font-size: 12px;
+  padding-bottom: 12px;
+}
+.atlas-shell .notebook-table th,
+.atlas-shell .notebook-table td {
+  padding: 12px 4px;
+  border-bottom: 1px solid var(--rule, #d9ddd3);
+  text-align: end;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+.atlas-shell .notebook-table th:first-child {
+  width: 46%;
+  text-align: start;
+  font-weight: 400;
+  padding-inline-start: 0;
+}
+.atlas-shell .notebook-table thead th {
+  color: var(--muted, #535c53);
+  font-weight: 500;
+}
+.atlas-shell .notebook-table .changed-value {
+  color: var(--accent, #983f24);
+  font-weight: 600;
+}
+.atlas-shell .comparison-coordinates {
+  display: grid;
+  gap: 12px;
+  margin: 0 0 16px;
+}
+.atlas-shell .comparison-coordinates dt {
+  color: var(--muted, #535c53);
+  font-size: 12px;
+}
+.atlas-shell .comparison-coordinates dd {
+  margin: 4px 0 0;
+  color: var(--ink, #252923);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.atlas-shell .county-evidence {
+  color: var(--ink, #252923);
+}
+.atlas-shell .county-readings {
+  margin: 16px 0;
+  padding: 0;
+  list-style: none;
+}
+.atlas-shell .county-readings li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--rule, #d9ddd3);
+  font-size: 14px;
+}
+.atlas-shell .county-readings strong {
+  text-align: end;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.atlas-shell .county-readings strong small {
+  color: var(--muted, #535c53);
+  font-size: 12px;
+}
+.atlas-shell .county-evidence .model-evidence {
+  margin-top: 16px;
+}
+.atlas-shell .network-controls {
+  font-size: 14px;
+  color: var(--ink, #252923);
+}
+.atlas-shell .network-controls .notebook-primary {
+  margin-top: 12px;
+}
+
+/* Scenario contents are a field sheet. The console owns its dialog and scroll. */
+.atlas-shell .scenario-page {
+  --paper: #f5f1e7;
+  --ink: #252923;
+  --muted: #535c53;
+  --rule: #d7d7ca;
+  --accent: #8e492c;
+  --active: var(--accent);
+  container-type: inline-size;
+  min-height: 0;
+  padding: 24px;
+  background: var(--paper);
+  color: var(--ink);
+}
+.atlas-shell .scenario-page .notebook-heading {
+  margin-bottom: 24px;
+}
+.atlas-shell .scenario-page .notebook-heading h2 {
+  font-size: 32px;
+  line-height: 1.1;
+  margin-bottom: 8px;
+}
+.atlas-shell .scenario-page .notebook-heading p {
+  max-width: 52ch;
+}
+.atlas-shell .scenario-fields {
+  display: grid;
+  gap: 24px;
+  align-items: start;
+}
+.atlas-shell .scenario-geometry {
+  min-width: 0;
+}
+.atlas-shell .scenario-geometry h3 {
+  margin: 0 0 12px;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 600;
+}
+.atlas-shell .scenario-page .scenario-choice {
+  margin-bottom: 12px;
+  background: #ebe7db;
+  border-color: #c5c7ba;
+}
+.atlas-shell .scenario-page .scenario-choice button[aria-pressed="true"] {
+  background: var(--paper);
+  color: var(--ink);
+  outline: 1px solid #c5c7ba;
+}
+.atlas-shell .scenario-page .scenario-choice button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.atlas-shell .scenario-page .scenario-plate {
+  margin-bottom: 16px;
+}
+.atlas-shell .scenario-page .scenario-plate svg {
+  height: 104px;
+}
+.atlas-shell .scenario-page .scenario-plate text {
+  font-size: 14px;
+}
+.atlas-shell .scenario-page .scenario-plate figcaption {
+  padding-top: 4px;
+  flex-wrap: wrap;
+}
+.atlas-shell .scenario-page .assumptions {
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+.atlas-shell .scenario-page .assumptions .notebook-note {
+  margin-top: 12px;
+}
+.atlas-shell .scenario-page .coordinate-editor,
+.atlas-shell .scenario-page .scenario-method {
+  margin-top: 20px;
+  padding-top: 8px;
+}
+.atlas-shell .scenario-page .notebook-actions {
+  margin-top: 20px;
+  padding-top: 8px;
+  position: static;
+}
+@container (min-width: 480px) {
+  .atlas-shell .scenario-fields {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 32px;
+  }
+  .atlas-shell .scenario-page .scenario-plate svg {
+    height: 112px;
+  }
+}
+@media (max-width: 360px) {
+  .atlas-shell .notebook-page {
+    padding: 20px;
+  }
+  .atlas-shell .notebook-heading h2 {
+    font-size: 40px;
+  }
+  .atlas-shell .road-page .notebook-heading h2 {
+    font-size: 32px;
+  }
+}

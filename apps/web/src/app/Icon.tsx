@@ -1,4 +1,22 @@
 const paths = {
+  field: <path d="M3 5v14M7.5 10v5M12 4v16m4.5-12v9M21 5v14" />,
+  more: (
+    <g fill="currentColor" stroke="none">
+      <circle cx="5" cy="12" r="1.7" />
+      <circle cx="12" cy="12" r="1.7" />
+      <circle cx="19" cy="12" r="1.7" />
+    </g>
+  ),
+  measure: <path d="m3 15 12-12 6 6L9 21zM7 12l3 3m1-7 3 3m1-7 3 3" />,
+  export: <path d="M12 3v12m-4-4 4 4 4-4M4 16v4h16v-4" />,
+  arrow: <path d="m9 5 7 7-7 7" />,
+  globe: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M3 12h18M12 3c5 5 5 13 0 18-5-5-5-13 0-18Z" />
+    </>
+  ),
+  ask: <path d="M4 4.5h16v12H10l-6 4v-16ZM8 9h8m-8 3.5h5" />,
   atlas: (
     <>
       <path d="m2 16 5-9 4 6 4-9 7 12-5 3-5-3-5 3z" />
@@ -78,13 +96,7 @@ const paths = {
     </>
   ),
 } as const;
-export function Icon({
-  name,
-  size = 18,
-}: {
-  name: keyof typeof paths;
-  size?: number;
-}) {
+export function Icon({ name, size = 18 }: { name: keyof typeof paths; size?: number }) {
   return (
     <svg
       aria-hidden="true"

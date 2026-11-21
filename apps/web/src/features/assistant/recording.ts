@@ -49,7 +49,9 @@ export async function startAudioRecording(
     try {
       if (recorder.state !== "inactive") recorder.stop();
     } catch (error) {
-      fail(error instanceof Error ? error : new Error("Recording could not stop."));
+      fail(
+        error instanceof Error ? error : new Error("Recording could not stop."),
+      );
     }
     release();
   };
@@ -73,20 +75,24 @@ export async function startAudioRecording(
   recorder.addEventListener("dataavailable", (event: BlobEvent) => {
     if (cancelled || settled) return;
     bytes += event.data.size;
-    if (bytes > 10 * 1024 * 1024) {
-      fail(new Error("Recording exceeded the 10 MB limit."));
+    if (bytes > MAX_AUDIO_BYTES) {
+      fail(new Error("Recording exceeded the 4 MiB limit."));
       return;
     }
     if (event.data.size) chunks.push(event.data);
   });
-  recorder.addEventListener("error", () => fail(new Error("Microphone recording failed.")));
+  recorder.addEventListener("error", () =>
+    fail(new Error("Microphone recording failed.")),
+  );
   recorder.addEventListener("stop", () => {
     if (settled) return;
     settled = true;
     cleanup();
     if (!cancelled && !options.signal.aborted)
       options.onComplete(
-        new Blob(chunks, { type: recorder.mimeType || chunks[0]?.type || "audio/webm" }),
+        new Blob(chunks, {
+          type: recorder.mimeType || chunks[0]?.type || "audio/webm",
+        }),
       );
   });
   options.signal.addEventListener("abort", cancel, { once: true });
@@ -99,3 +105,4 @@ export async function startAudioRecording(
   timer = setTimeout(stop, options.maxDurationMs ?? 20000);
   return { stop, cancel };
 }
+import { MAX_AUDIO_BYTES } from "../../services/assistant";

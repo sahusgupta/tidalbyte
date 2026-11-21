@@ -4,15 +4,13 @@ import { BASELINE, HOUSTON_ROADS, deriveAtlas, type Point } from "../atlas/domai
 import { useAtlasStore } from "./store";
 import { Icon } from "./Icon";
 import { RoadSketch, timeLabel } from "./FieldTools";
+import { ScenarioComparisonMap } from "./ScenarioComparisonMap";
 
 type Derived = ReturnType<typeof deriveAtlas>;
-type Props = {
-  current: Derived;
-  onSources: () => void;
-};
 function coordinate(point: Point) {
   return `${point[1].toFixed(2)}° N, ${Math.abs(point[0]).toFixed(2)}° W`;
 }
+
 export function CountyEvidence({
   evaluation,
   serviceStatus,
@@ -23,125 +21,144 @@ export function CountyEvidence({
   const trained = evaluation.modelMetadata.dataMode === "trained_conditional";
   const metrics = evaluation.modelMetadata.evaluation;
   return (
-    <section className="county-evidence">
+    <section className="county-evidence notebook-section">
       <h3>County outage severity</h3>
-      <p className="county-status">{serviceStatus}</p>
+      <p className="notebook-note" role="status">
+        {serviceStatus}
+      </p>
       <p>
         {trained
-          ? "Historical context · model estimate for selected positive-outage warning hours."
-          : "Offline fixture indices · 0–3"}
+          ? "Conditional severity for selected positive-outage warning hours."
+          : "Fixed offline examples, not model estimates."}
       </p>
-      <ul>
-        {evaluation.predictions.map((p) => (
-          <li key={p.countyFips}>
+      <ul className="county-readings">
+        {evaluation.predictions.map((prediction) => (
+          <li key={prediction.countyFips}>
             <span>
-              {offlineCounties.features.find((f) => f.id === p.countyFips)?.properties.name ??
-                p.countyFips}
+              {offlineCounties.features.find((feature) => feature.id === prediction.countyFips)
+                ?.properties.name ?? prediction.countyFips}
             </span>
             <strong>
-              {p.predictedSeverity} {trained ? p.severityUnit : "/ 3"}
+              {prediction.predictedSeverity}{" "}
+              <small>{trained ? prediction.severityUnit : "/ 3"}</small>
             </strong>
           </li>
         ))}
       </ul>
-      <small>
+      <p className="notebook-note">
         {trained
           ? `Model ${evaluation.modelMetadata.modelVersion} · ${evaluation.modelMetadata.trainingDatasetIds.join(", ")}`
-          : "Fixed county examples. Scenario edits do not change these values."}
-      </small>
-      {trained && (
-        <details className="model-evidence">
-          <summary>Model evaluation & sources</summary>
+          : "The 0–3 fixture indices stay unchanged when this scenario is edited."}
+      </p>
+      <details className="notebook-disclosure model-evidence">
+        <summary>
+          {trained ? "Model evaluation & sources" : "Scope & sources"}
+          <Icon name="down" size={16} />
+        </summary>
+        {trained && (
           <p>
             {evaluation.modelMetadata.target} · {evaluation.scenario.selection.eventTimeUtc}
           </p>
-          {metrics && (
-            <p>
-              {metrics.splitPolicy} · {metrics.testEventCount} test events. Mean absolute error{" "}
-              {metrics.modelMae} {metrics.targetUnit}. {metrics.baselineName} baseline{" "}
-              {metrics.baselineMae}.
-            </p>
+        )}
+        {trained && metrics && (
+          <p>
+            {metrics.splitPolicy} · {metrics.testEventCount} test events. Mean absolute error{" "}
+            {metrics.modelMae} {metrics.targetUnit}. {metrics.baselineName} baseline{" "}
+            {metrics.baselineMae}.
+          </p>
+        )}
+        {(trained ? evaluation.modelMetadata.limitations : evaluation.disclaimers).map(
+          (limitation) => (
+            <p key={limitation}>{limitation}</p>
+          ),
+        )}
+        <p className="source-identifiers">
+          {[...new Set(evaluation.predictions.flatMap((prediction) => prediction.sourceIds))].join(
+            ", ",
           )}
-          {evaluation.modelMetadata.limitations.map((l) => (
-            <p key={l}>{l}</p>
-          ))}
-          <p>{[...new Set(evaluation.predictions.flatMap((p) => p.sourceIds))].join(", ")}</p>
-        </details>
-      )}
+        </p>
+      </details>
     </section>
   );
 }
-export function RoadInspector({ current, onSources }: Props) {
+
+export function RoadInspector({ current, onSources }: { current: Derived; onSources: () => void }) {
   const state = useAtlasStore();
-  const road = HOUSTON_ROADS.find((r) => r.id === state.selectedRoadId) ?? HOUSTON_ROADS[0];
+  const road = HOUSTON_ROADS.find((item) => item.id === state.selectedRoadId) ?? HOUSTON_ROADS[0];
   const closed = state.closedRoadIds.includes(road.id);
   const disconnected = current.network.disconnectedRoadIds.includes(road.id);
   const intersects = current.intersectedRoadIds.includes(road.id);
   return (
-    <section className="notebook" aria-label="Road inspector">
-      <div className="panel-caption">
-        <Icon name="pin" size={15} />
-        Road inspector
-      </div>
-      <div className="segment-id">{road.id}</div>
-      <h2>{road.name}</h2>
+    <section className="notebook-page road-page" aria-label="Road inspector">
+      <header className="notebook-heading">
+        <h2>{road.name}</h2>
+        <p>Schematic road · actual condition unknown</p>
+      </header>
       <RoadSketch points={road.points} closed={closed} />
-      <label className="road-picker">
+      <label className="notebook-field road-picker">
         Inspect segment
-        <select value={road.id} onChange={(e) => state.selectRoad(e.target.value)}>
-          {HOUSTON_ROADS.map((r) => (
-            <option key={r.id} value={r.id}>
-              {r.name}
+        <select value={road.id} onChange={(event) => state.selectRoad(event.target.value)}>
+          {HOUSTON_ROADS.map((item) => (
+            <option key={item.id} value={item.id}>
+              {item.name}
             </option>
           ))}
         </select>
       </label>
-      <section className="notebook-block">
+      <section className="notebook-section">
         <h3>Scenario intersection</h3>
-        <div className="finding">
-          <span className={"status-dot " + (intersects ? "warm" : "")} />
+        <p className="notebook-finding">
+          <span
+            className={intersects ? "finding-mark intersects" : "finding-mark"}
+            aria-hidden="true"
+          />
           {intersects ? "Intersects drawn area" : "Outside drawn area"}
-        </div>
+        </p>
         <p>
           {state.mode === "flood"
             ? `Illustrative footprint · ${current.currentFloodRadiusKm.toFixed(1)} km radius`
             : "Drawn storm center · 6 km inspection radius"}{" "}
           at T+{timeLabel(state.progress * state.assumptions.durationHours)}.
         </p>
-        <div className="unknown">
-          <Icon name="info" size={14} />
+        <p className="notebook-note exposure-note">
+          <Icon name="info" size={16} />
           Flood exposure unknown
-        </div>
+        </p>
       </section>
-      <section className="notebook-block">
+      <section className="notebook-section">
         <h3>Hypothetical closure</h3>
         <p>
           {closed
-            ? "This segment is removed from the alternative sample network."
+            ? "Removed from the alternative sample network."
             : disconnected
-              ? "This open segment has lost its connection to the sample reference node."
-              : "The segment is available in the sample network."}
+              ? "This open link is disconnected from the sample reference node."
+              : "Available in the sample network."}
         </p>
         <button
-          className={"closure-button" + (closed ? " applied" : "")}
-          onClick={() => {
-            state.toggleClosure(road.id);
-          }}
+          type="button"
+          className={`closure-button notebook-primary ${closed ? "applied" : ""}`}
+          onClick={() => state.toggleClosure(road.id)}
         >
           <Icon name="closure" size={16} />
           {closed ? "Remove closure" : "Add closure"}
         </button>
       </section>
-      <div className="notebook-source">
-        <span className="kicker">Geometry source</span>
+      <details className="notebook-section notebook-disclosure notebook-source">
+        <summary>
+          Geometry & provenance
+          <Icon name="down" size={16} />
+        </summary>
+        <p className="source-identifiers">{road.id}</p>
         <p>{road.provenance}</p>
-        <button onClick={onSources}>
-          View sources <span aria-hidden="true">↗</span>
+        <button type="button" className="notebook-text-action" onClick={onSources}>
+          View sources
+          <Icon name="book" size={16} />
         </button>
-      </div>
+      </details>
     </section>
   );
 }
+
 export function Comparison({
   current,
   evaluation,
@@ -153,63 +170,82 @@ export function Comparison({
   serviceStatus: string;
   children: React.ReactNode;
 }) {
-  const s = useAtlasStore();
-  const base = deriveAtlas({ ...BASELINE, mode: s.mode, progress: s.progress });
+  const state = useAtlasStore();
+  const baseline = {
+    ...BASELINE,
+    mode: state.mode,
+    progress: state.progress,
+    assumptions: { ...BASELINE.assumptions, durationHours: state.assumptions.durationHours },
+  };
+  const base = deriveAtlas(baseline);
   const rows = [
     [
-      s.mode === "hurricane" ? "Track points" : "Current footprint",
-      s.mode === "hurricane" ? BASELINE.track.length : `${base.currentFloodRadiusKm.toFixed(1)} km`,
-      s.mode === "hurricane" ? s.track.length : `${current.currentFloodRadiusKm.toFixed(1)} km`,
-    ],
-    [
-      s.mode === "hurricane" ? "Storm center" : "Footprint center",
-      coordinate(s.mode === "hurricane" ? base.stormPosition : BASELINE.floodCenter),
-      coordinate(s.mode === "hurricane" ? current.stormPosition : s.floodCenter),
+      state.mode === "hurricane" ? "Track points" : "Current footprint",
+      state.mode === "hurricane"
+        ? BASELINE.track.length
+        : `${base.currentFloodRadiusKm.toFixed(1)} km`,
+      state.mode === "hurricane"
+        ? state.track.length
+        : `${current.currentFloodRadiusKm.toFixed(1)} km`,
     ],
     ["Road intersections", base.intersectedRoadIds.length, current.intersectedRoadIds.length],
-    ["Closed segments", 0, s.closedRoadIds.length],
+    ["Closed segments", 0, state.closedRoadIds.length],
     ["Reachable nodes", base.network.reachableNodeCount, current.network.reachableNodeCount],
     ["Components", base.network.connectedComponents, current.network.connectedComponents],
   ];
   return (
-    <section className="notebook compare-panel" aria-label="Baseline and alternative comparison">
-      <div className="panel-caption">
-        <Icon name="compare" size={15} />
-        Scenario comparison
-      </div>
-      <h2>Before & after</h2>
-      <p>
-        Baseline uses the seeded geometry and open sample roads. Both columns use the selected
-        timeline position.
-      </p>
-      <table>
-        <caption>Hypothetical fixture</caption>
-        <thead>
-          <tr>
-            <th scope="col">Measure</th>
-            <th scope="col">Base</th>
-            <th scope="col">Edited</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map(([label, b, a]) => (
-            <tr key={label}>
-              <th scope="row">{label}</th>
-              <td>{b}</td>
-              <td>{a}</td>
+    <section
+      className="notebook-page comparison-page"
+      aria-label="Baseline and alternative comparison"
+    >
+      <ScenarioComparisonMap baseline={baseline} edited={state} />
+      <details className="comparison-detail">
+        <summary>Comparison details &amp; evidence</summary>
+        <table className="notebook-table">
+          <caption>
+            Hypothetical fixture · T+{timeLabel(state.progress * state.assumptions.durationHours)}
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col">Measure</th>
+              <th scope="col">Base</th>
+              <th scope="col">Edited</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
-      <p>
-        Reachability starts at the fixture reference node. Highlighted links show the consequences
-        of assumed closures within this sample.
-      </p>
+          </thead>
+          <tbody>
+            {rows.map(([label, baseline, edited]) => (
+              <tr key={label}>
+                <th scope="row">{label}</th>
+                <td>{baseline}</td>
+                <td className={baseline !== edited ? "changed-value" : undefined}>{edited}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <dl className="comparison-coordinates">
+          <div>
+            <dt>{state.mode === "hurricane" ? "Storm center" : "Footprint center"} · base</dt>
+            <dd>
+              {coordinate(state.mode === "hurricane" ? base.stormPosition : BASELINE.floodCenter)}
+            </dd>
+          </div>
+          <div>
+            <dt>Edited center</dt>
+            <dd>
+              {coordinate(state.mode === "hurricane" ? current.stormPosition : state.floodCenter)}
+            </dd>
+          </div>
+        </dl>
+        <p className="notebook-note">
+          Reachability starts at the fixture reference node. Assumed closures change connections in
+          this sample; they do not establish road safety.
+        </p>
+        <CountyEvidence
+          evaluation={evaluation}
+          serviceStatus={`Both cases use the same county preset. ${serviceStatus}`}
+        />
+      </details>
       {children}
-      <CountyEvidence
-        evaluation={evaluation}
-        serviceStatus={`Both cases use the same county preset. ${serviceStatus}`}
-      />
     </section>
   );
 }

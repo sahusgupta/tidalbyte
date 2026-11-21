@@ -1,7 +1,8 @@
 # Simulator hand-off
 
-EarthLab does not include a street & flood simulator. It opens an external one for the zone the
-user picked on the globe. Zones live in `../earth/zones.ts`.
+EarthLab includes the [AquaGrid flood simulator](../../../../../simulator/README.md).
+After setup, `pnpm dev:integrated` runs it alongside the atlas and connects the
+selected Houston zone. Zones live in `../earth/zones.ts`.
 
 ## Plug a simulator in
 
@@ -15,8 +16,19 @@ user picked on the globe. Zones live in `../earth/zones.ts`.
 3. Restart the web dev server. Clicking a zone flies the camera in, then opens the simulator
    full-screen inside EarthLab. Deep link format: `/#/zone/<zone-id>`.
 
-Without `VITE_SIMULATOR_URL`, the zone opens a "not connected yet" panel that shows the exact
-URL and message the simulator would receive. No simulation output is shown there.
+Without `VITE_SIMULATOR_URL`, the selected area opens a compact field notebook:
+zone notes, an approximate size and coordinates, and a prominent **Open Houston
+editor** action. No simulation output is shown there. Developer setup, the example
+URL, and the zone message stay under the collapsed **Connection details** section.
+
+The connected host keeps an **Atlas** return button visible. Each zone gets a
+fresh iframe and readiness state. If the simulator has not reported ready after
+12 seconds, the host offers Retry connection and the editor while continuing to
+listen for readiness. A ready message resends the zone once, covering simulators
+whose message listener starts after the iframe load event. The background is
+inert while the connected dialog is open; keyboard focus stays within its controls.
+Zone changes and unmounting clear connection/copy timers. Only the configured
+origin and the current iframe can send accepted messages.
 
 ## What the simulator receives
 
@@ -57,3 +69,14 @@ embedded; use the "Open in new tab" link, which carries the same query parameter
 
 Per `docs/01-PRODUCT.md`, the simulator must label its output as hypothetical or exploratory
 unless it is validated. EarthLab's globe imagery is a display layer only.
+
+## Audit verification
+
+The simulator audit passed frontend type checking, all 62 frontend tests, and the
+production build. Temporary Playwright checks passed nine groups: disconnected
+editor navigation, tablet layout, current-zone handshake, modal focus containment,
+fresh per-zone status/frame, delayed readiness and retry, rejected message sources,
+exit cleanup, and absence of runtime errors. Desktop and tablet captures were
+inspected twice; the selected-bounds diagram was refined to preserve the area's
+approximate aspect ratio. Live simulation physics and third-party output remain
+outside this host's validation.

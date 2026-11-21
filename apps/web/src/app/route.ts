@@ -2,24 +2,24 @@ import { useCallback, useEffect, useState } from "react";
 import { findZone } from "../features/earth/zones";
 
 /**
- * Hash routes:  #/            Earth view
+ * Hash routes:  /, #/, #/atlas   Houston scenario atlas
+ *               #/earth       Earth view
  *               #/zone/<id>   Earth view zoomed into a zone, with the simulator open
- *               #/atlas       Houston scenario atlas
  */
 export type Route = { name: "earth" } | { name: "atlas" } | { name: "zone"; zoneId: string };
 
 export function parseRoute(hash: string): Route {
   const path = hash.replace(/^#/, "").replace(/\/+$/, "");
-  if (path === "/atlas") return { name: "atlas" };
+  if (path === "/earth") return { name: "earth" };
   const match = /^\/zone\/([a-z0-9-]+)$/.exec(path);
   if (match && findZone(match[1])) return { name: "zone", zoneId: match[1] };
-  return { name: "earth" };
+  return { name: "atlas" };
 }
 
 export function routeHash(route: Route): string {
   if (route.name === "atlas") return "#/atlas";
   if (route.name === "zone") return `#/zone/${route.zoneId}`;
-  return "#/";
+  return "#/earth";
 }
 
 export function useHashRoute(): [Route, (route: Route) => void] {

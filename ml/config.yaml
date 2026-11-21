@@ -1,12 +1,46 @@
-{
-  "status": "not_trained",
-  "data_mode": "offline_example",
-  "scope": "selected_positive_outage_warning_hours",
-  "dataset_path": null,
-  "provenance_path": null,
-  "target": null,
-  "features": [],
-  "split_policy": "whole_weather_events_and_time_holdout",
-  "seed": 42,
-  "artifact_path": "ml/artifacts/outage_model.joblib"
-}
+# EarthLab ML: conditional county-hour outage severity (Houston / Texas Gulf Coast)
+version: "outage-severity-v1"
+seed: 7
+
+data:
+  raw_csv: data/raw/zenodo-22651795/Eagle_I_US_2024_with_VTEC_Updated.csv
+  county_shapefile: data/raw/zenodo-22651795/cb_2018_us_county_500k.shp
+  processed_rows: data/processed/outage_rows.parquet
+  processed_counties: data/processed/county_static.parquet
+  events_catalog: data/processed/houston_events_catalog.json
+  source:
+    id: zenodo-22651795
+    doi: 10.5281/zenodo.22651795
+    title: "A spatiotemporally harmonized dataset of utility-reported power outages and NWS VTEC weather warnings for the contiguous United States (2015-2024)"
+    paper_doi: 10.1038/s41597-026-08356-z
+    license: CC-BY-4.0
+    md5: b47a454b0c7f2e8047e870d3167a157c
+
+# Whole outage events are assigned to a split by their start time (UTC).
+# Events starting within `embargo_hours` before a boundary are dropped so storms do not straddle splits.
+split:
+  train_end: "2020-01-01T00:00:00Z"   # train: event start < 2020
+  val_end: "2021-01-01T00:00:00Z"     # validation: 2020 (model / geography selection)
+  embargo_hours: 48                   # test: 2021-01-01 onward (data ends 2023-01-03)
+
+regions:
+  # Evaluation + supported inference geography: H-GAC 13-county Houston region
+  houston: ["48015","48039","48071","48089","48157","48167","48201","48291","48321","48339","48471","48473","48481"]
+  # Texas Gulf Coast (Houston + Beaumont/Port Arthur, Corpus Christi, Victoria, Rio Grande Valley coast)
+  gulf_coast_extra: ["48245","48361","48199","48239","48057","48469","48007","48355","48409","48391","48273","48261","48489","48061","48241","48373","48407","48185","48351","48457"]
+
+train:
+  geographies: [gulf_coast, texas, conus]   # candidates compared on Houston validation rows
+  conus_max_rows: 1200000                   # subsample CONUS training rows for CPU time (disclosed)
+  base_params: {learning_rate: 0.06, max_iter: 500, max_leaf_nodes: 31, min_samples_leaf: 80, l2_regularization: 1.0}
+  grid:
+    max_iter: [300, 700]
+    max_leaf_nodes: [31, 63]
+    min_samples_leaf: [40, 200]
+  interval_quantiles: [0.1, 0.9]
+
+artifacts:
+  model: ml/artifacts/outage_model.joblib
+  metadata: ml/artifacts/model_metadata.json
+  metrics: ml/artifacts/metrics.json
+  report: ml/artifacts/evaluation_report.md

@@ -1,0 +1,316 @@
+/* Atlas margin controls. Design pass informed by unslop by Damir Sokolovsky
+   (@heydamir), CC BY 4.0, and the project's interface-craft direction. */
+
+.atlas-shell .dial {
+  margin: 0;
+  padding-block: 8px;
+  color: var(--ink, #252923);
+}
+.atlas-shell .dial > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  font-size: 14px;
+  line-height: 20px;
+}
+.atlas-shell .dial label {
+  color: var(--ink, #252923);
+}
+.atlas-shell .dial output {
+  font: 14px var(--mono, monospace);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.atlas-shell .dial output small {
+  color: #535c53;
+  font: inherit;
+  font-size: 12px;
+}
+.atlas-shell .dial input,
+.atlas-shell .atlas-timeline .time-axis input {
+  appearance: none;
+  -webkit-appearance: none;
+  display: block;
+  inline-size: 100%;
+  block-size: 32px;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  background: linear-gradient(
+      to right,
+      var(--accent, #983f24) var(--field-progress),
+      #c8cbbf var(--field-progress)
+    )
+    center / 100% 2px no-repeat;
+  cursor: pointer;
+}
+.atlas-shell .dial input::-webkit-slider-thumb,
+.atlas-shell .atlas-timeline input::-webkit-slider-thumb {
+  appearance: none;
+  -webkit-appearance: none;
+  inline-size: 14px;
+  block-size: 14px;
+  border: 2px solid var(--accent, #983f24);
+  border-radius: 50%;
+  background: #faf8f1;
+}
+.atlas-shell .dial input::-moz-range-thumb,
+.atlas-shell .atlas-timeline input::-moz-range-thumb {
+  inline-size: 10px;
+  block-size: 10px;
+  border: 2px solid var(--accent, #983f24);
+  border-radius: 50%;
+  background: #faf8f1;
+}
+.atlas-shell .dial input:focus-visible,
+.atlas-shell .atlas-timeline input:focus-visible {
+  outline: 2px solid var(--accent, #983f24);
+  outline-offset: 2px;
+}
+.atlas-shell .layer-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) 24px;
+  align-items: center;
+  gap: 12px;
+  min-block-size: 44px;
+  color: var(--ink, #252923);
+  font-size: 14px;
+  line-height: 20px;
+  cursor: pointer;
+}
+.atlas-shell .layer-row .line-key {
+  display: block;
+  inline-size: 20px;
+  block-size: 0;
+  border: 0;
+  border-top: 2px solid currentColor;
+  color: var(--ink, #252923);
+  background: none;
+}
+.atlas-shell .layer-row .line-key.hazard {
+  position: relative;
+  color: #9c632a;
+}
+.atlas-shell .layer-row .line-key.hazard::after {
+  content: "";
+  position: absolute;
+  left: 7px;
+  top: -4px;
+  width: 6px;
+  height: 6px;
+  border: 1.5px solid currentColor;
+  border-radius: 50%;
+  background: var(--paper);
+}
+.atlas-shell .layer-row .line-key.county {
+  inline-size: 14px;
+  block-size: 12px;
+  border: 1px solid #68765f;
+}
+.atlas-shell .layer-row input {
+  position: absolute;
+  inset-inline-end: 0;
+  inset-block-start: 0;
+  inline-size: 44px;
+  block-size: 100%;
+  min-block-size: 44px;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.atlas-shell .layer-row .toggle-track {
+  position: relative;
+  display: block;
+  inline-size: 20px;
+  block-size: 20px;
+  border: 1px solid #8a9184;
+  border-radius: 2px;
+  background: #faf8f1;
+  pointer-events: none;
+}
+.atlas-shell .layer-row .toggle-track::after {
+  content: "";
+  position: absolute;
+  inset-inline-start: 6px;
+  inset-block-start: 2px;
+  inline-size: 5px;
+  block-size: 10px;
+  border: solid #faf8f1;
+  border-width: 0 2px 2px 0;
+  border-radius: 0;
+  background: none;
+  opacity: 0;
+  transform: rotate(45deg);
+}
+.atlas-shell .layer-row input:checked + .toggle-track {
+  background: var(--ink, #252923);
+  border-color: var(--ink, #252923);
+}
+.atlas-shell .layer-row input:checked + .toggle-track::after {
+  opacity: 1;
+}
+.atlas-shell .layer-row input:focus-visible + .toggle-track {
+  outline: 2px solid var(--accent, #983f24);
+  outline-offset: 4px;
+}
+
+.atlas-shell .atlas-timeline {
+  display: grid;
+  grid-template-columns: 44px max-content minmax(0, 1fr);
+  align-items: center;
+  gap: 16px;
+  inline-size: 100%;
+  min-inline-size: 0;
+  min-block-size: 76px;
+  padding: 10px 0;
+  border: 0;
+  --accent: var(--amber);
+  background: transparent;
+  color: var(--canvas-text);
+}
+.atlas-shell .atlas-timeline .play {
+  display: grid;
+  place-items: center;
+  inline-size: 44px;
+  block-size: 44px;
+  padding: 0;
+  border: 1px solid #93764a;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--canvas-text);
+  cursor: pointer;
+}
+.atlas-shell .atlas-timeline .play svg {
+  fill: currentColor;
+}
+.atlas-shell .atlas-timeline .play:hover {
+  background: #3e392c;
+  filter: none;
+}
+.atlas-shell .atlas-timeline .play:focus-visible {
+  outline: 2px solid var(--amber);
+  outline-offset: 3px;
+}
+.atlas-shell .atlas-timeline .time-read {
+  display: grid;
+  gap: 2px;
+  min-inline-size: 92px;
+  white-space: nowrap;
+}
+.atlas-shell .atlas-timeline .time-caption {
+  font-family: inherit;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--canvas-muted);
+  letter-spacing: 0;
+}
+.atlas-shell .atlas-timeline .time-read output {
+  font:
+    550 21px/24px "Source Sans 3",
+    sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+.atlas-shell .atlas-timeline .time-axis {
+  min-inline-size: 0;
+}
+.atlas-shell .atlas-timeline .time-ticks {
+  display: flex;
+  justify-content: space-between;
+  gap: 4px;
+  padding: 0;
+  background: none;
+  font: 12px/16px var(--mono, monospace);
+  color: var(--canvas-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.atlas-shell .atlas-timeline .play {
+  color: var(--amber);
+  border-radius: 4px;
+}
+.atlas-shell .atlas-timeline .time-axis input {
+  background: linear-gradient(
+      to right,
+      var(--amber) var(--field-progress),
+      #626658 var(--field-progress)
+    )
+    center / 100% 2px no-repeat;
+}
+.atlas-shell .atlas-timeline input::-webkit-slider-thumb {
+  width: 6px;
+  height: 20px;
+  background: var(--amber);
+  border: none;
+  border-radius: 1px;
+}
+.atlas-shell .atlas-timeline input::-moz-range-thumb {
+  width: 6px;
+  height: 20px;
+  background: var(--amber);
+  border: none;
+  border-radius: 1px;
+}
+.atlas-shell .segment-instrument {
+  margin: 0;
+  color: #535c53;
+}
+.atlas-shell .segment-instrument .road-sketch {
+  display: block;
+  inline-size: 100%;
+  block-size: 72px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #535c53;
+}
+.atlas-shell .segment-instrument .road-sketch.closed {
+  color: #983f24;
+}
+.atlas-shell .segment-instrument figcaption {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding-block: 8px;
+  border-top: 1px solid #d4d7cc;
+  border-bottom: 0;
+  color: #535c53;
+  font-size: 12px;
+  line-height: 16px;
+}
+.atlas-shell .segment-instrument figcaption strong {
+  margin-inline-start: auto;
+  font: 14px var(--mono, monospace);
+  color: #252923;
+  white-space: nowrap;
+}
+.atlas-shell .segment-instrument figcaption strong small {
+  font: inherit;
+  font-size: 12px;
+}
+.atlas-shell .segment-instrument figcaption > span:last-child {
+  font: inherit;
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .atlas-shell .dial input {
+    block-size: 44px;
+  }
+  .atlas-shell .atlas-timeline {
+    gap: 8px;
+    padding: 4px 0;
+    min-block-size: 68px;
+  }
+  .atlas-shell .atlas-timeline .time-read {
+    min-inline-size: 84px;
+  }
+  .atlas-shell .atlas-timeline .time-axis input {
+    block-size: 44px;
+  }
+  .atlas-shell .atlas-timeline .time-quarter {
+    display: none;
+  }
+}

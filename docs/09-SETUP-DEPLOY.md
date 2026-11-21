@@ -13,9 +13,10 @@ unavailable external services fall back to the bundled offline example.
 
 The API reads process environment. Export `CORS_ORIGINS` as comma-separated
 origins, without trailing slashes. Defaults include both localhost and 127.0.0.1
-on port 5173. Provider/model variables in `.env.example` are reserved; the
-bootstrap does not load a model or call Gemini, ElevenLabs, Cesium ion or Google.
-Never expose server credentials through a `VITE_*` variable.
+on port 5173. The API reads `GEMINI_API_KEY` for interpretation and
+`ELEVENLABS_API_KEY` for transcription. With no keys it labels its built-in
+commands and sample transcript. Keep provider credentials on the server.
+The county endpoint currently serves the offline Houston example.
 
 ## Frontend hosting
 
@@ -31,6 +32,11 @@ flight, imagery/worker assets and Run example with and without the API before
 promoting anything. The Cesium lazy chunk is large; measure first-load performance
 on the demo laptop. No deployment or provider account is created by bootstrap.
 
+The [flood simulator](../simulator/README.md) has its own frontend build under
+`simulator/frontend/dist` and a separate Python environment. For hosted embedding,
+set `VITE_SIMULATOR_URL` to the simulator frontend's origin and route that
+frontend's `/api/` to AquaGrid. Regional artifacts belong on its backend host.
+
 ## Python hosting
 
 Choose the team's configured Python host. Deploy the **whole repository**, since
@@ -45,10 +51,9 @@ Set `PORT` through the host, and set `CORS_ORIGINS` to the frontend origin. Use
 `/healthz` for liveness and `/readyz` for fixture readiness. Ready explicitly
 reports an offline example and `trainedModel:false`; it does not certify ML.
 
-The public bootstrap has no provider calls, expensive analysis or user accounts.
-Before enabling paid providers, the owning workstream must add request size
-limits, rate limiting/cost caps, validated commands, upload limits and failure
-tests. This is an integration prerequisite, not functionality claimed here.
+The [voice and command service](handoffs/voice-gemini-elevenlabs.md) bounds
+uploads, sets provider deadlines and caps attempts per process. For multiple
+workers, account for their combined provider usage.
 
 ## Re-resolving dependencies
 

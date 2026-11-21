@@ -72,9 +72,8 @@ describe("routes", () => {
       expect(parseRoute(routeHash(route))).toEqual(route);
   });
 
-  it("falls back to the Earth view for unknown zones or paths", () => {
-    expect(parseRoute("#/zone/atlantis")).toEqual({ name: "earth" });
-    expect(parseRoute("#/whatever")).toEqual({ name: "earth" });
-    expect(parseRoute("")).toEqual({ name: "earth" });
+  it("opens the Houston editor on home and unknown routes", () => {
+    for (const hash of ["", "#/", "#/atlas", "#/zone/atlantis", "#/whatever"])
+      expect(parseRoute(hash)).toEqual({ name: "atlas" });
   });
 });
