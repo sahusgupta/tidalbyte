@@ -146,7 +146,9 @@ function MapView({ meta, roads, buildings, result, buildingMode, showWater, stor
     const bounds = event.currentTarget.getBoundingClientRect()
     const x = event.clientX - bounds.left
     const y = event.clientY - bounds.top
-    const viewport = deckRef.current?.deck?.getViewports({ x, y })[0]
+    const renderer = deckRef.current?.deck
+    if (!renderer?.isInitialized) return
+    const viewport = renderer.getViewports({ x, y })[0]
     if (!viewport) return
     // Route pins belong on the ground even when the user taps the roof of a building.
     const [lon, lat] = viewport.unproject([x - viewport.x, y - viewport.y], { targetZ: 0 })

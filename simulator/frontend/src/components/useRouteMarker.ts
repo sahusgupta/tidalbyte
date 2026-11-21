@@ -21,7 +21,9 @@ export function useRouteMarker(deck: RefObject<DeckGLRef | null>, coords?: LonLa
     let frame = 0
     let last = 0
     const draw = (time: number) => {
-      const viewport = deck.current?.deck?.getViewports()[0]
+      const renderer = deck.current?.deck
+      if (!renderer?.isInitialized) return
+      const viewport = renderer.getViewports()[0]
       if (!viewport) return
       const phase = motion.matches ? 0 : (time % 7000) / 7000
       const target = (1 - phase) * distance[distance.length - 1]
