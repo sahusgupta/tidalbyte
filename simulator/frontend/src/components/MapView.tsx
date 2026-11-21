@@ -430,21 +430,20 @@ function MapView({ meta, roads, buildings, result, buildingMode, showWater, stor
   }
 
   return (
-    <><DeckGL
+    <><div className="sim-deck-surface" onPointerDownCapture={startGroundTap} onPointerMoveCapture={moveGroundTap} onPointerUpCapture={finishGroundTap} onPointerCancelCapture={() => { pointers.current.clear(); groundTap.current = null }} onContextMenuCapture={() => { groundTap.current = null }}><DeckGL
+      ref={deckRef}
       viewState={view}
       onViewStateChange={({ viewState }) => setView(viewState as ViewState)}
       controller={{ inertia: 250 }}
+      onInteractionStateChange={({ isDragging }) => { if (isDragging) groundTap.current = null }}
       layers={[...baseLayers, ...routeLayers, ...ambulance, ...markerLayers]}
       effects={lighting.effects}
       getTooltip={getTooltip}
-      onClick={(info) => {
-        if (info.coordinate) onPick([info.coordinate[0], info.coordinate[1]])
-      }}
     >
       <Map reuseMaps mapStyle={BASEMAP} onError={() => setImageryWarning(true)} attributionControl={{ compact: false, customAttribution: 'USDA / USGS · 2017–2021 aerial archive' }}>
         <ScaleControl position="bottom-left" unit="metric" maxWidth={100} />
       </Map>
-    </DeckGL>
+    </DeckGL></div>
     {imageryWarning && <p className="sim-imagery-warning" role="status">Some imagery could not load. Scenario geometry remains visible.</p>}
     <div className="sim-map-controls" ref={controlsRef} role="group" aria-label="Map camera controls">
       <button type="button" aria-label="Zoom in" onClick={() => setView((current) => ({ ...current, zoom: Math.min(19, current.zoom + 0.5) }))}><Plus size={18} /></button>

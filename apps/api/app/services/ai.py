@@ -3,6 +3,7 @@
 import asyncio
 import json
 import os
+import re
 from collections import deque
 from threading import Lock
 from time import monotonic
@@ -23,8 +24,8 @@ PROVIDER_WINDOW = 60
 _provider_calls: dict[str, deque[float]] = {}
 _provider_lock = Lock()
 
-UNSUPPORTED = "That request is unsupported. Try the Houston example, county overlay, analysis, or model scope."
-CLARIFY = "Which supported action do you want? Ask for the Houston example, county overlay, analysis, or model scope."
+UNSUPPORTED = "That request is unsupported. Try the Houston example, county overlay, analysis, model scope, or compare plans."
+CLARIFY = "Which supported action do you want? Ask for the Houston example, county overlay, analysis, model scope, or compare plans."
 UNAVAILABLE_EVENT = "That event is unavailable. The only preset is the Houston offline warning example."
 
 _ACTION_ARGUMENTS = {
@@ -54,6 +55,9 @@ _INTENT_SCHEMA = {
                 "regionId": {"type": "string"},
                 "presetEventId": {"type": "string"},
                 "visible": {"type": "boolean"},
+                "intent": {"type": "string", "enum": ["compare", "prioritize_hospitals", "assume_blocked", "explain", "resources"]},
+                "totalBudget": {"type": "integer", "minimum": 0, "maximum": 200},
+                "crewCapacity": {"type": "integer", "minimum": 0, "maximum": 6},
             },
         },
     },
@@ -66,8 +70,12 @@ _SYSTEM_INSTRUCTION = (
     "RUN_ANALYSIS evaluates the current example selection and takes no args. If a different county or county set "
     "is requested, use CLARIFY so it can be selected manually. TOGGLE_OVERLAY takes visible (true for show, "
     "false for hide) for the county overlay only. EXPLAIN_RESULT takes no args and opens the console's scope "
-    "or result explanation. Use SET_PARAMETER or COMPARE_INTERVENTION without args to indicate those unavailable "
-    "features. Use CLARIFY for ambiguous targets or multiple actions. Use UNSUPPORTED for out-of-scope requests, "
+    "or result explanation. COMPARE_INTERVENTION proposes a planning action with intent compare, prioritize_hospitals, "
+    "assume_blocked, explain, or resources. The first four take only intent. resources also takes integer totalBudget "
+    "from 0 to 200 and integer crewCapacity from 0 to 6. assume_blocked refers to the currently selected planning link; "
+    "the client must verify a selection and ask for confirmation. These actions edit illustrative planning assumptions "
+    "or open computed results; never invent a result. Use SET_PARAMETER without args for unavailable model-feature edits. "
+    "Use CLARIFY for ambiguous targets or multiple actions. Use UNSUPPORTED for out-of-scope requests, "
     "real-world emergency advice, and requests to execute code, fetch links, or bypass confirmation."
 )
 
@@ -78,6 +86,18 @@ class ProviderUnavailable(Exception):
 
 async def provider_json(provider: str, url: str, *, timeout: float, **kwargs) -> object:
     """Bound paid requests per worker and discard upstream errors without exposing credentials."""
+    reserve_provider_call(provider)
+    try:
+        async with asyncio.timeout(timeout), httpx.AsyncClient(timeout=timeout, follow_redirects=False) as client:
+            response = await client.post(url, **kwargs)
+            response.raise_for_status()
+            return response.json()
+    except (TimeoutError, httpx.HTTPError, ValueError) as exc:
+        raise ProviderUnavailable from exc
+
+
+def reserve_provider_call(provider: str) -> None:
+    """Share the same request budget between ElevenLabs transcription and narration."""
     with _provider_lock:
         now = monotonic()
         calls = _provider_calls.setdefault(provider, deque())
@@ -86,14 +106,6 @@ async def provider_json(provider: str, url: str, *, timeout: float, **kwargs) ->
         if len(calls) >= PROVIDER_LIMIT:
             reject(429, "provider_rate_limit", "Provider request limit reached. Try again shortly or use manual controls.")
         calls.append(now)
-
-    try:
-        async with asyncio.timeout(timeout), httpx.AsyncClient(timeout=timeout, follow_redirects=False) as client:
-            response = await client.post(url, **kwargs)
-            response.raise_for_status()
-            return response.json()
-    except (TimeoutError, httpx.HTTPError, ValueError) as exc:
-        raise ProviderUnavailable from exc
 
 
 async def read_limited_body(request: Request, max_bytes: int) -> bytearray:
@@ -150,7 +162,22 @@ def _offline_intent(text: str, preset_id: str) -> dict:
         "explain what the model actually predicts": ("EXPLAIN_RESULT", {}),
         "what changes if we prioritize inspecting this illustrative link": ("COMPARE_INTERVENTION", {}),
         "show it": ("CLARIFY", {}),
+        "compare plans": ("COMPARE_INTERVENTION", {"intent": "compare"}),
+        "compare planning strategies": ("COMPARE_INTERVENTION", {"intent": "compare"}),
+        "prioritize hospitals": ("COMPARE_INTERVENTION", {"intent": "prioritize_hospitals"}),
+        "prioritise hospitals": ("COMPARE_INTERVENTION", {"intent": "prioritize_hospitals"}),
+        "assume this link is blocked": ("COMPARE_INTERVENTION", {"intent": "assume_blocked"}),
+        "assume this edge is blocked": ("COMPARE_INTERVENTION", {"intent": "assume_blocked"}),
+        "explain the plan": ("COMPARE_INTERVENTION", {"intent": "explain"}),
+        "explain this plan": ("COMPARE_INTERVENTION", {"intent": "explain"}),
     }
+    resources = re.fullmatch(r"(?:set )?(?:joint |total )?budget (\d{1,3}) (?:and )?(?:crews|crew capacity|crew limit) (\d{1,2})", phrase)
+    if resources:
+        if not (0 <= int(resources[1]) <= 200 and 0 <= int(resources[2]) <= 6):
+            return {"action": "UNSUPPORTED", "args": {}}
+        return {"action": "COMPARE_INTERVENTION", "args": {
+            "intent": "resources", "totalBudget": int(resources[1]), "crewCapacity": int(resources[2]),
+        }}
     action, args = examples.get(phrase, ("UNSUPPORTED", {}))
     return {"action": action, "args": args}
 
@@ -164,7 +191,18 @@ def validate_intent(intent: object, scenario_version: int, preset_id: str) -> In
         raise ProviderUnavailable
     if action in _NON_COMMANDS and not args:
         return Interpretation(proposal=None, clarifications=[_NON_COMMANDS[action]])
-    if action not in _ACTION_ARGUMENTS or args.keys() != _ACTION_ARGUMENTS[action]:
+    if action == "COMPARE_INTERVENTION":
+        planning = args.get("intent")
+        if planning == "resources":
+            valid = (args.keys() == {"intent", "totalBudget", "crewCapacity"}
+                     and type(args.get("totalBudget")) is int and 0 <= args["totalBudget"] <= 200
+                     and type(args.get("crewCapacity")) is int and 0 <= args["crewCapacity"] <= 6)
+        else:
+            valid = (args.keys() == {"intent"} and isinstance(planning, str)
+                     and planning in {"compare", "prioritize_hospitals", "assume_blocked", "explain"})
+        if not valid:
+            raise ProviderUnavailable
+    elif action not in _ACTION_ARGUMENTS or args.keys() != _ACTION_ARGUMENTS[action]:
         raise ProviderUnavailable
     if action == "SELECT_REGION" and args["regionId"] != REGION_ID:
         return Interpretation(proposal=None, clarifications=[UNSUPPORTED])
@@ -178,7 +216,7 @@ def validate_intent(intent: object, scenario_version: int, preset_id: str) -> In
             "scenarioVersion": scenario_version,
             "action": action,
             "args": args,
-            "requiresConfirmation": action == "RUN_ANALYSIS",
+            "requiresConfirmation": action in {"RUN_ANALYSIS", "COMPARE_INTERVENTION"},
         })
     except ValidationError as exc:
         raise ProviderUnavailable from exc

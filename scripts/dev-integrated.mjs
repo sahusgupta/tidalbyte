@@ -15,7 +15,7 @@ const { result } = concurrently([
     command: 'pnpm --filter web dev',
     env: { VITE_SIMULATOR_URL: 'http://127.0.0.1:5174/' },
   },
-  { name: 'api', command: 'pnpm dev:api' },
+  { name: 'api', command: 'node scripts/python.mjs -m uvicorn app.main:app --app-dir apps/api --host 127.0.0.1 --port 8000' },
   {
     name: 'flood-map',
     cwd: `${simulator}/frontend`,

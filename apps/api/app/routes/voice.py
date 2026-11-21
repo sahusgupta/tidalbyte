@@ -1,11 +1,16 @@
 """Push-to-talk transcription with a typed fallback."""
 
-from fastapi import APIRouter, Request
+import json
+
+from fastapi import APIRouter, Request, Response
+from earthlab_contracts.validation import validate_contract
+from jsonschema import ValidationError as ContractError
 
 from app.openapi import json_request_body
 from app.responses import envelope, reject
 from app.schemas import ResponseEnvelope
-from app.services.speech import read_audio, transcribe_audio
+from app.services.speech import narrate_text, read_audio, transcribe_audio
+from app.services.ai import read_limited_body
 
 router = APIRouter(prefix="/api/v1/voice", tags=["voice"])
 
@@ -30,6 +35,22 @@ async def transcribe(request: Request):
     return envelope(request, {"transcript": transcript}, warnings=[warning])
 
 
-@router.post("/speak", status_code=503, openapi_extra={"requestBody": json_request_body("VoiceSpeakRequest")})
-def speak():
-    reject(503, "voice_unavailable", "Speech narration is not configured.")
+@router.post(
+    "/speak", response_class=Response,
+    responses={200: {"description": "ElevenLabs narration of the supplied computed summary", "content": {"audio/mpeg": {"schema": {"type": "string", "format": "binary"}}}},
+               413: {"description": "Request exceeds 16 KiB"}, 422: {"description": "Invalid summary"},
+               429: {"description": "Provider request limit reached"}, 503: {"description": "Narration unavailable"}},
+    openapi_extra={"requestBody": json_request_body("VoiceSpeakRequest")},
+)
+async def speak(request: Request):
+    body = await read_limited_body(request, 16 * 1024)
+    try:
+        raw = json.loads(body)
+        validate_contract("VoiceSpeakRequest", raw)
+        text = raw["text"].strip()
+        if not text:
+            raise ValueError
+    except (ValueError, ContractError, RecursionError):
+        reject(422, "invalid_request", "Supply a computed summary of 1–2,000 characters.")
+    audio = await narrate_text(text)
+    return Response(audio, media_type="audio/mpeg", headers={"Cache-Control": "no-store", "X-Speech-Provider": "ElevenLabs"})

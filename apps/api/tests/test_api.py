@@ -140,7 +140,7 @@ def test_malformed_json_and_unknown_routes_are_enveloped(client):
     ],
 )
 def test_unavailable_workstreams_return_503_without_fake_results(client, method, path):
-    assert_envelope(client.request(method, path), status=503)
+    assert_envelope(client.request(method, path, json={"text": "Computed illustrative plan summary."}), status=503)
 
 
 def test_cors_is_an_allowlist(client):
@@ -195,7 +195,7 @@ def test_native_openapi_documents_request_and_envelope(client):
     response = client.get("/openapi.json")
     assert response.status_code == 200
     spec = response.json()
-    assert spec["info"]["version"] == "1.0.0"
+    assert spec["info"]["version"] == "1.1.0"
     operation = spec["paths"]["/api/v1/scenarios/evaluate"]["post"]
     assert "requestBody" in operation
     assert "422" in operation["responses"]

@@ -1,6 +1,862 @@
 {
   "components": {
     "schemas": {
+      "AllocationAccess": {
+        "additionalProperties": false,
+        "properties": {
+          "clinic": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Clinic",
+            "type": "number"
+          },
+          "shelter": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Shelter",
+            "type": "number"
+          }
+        },
+        "required": [
+          "clinic",
+          "shelter"
+        ],
+        "title": "AllocationAccess",
+        "type": "object"
+      },
+      "AllocationAgencies": {
+        "additionalProperties": false,
+        "properties": {
+          "health": {
+            "$ref": "#/components/schemas/AllocationAgency"
+          },
+          "shelter": {
+            "$ref": "#/components/schemas/AllocationAgency"
+          }
+        },
+        "required": [
+          "health",
+          "shelter"
+        ],
+        "title": "AllocationAgencies",
+        "type": "object"
+      },
+      "AllocationAgency": {
+        "additionalProperties": false,
+        "properties": {
+          "budget": {
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Budget",
+            "type": "integer"
+          },
+          "clinicWeight": {
+            "maximum": 10.0,
+            "minimum": 0.0,
+            "title": "Clinicweight",
+            "type": "integer"
+          },
+          "crewCapacity": {
+            "maximum": 6.0,
+            "minimum": 0.0,
+            "title": "Crewcapacity",
+            "type": "integer"
+          },
+          "shelterWeight": {
+            "maximum": 10.0,
+            "minimum": 0.0,
+            "title": "Shelterweight",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "budget",
+          "clinicWeight",
+          "shelterWeight",
+          "crewCapacity"
+        ],
+        "title": "AllocationAgency",
+        "type": "object"
+      },
+      "AllocationCandidate": {
+        "additionalProperties": false,
+        "properties": {
+          "actionId": {
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Actionid",
+            "type": "string"
+          },
+          "agency": {
+            "enum": [
+              "health",
+              "shelter"
+            ],
+            "title": "Agency",
+            "type": "string"
+          },
+          "assetId": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Assetid",
+            "type": "string"
+          },
+          "cost": {
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Cost",
+            "type": "integer"
+          },
+          "crews": {
+            "maximum": 6.0,
+            "minimum": 0.0,
+            "title": "Crews",
+            "type": "integer"
+          },
+          "effectAssumption": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Effectassumption",
+            "type": "string"
+          },
+          "equipment": {
+            "maximum": 10.0,
+            "minimum": 0.0,
+            "title": "Equipment",
+            "type": "integer"
+          },
+          "exposed": {
+            "title": "Exposed",
+            "type": "boolean"
+          },
+          "hours": {
+            "maximum": 48.0,
+            "minimum": 0.0,
+            "title": "Hours",
+            "type": "number"
+          },
+          "label": {
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Label",
+            "type": "string"
+          },
+          "source": {
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Source",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "available",
+              "impaired",
+              "blocked",
+              "unknown"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "agency",
+          "assetId",
+          "label",
+          "cost",
+          "crews",
+          "actionId",
+          "equipment",
+          "hours",
+          "effectAssumption",
+          "source",
+          "exposed",
+          "status"
+        ],
+        "title": "AllocationCandidate",
+        "type": "object"
+      },
+      "AllocationEvaluation": {
+        "additionalProperties": false,
+        "properties": {
+          "assumptionSetId": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Assumptionsetid",
+            "type": "string"
+          },
+          "assumptions": {
+            "items": {
+              "$ref": "#/components/schemas/Assumption"
+            },
+            "maxItems": 24,
+            "minItems": 1,
+            "title": "Assumptions",
+            "type": "array"
+          },
+          "baselineAccess": {
+            "$ref": "#/components/schemas/AllocationAccess"
+          },
+          "candidates": {
+            "items": {
+              "$ref": "#/components/schemas/AllocationCandidate"
+            },
+            "maxItems": 20,
+            "minItems": 0,
+            "title": "Candidates",
+            "type": "array"
+          },
+          "dataMode": {
+            "const": "illustrative",
+            "title": "Datamode",
+            "type": "string"
+          },
+          "graphSource": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Graphsource",
+            "type": "string"
+          },
+          "graphVersion": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Graphversion",
+            "type": "string"
+          },
+          "limitations": {
+            "items": {
+              "$ref": "#/components/schemas/Limitation"
+            },
+            "maxItems": 30,
+            "minItems": 1,
+            "title": "Limitations",
+            "type": "array"
+          },
+          "phase": {
+            "enum": [
+              "mitigation",
+              "response"
+            ],
+            "title": "Phase",
+            "type": "string"
+          },
+          "regionId": {
+            "const": "houston-gulf-coast",
+            "title": "Regionid",
+            "type": "string"
+          },
+          "scenarioLabel": {
+            "maxLength": 250,
+            "minLength": 1,
+            "title": "Scenariolabel",
+            "type": "string"
+          },
+          "scenarioVersion": {
+            "const": 1,
+            "title": "Scenarioversion",
+            "type": "integer"
+          },
+          "sourceIds": {
+            "items": {
+              "$ref": "#/components/schemas/SourceId"
+            },
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "Sourceids",
+            "type": "array"
+          },
+          "timestampUtc": {
+            "format": "date-time",
+            "title": "Timestamputc",
+            "type": "string"
+          }
+        },
+        "required": [
+          "regionId",
+          "graphSource",
+          "phase",
+          "scenarioLabel",
+          "assumptions",
+          "scenarioVersion",
+          "graphVersion",
+          "assumptionSetId",
+          "dataMode",
+          "sourceIds",
+          "limitations",
+          "timestampUtc",
+          "candidates",
+          "baselineAccess"
+        ],
+        "title": "AllocationEvaluation",
+        "type": "object"
+      },
+      "AllocationFootprint": {
+        "additionalProperties": false,
+        "properties": {
+          "latitude": {
+            "maximum": 30.05,
+            "minimum": 29.45,
+            "title": "Latitude",
+            "type": "number"
+          },
+          "longitude": {
+            "maximum": -94.95,
+            "minimum": -95.8,
+            "title": "Longitude",
+            "type": "number"
+          },
+          "radiusKm": {
+            "maximum": 15.0,
+            "minimum": 0.5,
+            "title": "Radiuskm",
+            "type": "number"
+          }
+        },
+        "required": [
+          "longitude",
+          "latitude",
+          "radiusKm"
+        ],
+        "title": "AllocationFootprint",
+        "type": "object"
+      },
+      "AllocationFrame": {
+        "additionalProperties": false,
+        "properties": {
+          "access": {
+            "$ref": "#/components/schemas/AllocationAccess"
+          },
+          "hour": {
+            "maximum": 48.0,
+            "minimum": 0.0,
+            "title": "Hour",
+            "type": "number"
+          },
+          "serviceEdges": {
+            "$ref": "#/components/schemas/AllocationPaths"
+          }
+        },
+        "required": [
+          "hour",
+          "access",
+          "serviceEdges"
+        ],
+        "title": "AllocationFrame",
+        "type": "object"
+      },
+      "AllocationIntervention": {
+        "additionalProperties": false,
+        "properties": {
+          "accessWithout": {
+            "$ref": "#/components/schemas/AllocationAccess"
+          },
+          "actionId": {
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Actionid",
+            "type": "string"
+          },
+          "agency": {
+            "enum": [
+              "health",
+              "shelter"
+            ],
+            "title": "Agency",
+            "type": "string"
+          },
+          "assetId": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Assetid",
+            "type": "string"
+          },
+          "cost": {
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Cost",
+            "type": "integer"
+          },
+          "crews": {
+            "maximum": 6.0,
+            "minimum": 0.0,
+            "title": "Crews",
+            "type": "integer"
+          },
+          "label": {
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "agency",
+          "assetId",
+          "label",
+          "cost",
+          "crews",
+          "actionId",
+          "accessWithout"
+        ],
+        "title": "AllocationIntervention",
+        "type": "object"
+      },
+      "AllocationPaths": {
+        "additionalProperties": false,
+        "properties": {
+          "clinic": {
+            "items": {
+              "$ref": "#/components/schemas/ClinicItem"
+            },
+            "maxItems": 5,
+            "title": "Clinic",
+            "type": "array"
+          },
+          "shelter": {
+            "items": {
+              "$ref": "#/components/schemas/ShelterItem"
+            },
+            "maxItems": 5,
+            "title": "Shelter",
+            "type": "array"
+          }
+        },
+        "required": [
+          "clinic",
+          "shelter"
+        ],
+        "title": "AllocationPaths",
+        "type": "object"
+      },
+      "AllocationPayoff": {
+        "additionalProperties": false,
+        "properties": {
+          "feasible": {
+            "title": "Feasible",
+            "type": "boolean"
+          },
+          "healthActions": {
+            "items": {
+              "$ref": "#/components/schemas/HealthAction"
+            },
+            "maxItems": 5,
+            "minItems": 0,
+            "title": "Healthactions",
+            "type": "array"
+          },
+          "shelterActions": {
+            "items": {
+              "$ref": "#/components/schemas/ShelterAction"
+            },
+            "maxItems": 5,
+            "minItems": 0,
+            "title": "Shelteractions",
+            "type": "array"
+          },
+          "utilities": {
+            "$ref": "#/components/schemas/AllocationUtilities"
+          }
+        },
+        "required": [
+          "healthActions",
+          "shelterActions",
+          "utilities",
+          "feasible"
+        ],
+        "title": "AllocationPayoff",
+        "type": "object"
+      },
+      "AllocationRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "agencies": {
+            "$ref": "#/components/schemas/AllocationAgencies"
+          },
+          "bargainingWeight": {
+            "maximum": 9.0,
+            "minimum": 1.0,
+            "title": "Bargainingweight",
+            "type": "integer"
+          },
+          "blockedEdgeIds": {
+            "items": {
+              "$ref": "#/components/schemas/BlockedEdgeId"
+            },
+            "maxItems": 5,
+            "minItems": 0,
+            "title": "Blockededgeids",
+            "type": "array"
+          },
+          "crewCapacity": {
+            "maximum": 6.0,
+            "minimum": 0.0,
+            "title": "Crewcapacity",
+            "type": "integer"
+          },
+          "effectPercent": {
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Effectpercent",
+            "type": "integer"
+          },
+          "equipmentCapacity": {
+            "maximum": 10.0,
+            "minimum": 0.0,
+            "title": "Equipmentcapacity",
+            "type": "integer"
+          },
+          "footprint": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AllocationFootprint"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "horizonHours": {
+            "maximum": 48.0,
+            "minimum": 1.0,
+            "title": "Horizonhours",
+            "type": "integer"
+          },
+          "impairedEdgeIds": {
+            "items": {
+              "$ref": "#/components/schemas/ImpairedEdgeId"
+            },
+            "maxItems": 5,
+            "minItems": 0,
+            "title": "Impairededgeids",
+            "type": "array"
+          },
+          "phase": {
+            "enum": [
+              "mitigation",
+              "response"
+            ],
+            "title": "Phase",
+            "type": "string"
+          },
+          "regionId": {
+            "const": "houston-gulf-coast",
+            "title": "Regionid",
+            "type": "string"
+          },
+          "scenarioVersion": {
+            "const": 1,
+            "title": "Scenarioversion",
+            "type": "integer"
+          },
+          "totalBudget": {
+            "maximum": 200.0,
+            "minimum": 0.0,
+            "title": "Totalbudget",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "regionId",
+          "phase",
+          "crewCapacity",
+          "agencies",
+          "scenarioVersion",
+          "totalBudget",
+          "equipmentCapacity",
+          "horizonHours",
+          "blockedEdgeIds",
+          "impairedEdgeIds",
+          "bargainingWeight",
+          "effectPercent"
+        ],
+        "title": "AllocationRequest",
+        "type": "object"
+      },
+      "AllocationResult": {
+        "additionalProperties": false,
+        "properties": {
+          "agreement": {
+            "title": "Agreement",
+            "type": "boolean"
+          },
+          "assumptionSetId": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Assumptionsetid",
+            "type": "string"
+          },
+          "assumptions": {
+            "items": {
+              "$ref": "#/components/schemas/Assumption"
+            },
+            "maxItems": 24,
+            "minItems": 1,
+            "title": "Assumptions",
+            "type": "array"
+          },
+          "baselineAccess": {
+            "$ref": "#/components/schemas/AllocationAccess"
+          },
+          "candidates": {
+            "items": {
+              "$ref": "#/components/schemas/AllocationCandidate"
+            },
+            "maxItems": 20,
+            "minItems": 0,
+            "title": "Candidates",
+            "type": "array"
+          },
+          "dataMode": {
+            "const": "illustrative",
+            "title": "Datamode",
+            "type": "string"
+          },
+          "equilibriumVerified": {
+            "title": "Equilibriumverified",
+            "type": "boolean"
+          },
+          "graphSource": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Graphsource",
+            "type": "string"
+          },
+          "graphVersion": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Graphversion",
+            "type": "string"
+          },
+          "limitations": {
+            "items": {
+              "$ref": "#/components/schemas/Limitation"
+            },
+            "maxItems": 30,
+            "minItems": 1,
+            "title": "Limitations",
+            "type": "array"
+          },
+          "payoffMatrix": {
+            "items": {
+              "$ref": "#/components/schemas/AllocationPayoff"
+            },
+            "maxItems": 16,
+            "minItems": 1,
+            "title": "Payoffmatrix",
+            "type": "array"
+          },
+          "phase": {
+            "enum": [
+              "mitigation",
+              "response"
+            ],
+            "title": "Phase",
+            "type": "string"
+          },
+          "regionId": {
+            "const": "houston-gulf-coast",
+            "title": "Regionid",
+            "type": "string"
+          },
+          "scenarioLabel": {
+            "maxLength": 250,
+            "minLength": 1,
+            "title": "Scenariolabel",
+            "type": "string"
+          },
+          "scenarioVersion": {
+            "const": 1,
+            "title": "Scenarioversion",
+            "type": "integer"
+          },
+          "sourceIds": {
+            "items": {
+              "$ref": "#/components/schemas/SourceId"
+            },
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "Sourceids",
+            "type": "array"
+          },
+          "strategies": {
+            "items": {
+              "$ref": "#/components/schemas/AllocationStrategy"
+            },
+            "maxItems": 3,
+            "minItems": 3,
+            "title": "Strategies",
+            "type": "array"
+          },
+          "timestampUtc": {
+            "format": "date-time",
+            "title": "Timestamputc",
+            "type": "string"
+          }
+        },
+        "required": [
+          "regionId",
+          "graphSource",
+          "phase",
+          "scenarioLabel",
+          "assumptions",
+          "scenarioVersion",
+          "graphVersion",
+          "assumptionSetId",
+          "dataMode",
+          "sourceIds",
+          "limitations",
+          "timestampUtc",
+          "candidates",
+          "baselineAccess",
+          "strategies",
+          "payoffMatrix",
+          "equilibriumVerified",
+          "agreement"
+        ],
+        "title": "AllocationResult",
+        "type": "object"
+      },
+      "AllocationSpend": {
+        "additionalProperties": false,
+        "properties": {
+          "health": {
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Health",
+            "type": "integer"
+          },
+          "shelter": {
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Shelter",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "health",
+          "shelter"
+        ],
+        "title": "AllocationSpend",
+        "type": "object"
+      },
+      "AllocationStrategy": {
+        "additionalProperties": false,
+        "properties": {
+          "access": {
+            "$ref": "#/components/schemas/AllocationAccess"
+          },
+          "completionHours": {
+            "maximum": 48.0,
+            "minimum": 0.0,
+            "title": "Completionhours",
+            "type": "number"
+          },
+          "crewsUsed": {
+            "maximum": 6.0,
+            "minimum": 0.0,
+            "title": "Crewsused",
+            "type": "integer"
+          },
+          "equipmentUsed": {
+            "maximum": 10.0,
+            "minimum": 0.0,
+            "title": "Equipmentused",
+            "type": "integer"
+          },
+          "explanation": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Explanation",
+            "type": "string"
+          },
+          "frames": {
+            "items": {
+              "$ref": "#/components/schemas/AllocationFrame"
+            },
+            "maxItems": 6,
+            "minItems": 1,
+            "title": "Frames",
+            "type": "array"
+          },
+          "gains": {
+            "$ref": "#/components/schemas/AllocationUtilities"
+          },
+          "id": {
+            "enum": [
+              "independent",
+              "coordinated",
+              "bargaining"
+            ],
+            "title": "Id",
+            "type": "string"
+          },
+          "interventions": {
+            "items": {
+              "$ref": "#/components/schemas/AllocationIntervention"
+            },
+            "maxItems": 12,
+            "minItems": 0,
+            "title": "Interventions",
+            "type": "array"
+          },
+          "jointUtility": {
+            "title": "Jointutility",
+            "type": "number"
+          },
+          "nashProduct": {
+            "title": "Nashproduct",
+            "type": "number"
+          },
+          "spend": {
+            "$ref": "#/components/schemas/AllocationSpend"
+          },
+          "utilities": {
+            "$ref": "#/components/schemas/AllocationUtilities"
+          },
+          "weightedAccess": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Weightedaccess",
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "utilities",
+          "spend",
+          "crewsUsed",
+          "access",
+          "interventions",
+          "jointUtility",
+          "gains",
+          "nashProduct",
+          "explanation",
+          "weightedAccess",
+          "equipmentUsed",
+          "completionHours",
+          "frames"
+        ],
+        "title": "AllocationStrategy",
+        "type": "object"
+      },
+      "AllocationUtilities": {
+        "additionalProperties": false,
+        "properties": {
+          "health": {
+            "title": "Health",
+            "type": "number"
+          },
+          "shelter": {
+            "title": "Shelter",
+            "type": "number"
+          }
+        },
+        "required": [
+          "health",
+          "shelter"
+        ],
+        "title": "AllocationUtilities",
+        "type": "object"
+      },
       "ApiError": {
         "additionalProperties": false,
         "properties": {
@@ -35,10 +891,28 @@
         "title": "ApiError",
         "type": "object"
       },
+      "Assumption": {
+        "maxLength": 2000,
+        "minLength": 1,
+        "title": "Assumption",
+        "type": "string"
+      },
+      "BlockedEdgeId": {
+        "maxLength": 160,
+        "minLength": 1,
+        "title": "BlockedEdgeId",
+        "type": "string"
+      },
       "Clarification": {
         "maxLength": 200,
         "minLength": 1,
         "title": "Clarification",
+        "type": "string"
+      },
+      "ClinicItem": {
+        "maxLength": 160,
+        "minLength": 1,
+        "title": "ClinicItem",
         "type": "string"
       },
       "CommandProposal": {
@@ -262,6 +1136,18 @@
         "title": "FeatureSpec",
         "type": "object"
       },
+      "HealthAction": {
+        "maxLength": 160,
+        "minLength": 1,
+        "title": "HealthAction",
+        "type": "string"
+      },
+      "ImpairedEdgeId": {
+        "maxLength": 160,
+        "minLength": 1,
+        "title": "ImpairedEdgeId",
+        "type": "string"
+      },
       "Interpretation": {
         "additionalProperties": false,
         "properties": {
@@ -292,9 +1178,15 @@
         "type": "object"
       },
       "Limitation": {
-        "maxLength": 200,
+        "maxLength": 2000,
         "minLength": 1,
         "title": "Limitation",
+        "type": "string"
+      },
+      "Limitation2": {
+        "maxLength": 200,
+        "minLength": 1,
+        "title": "Limitation2",
         "type": "string"
       },
       "ModelMetadata": {
@@ -329,7 +1221,7 @@
           },
           "limitations": {
             "items": {
-              "$ref": "#/components/schemas/Limitation"
+              "$ref": "#/components/schemas/Limitation2"
             },
             "maxItems": 30,
             "minItems": 1,
@@ -411,7 +1303,7 @@
           },
           "limitations": {
             "items": {
-              "$ref": "#/components/schemas/Limitation"
+              "$ref": "#/components/schemas/Limitation2"
             },
             "maxItems": 30,
             "minItems": 1,
@@ -498,7 +1390,7 @@
           },
           "sourceIds": {
             "items": {
-              "$ref": "#/components/schemas/SourceId"
+              "$ref": "#/components/schemas/SourceId2"
             },
             "maxItems": 30,
             "minItems": 1,
@@ -517,6 +1409,111 @@
           "sourceIds"
         ],
         "title": "Prediction",
+        "type": "object"
+      },
+      "ResponseEnvelope_AllocationEvaluation_": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AllocationEvaluation"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ApiError"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        },
+        "required": [
+          "data",
+          "meta",
+          "error"
+        ],
+        "title": "ResponseEnvelope[AllocationEvaluation]",
+        "type": "object"
+      },
+      "ResponseEnvelope_AllocationRequest_": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AllocationRequest"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ApiError"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        },
+        "required": [
+          "data",
+          "meta",
+          "error"
+        ],
+        "title": "ResponseEnvelope[AllocationRequest]",
+        "type": "object"
+      },
+      "ResponseEnvelope_AllocationResult_": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AllocationResult"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ApiError"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        },
+        "required": [
+          "data",
+          "meta",
+          "error"
+        ],
+        "title": "ResponseEnvelope[AllocationResult]",
         "type": "object"
       },
       "ResponseEnvelope_Evaluation_": {
@@ -795,7 +1792,7 @@
           },
           "sourceIds": {
             "items": {
-              "$ref": "#/components/schemas/SourceId"
+              "$ref": "#/components/schemas/SourceId2"
             },
             "maxItems": 30,
             "minItems": 0,
@@ -982,10 +1979,28 @@
         "title": "Selection",
         "type": "object"
       },
+      "ShelterAction": {
+        "maxLength": 160,
+        "minLength": 1,
+        "title": "ShelterAction",
+        "type": "string"
+      },
+      "ShelterItem": {
+        "maxLength": 160,
+        "minLength": 1,
+        "title": "ShelterItem",
+        "type": "string"
+      },
       "SourceId": {
-        "maxLength": 200,
+        "maxLength": 160,
         "minLength": 1,
         "title": "SourceId",
+        "type": "string"
+      },
+      "SourceId2": {
+        "maxLength": 200,
+        "minLength": 1,
+        "title": "SourceId2",
         "type": "string"
       },
       "TrainingDatasetId": {
@@ -1009,9 +2024,9 @@
     }
   },
   "info": {
-    "description": "Bootstrap: deterministic OFFLINE EXAMPLE output only. No trained model or verified historical event is available. All application endpoints use {data, meta, error}; /openapi.json and documentation pages use native formats.",
+    "description": "Houston scenario atlas with illustrative infrastructure planning and a county offline example. All application endpoints use {data, meta, error}; /openapi.json and documentation pages use native formats.",
     "title": "EarthLab API",
-    "version": "1.0.0"
+    "version": "1.1.0"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -1176,6 +2191,595 @@
         "summary": "Interpret",
         "tags": [
           "command interpretation"
+        ]
+      }
+    },
+    "/api/v1/allocation/demo": {
+      "get": {
+        "operationId": "allocation_demo_api_v1_allocation_demo_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseEnvelope_AllocationRequest_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseEnvelope_dict_"
+                }
+              }
+            },
+            "description": "Unknown region, event or route"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseEnvelope_dict_"
+                }
+              }
+            },
+            "description": "Invalid or unsupported input"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseEnvelope_dict_"
+                }
+              }
+            },
+            "description": "Workstream dependency unavailable"
+          }
+        },
+        "summary": "Allocation Demo",
+        "tags": [
+          "illustrative network"
+        ]
+      }
+    },
+    "/api/v1/allocation/plans/compare": {
+      "post": {
+        "operationId": "compare_allocation_api_v1_allocation_plans_compare_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "agencies": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "health": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "budget": {
+                            "maximum": 100.0,
+                            "minimum": 0.0,
+                            "type": "integer"
+                          },
+                          "clinicWeight": {
+                            "maximum": 10.0,
+                            "minimum": 0.0,
+                            "type": "integer"
+                          },
+                          "crewCapacity": {
+                            "maximum": 6.0,
+                            "minimum": 0.0,
+                            "type": "integer"
+                          },
+                          "shelterWeight": {
+                            "maximum": 10.0,
+                            "minimum": 0.0,
+                            "type": "integer"
+                          }
+                        },
+                        "required": [
+                          "budget",
+                          "clinicWeight",
+                          "shelterWeight",
+                          "crewCapacity"
+                        ],
+                        "title": "AllocationAgency",
+                        "type": "object"
+                      },
+                      "shelter": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "budget": {
+                            "maximum": 100.0,
+                            "minimum": 0.0,
+                            "type": "integer"
+                          },
+                          "clinicWeight": {
+                            "maximum": 10.0,
+                            "minimum": 0.0,
+                            "type": "integer"
+                          },
+                          "crewCapacity": {
+                            "maximum": 6.0,
+                            "minimum": 0.0,
+                            "type": "integer"
+                          },
+                          "shelterWeight": {
+                            "maximum": 10.0,
+                            "minimum": 0.0,
+                            "type": "integer"
+                          }
+                        },
+                        "required": [
+                          "budget",
+                          "clinicWeight",
+                          "shelterWeight",
+                          "crewCapacity"
+                        ],
+                        "title": "AllocationAgency",
+                        "type": "object"
+                      }
+                    },
+                    "required": [
+                      "health",
+                      "shelter"
+                    ],
+                    "title": "AllocationAgencies",
+                    "type": "object"
+                  },
+                  "bargainingWeight": {
+                    "maximum": 9.0,
+                    "minimum": 1.0,
+                    "type": "integer"
+                  },
+                  "blockedEdgeIds": {
+                    "items": {
+                      "maxLength": 160,
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "maxItems": 5,
+                    "minItems": 0,
+                    "type": "array",
+                    "uniqueItems": true
+                  },
+                  "crewCapacity": {
+                    "maximum": 6.0,
+                    "minimum": 0.0,
+                    "type": "integer"
+                  },
+                  "effectPercent": {
+                    "maximum": 100.0,
+                    "minimum": 0.0,
+                    "type": "integer"
+                  },
+                  "equipmentCapacity": {
+                    "maximum": 10.0,
+                    "minimum": 0.0,
+                    "type": "integer"
+                  },
+                  "footprint": {
+                    "anyOf": [
+                      {
+                        "additionalProperties": false,
+                        "properties": {
+                          "latitude": {
+                            "maximum": 30.05,
+                            "minimum": 29.45,
+                            "type": "number"
+                          },
+                          "longitude": {
+                            "maximum": -94.95,
+                            "minimum": -95.8,
+                            "type": "number"
+                          },
+                          "radiusKm": {
+                            "maximum": 15.0,
+                            "minimum": 0.5,
+                            "type": "number"
+                          }
+                        },
+                        "required": [
+                          "longitude",
+                          "latitude",
+                          "radiusKm"
+                        ],
+                        "title": "AllocationFootprint",
+                        "type": "object"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "horizonHours": {
+                    "maximum": 48.0,
+                    "minimum": 1.0,
+                    "type": "integer"
+                  },
+                  "impairedEdgeIds": {
+                    "items": {
+                      "maxLength": 160,
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "maxItems": 5,
+                    "minItems": 0,
+                    "type": "array",
+                    "uniqueItems": true
+                  },
+                  "phase": {
+                    "enum": [
+                      "mitigation",
+                      "response"
+                    ],
+                    "type": "string"
+                  },
+                  "regionId": {
+                    "const": "houston-gulf-coast",
+                    "type": "string"
+                  },
+                  "scenarioVersion": {
+                    "const": 1,
+                    "type": "integer"
+                  },
+                  "totalBudget": {
+                    "maximum": 200.0,
+                    "minimum": 0.0,
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "regionId",
+                  "phase",
+                  "crewCapacity",
+                  "agencies",
+                  "scenarioVersion",
+                  "totalBudget",
+                  "equipmentCapacity",
+                  "horizonHours",
+                  "blockedEdgeIds",
+                  "impairedEdgeIds",
+                  "bargainingWeight",
+                  "effectPercent",
+                  "footprint"
+                ],
+                "title": "AllocationRequest",
+                "type": "object"
+              }
+            }
+          },
+          "description": "Revision 1 of the illustrative Houston allocation scenario. Footprint exposure alone never blocks a road.",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseEnvelope_AllocationResult_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseEnvelope_dict_"
+                }
+              }
+            },
+            "description": "Unknown region, event or route"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseEnvelope_dict_"
+                }
+              }
+            },
+            "description": "Request exceeds 32 KiB"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseEnvelope_dict_"
+                }
+              }
+            },
+            "description": "Invalid or unsupported input"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseEnvelope_dict_"
+                }
+              }
+            },
+            "description": "Workstream dependency unavailable"
+          }
+        },
+        "summary": "Compare Allocation",
+        "tags": [
+          "illustrative network"
+        ]
+      }
+    },
+    "/api/v1/allocation/scenarios/evaluate": {
+      "post": {
+        "operationId": "evaluate_allocation_api_v1_allocation_scenarios_evaluate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "agencies": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "health": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "budget": {
+                            "maximum": 100.0,
+                            "minimum": 0.0,
+                            "type": "integer"
+                          },
+                          "clinicWeight": {
+                            "maximum": 10.0,
+                            "minimum": 0.0,
+                            "type": "integer"
+                          },
+                          "crewCapacity": {
+                            "maximum": 6.0,
+                            "minimum": 0.0,
+                            "type": "integer"
+                          },
+                          "shelterWeight": {
+                            "maximum": 10.0,
+                            "minimum": 0.0,
+                            "type": "integer"
+                          }
+                        },
+                        "required": [
+                          "budget",
+                          "clinicWeight",
+                          "shelterWeight",
+                          "crewCapacity"
+                        ],
+                        "title": "AllocationAgency",
+                        "type": "object"
+                      },
+                      "shelter": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "budget": {
+                            "maximum": 100.0,
+                            "minimum": 0.0,
+                            "type": "integer"
+                          },
+                          "clinicWeight": {
+                            "maximum": 10.0,
+                            "minimum": 0.0,
+                            "type": "integer"
+                          },
+                          "crewCapacity": {
+                            "maximum": 6.0,
+                            "minimum": 0.0,
+                            "type": "integer"
+                          },
+                          "shelterWeight": {
+                            "maximum": 10.0,
+                            "minimum": 0.0,
+                            "type": "integer"
+                          }
+                        },
+                        "required": [
+                          "budget",
+                          "clinicWeight",
+                          "shelterWeight",
+                          "crewCapacity"
+                        ],
+                        "title": "AllocationAgency",
+                        "type": "object"
+                      }
+                    },
+                    "required": [
+                      "health",
+                      "shelter"
+                    ],
+                    "title": "AllocationAgencies",
+                    "type": "object"
+                  },
+                  "bargainingWeight": {
+                    "maximum": 9.0,
+                    "minimum": 1.0,
+                    "type": "integer"
+                  },
+                  "blockedEdgeIds": {
+                    "items": {
+                      "maxLength": 160,
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "maxItems": 5,
+                    "minItems": 0,
+                    "type": "array",
+                    "uniqueItems": true
+                  },
+                  "crewCapacity": {
+                    "maximum": 6.0,
+                    "minimum": 0.0,
+                    "type": "integer"
+                  },
+                  "effectPercent": {
+                    "maximum": 100.0,
+                    "minimum": 0.0,
+                    "type": "integer"
+                  },
+                  "equipmentCapacity": {
+                    "maximum": 10.0,
+                    "minimum": 0.0,
+                    "type": "integer"
+                  },
+                  "footprint": {
+                    "anyOf": [
+                      {
+                        "additionalProperties": false,
+                        "properties": {
+                          "latitude": {
+                            "maximum": 30.05,
+                            "minimum": 29.45,
+                            "type": "number"
+                          },
+                          "longitude": {
+                            "maximum": -94.95,
+                            "minimum": -95.8,
+                            "type": "number"
+                          },
+                          "radiusKm": {
+                            "maximum": 15.0,
+                            "minimum": 0.5,
+                            "type": "number"
+                          }
+                        },
+                        "required": [
+                          "longitude",
+                          "latitude",
+                          "radiusKm"
+                        ],
+                        "title": "AllocationFootprint",
+                        "type": "object"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "horizonHours": {
+                    "maximum": 48.0,
+                    "minimum": 1.0,
+                    "type": "integer"
+                  },
+                  "impairedEdgeIds": {
+                    "items": {
+                      "maxLength": 160,
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "maxItems": 5,
+                    "minItems": 0,
+                    "type": "array",
+                    "uniqueItems": true
+                  },
+                  "phase": {
+                    "enum": [
+                      "mitigation",
+                      "response"
+                    ],
+                    "type": "string"
+                  },
+                  "regionId": {
+                    "const": "houston-gulf-coast",
+                    "type": "string"
+                  },
+                  "scenarioVersion": {
+                    "const": 1,
+                    "type": "integer"
+                  },
+                  "totalBudget": {
+                    "maximum": 200.0,
+                    "minimum": 0.0,
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "regionId",
+                  "phase",
+                  "crewCapacity",
+                  "agencies",
+                  "scenarioVersion",
+                  "totalBudget",
+                  "equipmentCapacity",
+                  "horizonHours",
+                  "blockedEdgeIds",
+                  "impairedEdgeIds",
+                  "bargainingWeight",
+                  "effectPercent",
+                  "footprint"
+                ],
+                "title": "AllocationRequest",
+                "type": "object"
+              }
+            }
+          },
+          "description": "Revision 1 of the illustrative Houston allocation scenario. Footprint exposure alone never blocks a road.",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseEnvelope_AllocationEvaluation_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseEnvelope_dict_"
+                }
+              }
+            },
+            "description": "Unknown region, event or route"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseEnvelope_dict_"
+                }
+              }
+            },
+            "description": "Request exceeds 32 KiB"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseEnvelope_dict_"
+                }
+              }
+            },
+            "description": "Invalid or unsupported input"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseEnvelope_dict_"
+                }
+              }
+            },
+            "description": "Workstream dependency unavailable"
+          }
+        },
+        "summary": "Evaluate Allocation",
+        "tags": [
+          "illustrative network"
         ]
       }
     },
@@ -1919,6 +3523,17 @@
           "required": true
         },
         "responses": {
+          "200": {
+            "content": {
+              "audio/mpeg": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "ElevenLabs narration of the supplied computed summary"
+          },
           "404": {
             "content": {
               "application/json": {
@@ -1929,25 +3544,17 @@
             },
             "description": "Unknown region, event or route"
           },
+          "413": {
+            "description": "Request exceeds 16 KiB"
+          },
           "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ResponseEnvelope_dict_"
-                }
-              }
-            },
-            "description": "Invalid or unsupported input"
+            "description": "Invalid summary"
+          },
+          "429": {
+            "description": "Provider request limit reached"
           },
           "503": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ResponseEnvelope_dict_"
-                }
-              }
-            },
-            "description": "Workstream dependency unavailable"
+            "description": "Narration unavailable"
           }
         },
         "summary": "Speak",

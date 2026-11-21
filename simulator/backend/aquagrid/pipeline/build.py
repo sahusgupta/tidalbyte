@@ -119,6 +119,31 @@ def _metres(lon1, lat1, lon2, lat2):
     return float(np.hypot((lon2 - lon1) * k * 111_320, (lat2 - lat1) * 110_570))
 
 
+# Audited 2026-11-21: this BrightQuery record calls the Holly Hall outpatient site
+# "Ben Taub General Hospital". Harris Health places Ben Taub at 1504 Taub Loop,
+# and Smith Clinic at 2525-A Holly Hall. Restrict the exclusion to this source
+# record near the erroneous point, so a corrected future location remains usable.
+# https://www.harrishealth.org/locations-hh/Pages/ben-taub.aspx
+# https://www.harrishealth.org/locations-hh/Pages/smith-clinic.aspx
+HOSPITAL_SOURCE_EXCLUSIONS = {
+    ("brightquery", "388529825"): (-95.38712, 29.68603),
+}
+
+
+def _excluded_hospital_place(row) -> bool:
+    sources = row.get("sources")
+    if not isinstance(sources, (list, tuple, np.ndarray)):
+        return False
+    for source in sources:
+        if not isinstance(source, dict):
+            continue
+        provider = str(source.get("provider") or source.get("dataset") or "").casefold()
+        point = HOSPITAL_SOURCE_EXCLUSIONS.get((provider, str(source.get("record_id"))))
+        if point and _metres(row.geometry.x, row.geometry.y, *point) < 75:
+            return True
+    return False
+
+
 def derive_pois(region) -> tuple[list, list, str]:
     """Emergency origins (hospitals; else fire stations; else the zone centre) and destination
     neighbourhoods from Overture places/divisions inside the region box. Returns (hospitals, hoods, note)."""
@@ -151,6 +176,8 @@ def derive_pois(region) -> tuple[list, list, str]:
     hosp = places[((cat.isin(HOSPITAL_CATS) & places.name.str.contains(HOSPITAL_NAME)) | major)
                   & ~places.name.str.contains(HOSPITAL_EXCLUDE) & (places.confidence >= 0.7)
                   & ~status.fillna("").str.contains("closed")].copy()
+    if not hosp.empty:
+        hosp = hosp[~hosp.apply(_excluded_hospital_place, axis=1)].copy()
     # rank: trauma / general hospitals, then emergency departments, then other hospitals; confidence within a tier
     hosp["tier"] = np.where(hosp.name.str.contains(MAJOR_HOSPITAL), 0,
                             np.where(hosp.basic_category.isin(ER_CATS) | hosp.name.str.contains(ER_NAME), 1, 2))

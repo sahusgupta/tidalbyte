@@ -16,6 +16,7 @@ TRANSCRIBE = "/api/v1/voice/transcribe"
 def isolated_providers(monkeypatch):
     monkeypatch.delenv("GEMINI_API_KEY", raising=False)
     monkeypatch.delenv("ELEVENLABS_API_KEY", raising=False)
+    monkeypatch.delenv("ELEVENLABS_VOICE_ID", raising=False)
     monkeypatch.setattr(ai, "_provider_calls", {})
 
 
@@ -219,3 +220,100 @@ def test_local_provider_budget_returns_429_without_another_call(client, scenario
     result = assert_response(interpret(client, scenario, "Explain this result"), 429)
     assert result["error"]["code"] == "provider_rate_limit"
     assert len(calls) == 1
+
+
+@pytest.mark.parametrize(("text", "args"), [
+    ("Compare plans", {"intent": "compare"}),
+    ("Prioritize hospitals", {"intent": "prioritize_hospitals"}),
+    ("Assume this link is blocked", {"intent": "assume_blocked"}),
+    ("Explain the plan", {"intent": "explain"}),
+    ("Set joint budget 120 and crew limit 3", {"intent": "resources", "totalBudget": 120, "crewCapacity": 3}),
+])
+def test_keyless_planning_commands_are_reviewable_and_bound_to_version(client, scenario, text, args):
+    result = assert_response(interpret(client, {**scenario, "scenarioVersion": 32}, text))["data"]["proposal"]
+    assert result["action"] == "COMPARE_INTERVENTION"
+    assert result["args"] == args
+    assert result["requiresConfirmation"] is True
+    assert result["scenarioVersion"] == 32
+
+
+@pytest.mark.parametrize("args", [
+    {"intent": "resources", "totalBudget": True, "crewCapacity": 2},
+    {"intent": "resources", "totalBudget": 201, "crewCapacity": 2},
+    {"intent": "resources", "totalBudget": 100, "crewCapacity": 7},
+    {"intent": "resources", "totalBudget": 100.5, "crewCapacity": 2},
+    {"intent": "assume_blocked", "edgeId": "untrusted"},
+    {"intent": ["compare"]},
+])
+def test_provider_cannot_bypass_planning_argument_validation(client, scenario, monkeypatch, mock_provider, args):
+    monkeypatch.setenv("GEMINI_API_KEY", "test-key")
+    mock_provider(lambda request: gemini_reply("COMPARE_INTERVENTION", args))
+    assert assert_response(interpret(client, scenario, "unrecognized text"))["data"]["proposal"] is None
+
+
+def test_out_of_range_keyless_resources_clarify_without_a_server_error(client, scenario):
+    assert assert_response(interpret(client, scenario, "Set budget 201 and crews 7"))["data"]["proposal"] is None
+
+
+def test_narration_is_real_bounded_audio_of_supplied_text(client, monkeypatch, mock_provider):
+    monkeypatch.setenv("ELEVENLABS_API_KEY", "test-key")
+    monkeypatch.setenv("ELEVENLABS_VOICE_ID", "test-voice")
+    text = "Illustrative computed plan: two links selected; no real-world safety claim."
+    def provider(request):
+        assert request.url.path == "/v1/text-to-speech/test-voice"
+        assert request.url.params["output_format"] == "mp3_44100_128"
+        assert request.headers["xi-api-key"] == "test-key"
+        assert json.loads(request.content) == {"text": text}
+        return httpx.Response(200, content=b"ID3-audio", headers={"content-type": "audio/mpeg"})
+    mock_provider(provider)
+    response = client.post("/api/v1/voice/speak", json={"text": text})
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "audio/mpeg"
+    assert response.headers["cache-control"] == "no-store"
+    assert response.content == b"ID3-audio"
+
+
+def test_narration_unconfigured_or_invalid_never_creates_fake_audio(client, monkeypatch, mock_provider):
+    assert_response(client.post("/api/v1/voice/speak", json={"text": "Computed summary"}), 503)
+    for body in [{"text": " "}, {"text": "x" * 2001}, {"text": "text", "url": "https://example.invalid"}]:
+        assert_response(client.post("/api/v1/voice/speak", json=body), 422)
+    assert_response(client.post("/api/v1/voice/speak", content=b"x" * (16 * 1024 + 1)), 413)
+    monkeypatch.setenv("ELEVENLABS_API_KEY", "test-key")
+    monkeypatch.setenv("ELEVENLABS_VOICE_ID", "test-voice")
+    mock_provider(lambda request: httpx.Response(200, content=b"not audio", headers={"content-type": "audio/mpeg"}))
+    response = assert_response(client.post("/api/v1/voice/speak", json={"text": "Computed summary"}), 503)
+    assert "not audio" not in json.dumps(response)
+
+
+def test_narration_and_transcription_share_the_provider_budget(client, audio, monkeypatch, mock_provider):
+    monkeypatch.setenv("ELEVENLABS_API_KEY", "test-key")
+    monkeypatch.setenv("ELEVENLABS_VOICE_ID", "test-voice")
+    monkeypatch.setattr(ai, "PROVIDER_LIMIT", 1)
+    mock_provider(lambda request: httpx.Response(200, json={"text": "Hello"}))
+    assert_response(upload(client, audio))
+    assert_response(client.post("/api/v1/voice/speak", json={"text": "Computed summary"}), 429)
+
+
+@pytest.mark.parametrize("failure", ["timeout", "quota", "oversized", "wrong-type"])
+def test_narration_provider_failures_are_bounded_and_sanitized(client, monkeypatch, mock_provider, failure):
+    monkeypatch.setenv("ELEVENLABS_API_KEY", "private-key")
+    monkeypatch.setenv("ELEVENLABS_VOICE_ID", "test-voice")
+    monkeypatch.setattr(speech, "MAX_AUDIO_BYTES", 8)
+    def provider(request):
+        if failure == "timeout":
+            raise httpx.ReadTimeout("private diagnostic", request=request)
+        if failure == "quota":
+            return httpx.Response(429, text="private diagnostic")
+        if failure == "oversized":
+            return httpx.Response(200, content=b"ID3" + bytes(64), headers={"content-type": "audio/mpeg"})
+        return httpx.Response(200, content=b"private diagnostic", headers={"content-type": "text/plain"})
+    mock_provider(provider)
+    result = assert_response(client.post("/api/v1/voice/speak", json={"text": "Computed summary"}), 503)
+    assert "private" not in json.dumps(result)
+
+
+def test_narration_rejects_unusable_voice_configuration_without_a_provider_request(client, monkeypatch, mock_provider):
+    monkeypatch.setenv("ELEVENLABS_API_KEY", "test-key")
+    monkeypatch.setenv("ELEVENLABS_VOICE_ID", "../../untrusted")
+    mock_provider(lambda request: pytest.fail("Invalid voice configuration must not call a provider"))
+    assert_response(client.post("/api/v1/voice/speak", json={"text": "Computed summary"}), 503)

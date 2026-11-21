@@ -9,6 +9,7 @@ import type { Point } from "../../atlas/domain";
 import { FLOOD_RADIUS_LIMITS, HOUSTON_ROADS, SEED_TRACK, getFloodPolygon } from "../../atlas/domain";
 import { offlineCounties } from "@earthlab/contracts";
 import type { AtlasMapProps } from "./Globe";
+import { FlatPlanningLayer } from "../allocation/FlatPlanningLayer";
 import {
   BOUNDS,
   BOOKMARKS,
@@ -588,6 +589,10 @@ export function FlatMap(props: AtlasMapProps & { measurement?: Point[]; onMeasur
             </g>
           );
         })}
+        {props.planningFootprint && <polygon
+          points={path(getFloodPolygon([props.planningFootprint.longitude, props.planningFootprint.latitude], props.planningFootprint.radiusKm))}
+          fill="#a4c7b7" fillOpacity=".09" stroke="#aec9c0" strokeDasharray="7 6" strokeWidth="2" vectorEffect="non-scaling-stroke" pointerEvents="none"/>}
+        {props.planningAssets && props.onPlanningAsset && <FlatPlanningLayer assets={props.planningAssets} select={props.onPlanningAsset} x={X} y={Y} scale={scaleFactor}/>}
         {(props.measurement ?? []).map((point, index) => <g key={`measure-${index}`} pointerEvents="none">
           <circle cx={X(point)} cy={Y(point)} r={4.5 / scaleFactor} fill="#f5dfae" stroke="#20221f" strokeWidth={2 / scaleFactor} />
           <text x={X(point)} y={Y(point) - 16 / scaleFactor} textAnchor="middle">{index ? "B" : "A"}</text>
