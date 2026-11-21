@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { offlineEvaluation, type Scenario } from "@earthlab/contracts";
 import { evaluateScenario } from "../services/evaluation";
@@ -17,6 +17,17 @@ export function App() {
   const launchHouston = () => {
     dispatch({ action: "FLY_HOUSTON", args: {} });
   };
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      const target = event.target;
+      if (event.ctrlKey || event.metaKey || event.altKey || event.repeat
+        || target instanceof HTMLElement && (target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName))) return;
+      if (event.key.toLowerCase() === "h") dispatch({ action: "FLY_HOUSTON", args: {} });
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [dispatch]);
 
   return (
     <div className="console-shell">
@@ -37,7 +48,7 @@ export function App() {
           <p className="rail-intro">Explore a place.<br />Inspect the evidence.</p>
           <div className="rail-section">
             <h2>Study region</h2>
-            <button className="houston-button" onClick={launchHouston}>
+            <button className="houston-button" onClick={launchHouston} aria-keyshortcuts="H" title="Fly to Houston (H)">
               <span>Houston Gulf Coast</span><span className="button-coordinates">29.76° N &nbsp; 95.37° W</span><span className="button-action">Fly to Houston <span aria-hidden="true">↗</span></span>
             </button>
           </div>
@@ -71,7 +82,7 @@ export function App() {
             <button onClick={() => dispatch({ action: "VIEW_EARTH", args: {} })}>View Earth</button>
             <button aria-pressed={rotating} onClick={() => dispatch({ action: "SET_ROTATION", args: { rotating: !rotating } })}>{rotating ? "Pause orbit" : "Start orbit"}</button>
           </div>
-          <div className="map-legend"><span className="legend-title">{isOffline ? "Example severity index" : "Conditional severity"}</span><div className="legend-items"><span><i className="swatch low" />1 · Lower</span><span><i className="swatch medium" />2 · Middle</span><span><i className="swatch high" />3 · Higher</span></div><p>{isOffline ? "Invented fixture values · no outage probabilities" : "See model metadata for target units and validation."}</p></div>
+          <div className="map-legend"><span className="legend-title">{isOffline ? "Example severity index" : "Conditional severity"}</span>{isOffline ? <div className="legend-items"><span><i className="swatch low" />1 · Lower</span><span><i className="swatch medium" />2 · Middle</span><span><i className="swatch high" />3 · Higher</span></div> : <div className="legend-items"><span><i className="swatch low" />Selected region · value in inspector</span></div>}<p>{isOffline ? "Invented fixture values · no outage probabilities" : "See model metadata for target units and validation."}</p></div>
           <div className="map-disclaimer">{isOffline ? "DEMO DATA" : "MODEL ESTIMATE"}<span>{isOffline ? "Illustrative values and geometry" : "Conditional on selected archive hours"}</span></div>
         </section>
 
@@ -88,7 +99,7 @@ export function App() {
             <h3>Data & method</h3>
             <dl className="metadata-list"><div><dt>Mode</dt><dd>{isOffline ? "Offline example" : "Trained conditional"}</dd></div><div><dt>Model</dt><dd>{isOffline ? "Not trained" : prediction?.modelVersion}</dd></div><div><dt>Geometry</dt><dd>Schematic polygons</dd></div><div><dt>Scope</dt><dd>County-level severity only</dd></div></dl>
           </section>
-          <section className="evidence-section source-section"><h3>Provenance</h3><p>Project-generated fixture. No observed weather or outage records.</p><p>Base globe: Natural Earth II via CesiumJS. Public-domain cartography.</p><details><summary>Read limitations</summary><p>{evaluation.disclaimers.join(" ")}</p><p>No asset failures, flood depths, or safety recommendations are inferred from the map.</p><p>Source IDs: {prediction?.sourceIds.join(", ") || "Project fixture"}</p></details></section>
+          <section className="evidence-section source-section"><h3>Provenance</h3><p>{isOffline ? "Project-generated fixture. No observed weather or outage records." : prediction?.sourceIds.join(", ")}</p><p>Base globe: Natural Earth II via CesiumJS. Public-domain cartography.</p><details><summary>Read limitations</summary><p>{evaluation.disclaimers.join(" ")}</p><p>No asset failures, flood depths, or safety recommendations are inferred from the map.</p><p>Source IDs: {prediction?.sourceIds.join(", ") || "Project fixture"}</p></details></section>
         </aside>
       </main>
 

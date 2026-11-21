@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { offlineScenario, type Scenario } from "@earthlab/contracts";
+import { offlineScenario, type CommandProposal, type Scenario } from "@earthlab/contracts";
 
 export const counties = [
   { fips: "48201", name: "Harris", label: "Houston" },
@@ -7,9 +7,12 @@ export const counties = [
   { fips: "48039", name: "Brazoria", label: "Gulf coast" },
 ] as const;
 
-type ConsoleCommand =
+type ScenarioControl = Pick<CommandProposal, "action" | "args"> & (
   | { action: "SELECT_PRESET"; args: { presetEventId: string } }
   | { action: "TOGGLE_OVERLAY"; args: { visible: boolean } }
+);
+
+type ConsoleCommand = ScenarioControl
   | { action: "PIN_COUNTY"; args: { countyFips: string } }
   | { action: "FLY_HOUSTON"; args: Record<string, never> }
   | { action: "VIEW_EARTH"; args: Record<string, never> }
