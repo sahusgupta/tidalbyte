@@ -26,24 +26,22 @@ The shared package supplies scenario, prediction, model metadata, network compar
 
 ## Browser captures
 
-| State              | Desktop                                                                                                         | Tablet                                                                                                  |
-| ------------------ | --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| Hurricane          | [Opening map, 1440 × 900](docs/qa/houston-hurricane-1440.jpg) · [Edited track](docs/qa/hurricane-edit-1440.jpg) | [Opening map, 768 × 1024](docs/qa/houston-tablet-768.jpg)                                               |
-| Flood and closures | [Footprint and legend, 1280 × 720](docs/qa/flood-1280.jpg) · [Comparison](docs/qa/closures-comparison-1280.jpg) | [Scenario controls](docs/qa/editor-tablet-768.jpg) · [Road inspector](docs/qa/inspector-tablet-768.jpg) |
-| Context            | [County fixture](docs/qa/county-context-1280.jpg) · [Sources](docs/qa/sources-1440.jpg)                         |                                                                                                         |
+| View | Desktop | Phone or tablet |
+| --- | --- | --- |
+| Greater Houston | [Opening atlas, 1440 × 900](docs/qa/houston-hurricane-1440.jpg) | [Phone, 390 × 844](docs/qa/houston-phone-390.jpg) · [Tablet, 768 × 1024](docs/qa/houston-tablet-768.jpg) |
+| Notebook | [Selected road and its geometry](docs/qa/road-notebook-1440.jpg) | [Scenario sheet and editable route](docs/qa/notebook-phone-390.jpg) |
+| Scenario evidence | [Flood footprint and legend](docs/qa/flood-1280.jpg) · [Closure comparison](docs/qa/closures-comparison-1280.jpg) · [Sources](docs/qa/sources-1440.jpg) | |
 
-[Phone atlas, 390 × 844](docs/qa/houston-phone-390.jpg) · [Earth study-zone index](docs/qa/earth-index-1440.jpg) · [Downtown and Buffalo Bayou zone](docs/qa/zone-1440.jpg)
+[Interactive 2D Houston map](docs/qa/accessible-map-1440.jpg) · [Earth study-zone index](docs/qa/earth-index-1440.jpg) · [Downtown and Buffalo Bayou zone](docs/qa/zone-1440.jpg)
 
-The [imagery manifest](public/map/provenance.json) lists the provider, service-reported acquisition period, bounds and byte sizes for each aerial reference. Houston opens with bundled aerial imagery. Earth opens with bundled Natural Earth imagery. Closer Houston views can load online USGS detail. To use an additional licensed XYZ template in the atlas, set `VITE_ATLAS_IMAGERY_URL` and `VITE_ATLAS_IMAGERY_CREDIT`. The bundled images remain available if that provider fails.
-
-[Interactive 2D fallback](docs/qa/accessible-map-1440.jpg) · [Unavailable command service](docs/qa/command-unavailable-1440.jpg) · [Command confirmation with a test backend](docs/qa/test-command-review-1440.jpg) · [Graph comparison with a test backend](docs/qa/test-backend-comparison-1440.jpg).
+The [imagery manifest](public/map/provenance.json) gives the provider, service-reported acquisition period, geographic bounds and byte size of each aerial. Houston opens with bundled imagery. Natural Earth II supplies the wider map. Closer Houston views can load online USGS detail. To use a licensed XYZ imagery service, set `VITE_ATLAS_IMAGERY_URL` and `VITE_ATLAS_IMAGERY_CREDIT`. The bundled aerial and both atlas typefaces also work offline.
 
 ## Verification
 
-Run `pnpm typecheck`, `pnpm test` and `pnpm build` from the repository root. The build checks Cesium assets and both georeferenced WebP files against their manifest.
+Run `pnpm typecheck`, `pnpm test`, `pnpm contracts:check`, `pnpm openapi:check` and `pnpm build` from the repository root. The build verifies the Cesium assets and both georeferenced WebP files against the manifest.
 
-The browser checks cover pointer placement and dragging in 3D and forced WebGL fallback, timeline playback, keyboard editing, road selection beneath a flood footprint, closure comparisons and reset. Command tests exercise confirmation, unsupported actions, stale responses and replay. Backend graph tests verify catalog edge IDs and reject comparisons from a different source. Successful provider responses in the two test-backend screenshots are controlled test inputs.
+The November 21, 2026 redesign passed type checking, the production build, contract and OpenAPI checks, 62 frontend tests, and 52 Python tests. Pytest skipped three ML modules because the application environment omits NumPy. Vite reported its size warning for the lazy Cesium bundle.
 
-Viewport reviews covered 390 × 844, 720 × 450, 768 × 1024, 1280 × 720 and 1440 × 900. The phone has dedicated touch targets for the map tools and drawers. Keyboard users can skip directly to the atlas or the Earth index, open a zone, and return focus to its entry.
+Chrome passed 13 map interaction groups in 3D and forced 2D, covering pointer and keyboard edits, timeline playback, road selection beneath a flood footprint, closure comparison and reset. Ten tests covered command confirmation, cancellation, stale responses and replay, plus backend graph IDs and source validation. The production bundle also passed with the API and external imagery blocked.
 
-On November 21, 2026, type checking, the production build, shared contract checks and the OpenAPI check passed. With PR #2 on the base branch, 62 frontend tests and 52 Python tests passed. Pytest skipped three ML test modules in the application environment because its lockfile omits the training dependencies. Chrome passed 11 scenario interaction groups in 3D and forced WebGL fallback, the flood-picking regression, and nine command/network checks. The built application also passed navigation and scenario checks with API and external imagery requests blocked. Vite reports a size warning for the lazy Cesium bundle.
+Layout and navigation were checked at 320 × 568, 390 × 844, 720 × 450, 768 × 1024, 1280 × 720 and 1440 × 900. In compact layouts, the three notebook pages open from the bottom. **Edit track on map** and **Edit footprint on map** close the sheet and place keyboard focus on the map.
