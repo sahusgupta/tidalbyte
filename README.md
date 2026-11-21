@@ -52,7 +52,7 @@ installed separately). Server secrets must never use the `VITE_` prefix.
    intersection with the drawn scenario.
 2. Choose **Edit track** to move a storm waypoint, then scrub the timeline.
    In **Flood**, place and resize the illustrative footprint.
-3. Open **Baseline vs alternative** to compare the effects of a hypothetical closure.
+3. Open **Compare** in the notebook to see how a hypothetical closure changes the sample network.
 4. Choose **Earth** for the geographic overview, select a study zone, and return
    to the Houston editor when ready.
 

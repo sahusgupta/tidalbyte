@@ -4,11 +4,11 @@ Run `pnpm install --frozen-lockfile` and `pnpm --filter web dev` from the reposi
 
 ## Three-minute walkthrough
 
-1. Open Greater Houston and inspect the pinned Channel approach crossing. Select Downtown Houston, Buffalo Bayou or Ship Channel from the map's bookmark menu. H resets the regional view and 1–3 select the local bookmarks outside form controls.
+1. Open Greater Houston. The **Scenario** notebook shows the Gulf approach and the position along its drawn route. On a phone, tap **Scenario** below the map to open the notebook. Use the location menu to visit Downtown Houston, Buffalo Bayou or Ship Channel. H resets the view and 1–3 select local bookmarks outside form controls.
 2. In Hurricane mode choose **Edit track**. Click to add a waypoint, drag a numbered handle, or use the coordinate editor with a keyboard. Play or scrub the 12-hour seed timeline. Duration changes the displayed time. Intensity and rainfall are scenario annotations.
 3. Choose **Flood** and **Edit footprint**. Place the center and resize the edge. The circle expands with the timeline from 35% to 100% of the selected final radius. The viewport and legend identify this geometry as illustrative.
-4. Choose **Inspect** and select a road. The inspector shows its source, geometric intersection and exposure status. Use **Add closure** or **Remove closure** to change the local network. The **Baseline vs alternative** strip compares the open baseline with the edited scenario at the same time. **Reset demo** restores the seeded setup, including one assumed closure.
-5. Toggle **County severity** for the independent county context. Open **Sources** for provenance and assumptions. The tablet layout opens the editor and inspector in side drawers.
+4. Choose **Inspect** and select a road. Its notebook page shows the measured fixture geometry, source and exposure status. Use **Add closure** or **Remove closure** to change the local network. Open **Compare** to see the open baseline and the edited scenario at the same time. **Reset demo** restores the original setup, including one assumed closure.
+5. Toggle **County severity** for the independent county context. Open **Sources** for provenance and assumptions. **Ask the atlas** opens typed and voice requests. The **View** menu on the map contains the viewing angle and 2D/3D options.
 6. Choose **Earth** to open the global view at `#/earth`. Match a letter on the Houston aerial inset to a study zone and select its name. Each zone has a direct link at `#/zone/<id>`. Set `VITE_SIMULATOR_URL` to connect a compatible external simulator. The zone panel also links back to the Houston atlas.
 
 ## Evidence and integrations

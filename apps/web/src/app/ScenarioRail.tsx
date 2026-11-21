@@ -137,7 +137,7 @@ function ScenarioPlate({
       <figcaption>
         <span>
           {hurricane
-            ? `${track.length} authored waypoints`
+            ? `${track.length} waypoints`
             : `${currentRadius.toFixed(1)} km illustrative radius`}
         </span>
         <time>T+{timeLabel(progress * duration)}</time>
@@ -181,7 +181,7 @@ export function ScenarioRail({
         <p>
           {hurricane
             ? "Draw a hypothetical storm path through Greater Houston."
-            : "Explore a drawn footprint and its intersection with the road sample."}
+            : "Draw a flood area to see which sample roads it crosses."}
         </p>
       </header>
       <div className="scenario-choice" role="group" aria-label="Scenario type">
@@ -200,11 +200,7 @@ export function ScenarioRail({
         duration={state.assumptions.durationHours}
         hurricane={hurricane}
       />
-      <button
-        type="button"
-        className="notebook-primary"
-        onClick={onEditMap}
-      >
+      <button type="button" className="notebook-primary" onClick={onEditMap}>
         <Icon name="edit" size={16} />
         {hurricane ? "Edit track on map" : "Edit footprint on map"}
       </button>

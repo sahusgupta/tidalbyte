@@ -21,7 +21,8 @@
   overflow-wrap: break-word;
 }
 .atlas-shell .road-page .notebook-heading h2 {
-  font-size: 40px;
+  font-size: 34px;
+  line-height: 1.1;
 }
 .atlas-shell .notebook-page p,
 .atlas-shell .county-evidence p,
@@ -80,7 +81,7 @@
 }
 .atlas-shell .scenario-plate svg {
   width: 100%;
-  height: auto;
+  height: 112px;
   display: block;
   overflow: visible;
 }
@@ -393,6 +394,6 @@
     font-size: 40px;
   }
   .atlas-shell .road-page .notebook-heading h2 {
-    font-size: 36px;
+    font-size: 32px;
   }
 }
