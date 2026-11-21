@@ -1,6 +1,7 @@
 @import 'tailwindcss';
 @import '@fontsource-variable/source-sans-3/index.css';
 .sim-deck-surface { position: absolute; inset: 0; }
+.sim-route-dot { position: absolute; left: 0; top: 0; width: 22px; height: 22px; border: 4px solid #10b981; border-radius: 50%; background: white; pointer-events: none; visibility: hidden; }
 @theme {
  --font-sans:'Source Sans 3 Variable',sans-serif; --font-mono:ui-monospace,'Cascadia Mono',Menlo,monospace;
  --radius-md:2px; --radius-lg:2px; --radius-xl:2px; --radius-2xl:2px;

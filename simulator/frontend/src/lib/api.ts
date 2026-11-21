@@ -1,3 +1,5 @@
+import { loadBuildings } from './loadBuildings'
+
 export type LonLat = [number, number]
 
 export type POI = { id: string; name: string; lon: number; lat: number; note?: string; node: number }
@@ -115,7 +117,7 @@ export const api = {
   regions: () => getJSON<RegionInfo[]>('/api/regions'),
   meta: (region: string, signal?: AbortSignal) => getJSON<Meta>(`/api/regions/${region}/meta`, signal),
   roads: (region: string, signal?: AbortSignal) => getJSON<Roads>(`/api/regions/${region}/roads`, signal),
-  buildings: (region: string, signal?: AbortSignal) => getJSON<Buildings>(`/api/regions/${region}/buildings`, signal),
+  buildings: loadBuildings,
   simulate: async (region: string, req: SimRequest, signal?: AbortSignal): Promise<SimResult> => {
     const r = await fetch(`/api/regions/${region}/simulate`, {
       method: 'POST',
