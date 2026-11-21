@@ -1,0 +1,212 @@
+/* Earth view: the globe is the subject; panels are flat instrument plates (no blur, no glow). */
+.earth-shell {
+  height: 100svh;
+  min-height: 470px;
+  display: grid;
+  grid-template-rows: 58px minmax(0, 1fr);
+  background: var(--enclosure);
+}
+.earth-stage {
+  position: relative;
+  overflow: hidden;
+  background: #161c19;
+}
+.earth-cesium {
+  position: absolute;
+  inset: 0;
+}
+.earth-cesium .cesium-widget,
+.earth-cesium canvas {
+  outline: none;
+}
+.earth-stage .cesium-widget-credits {
+  left: 12px;
+  right: auto;
+  bottom: 8px;
+  font: 10px var(--mono);
+  color: #c3cabf;
+  background: rgba(22, 28, 25, 0.86);
+  padding: 3px 7px;
+}
+.earth-stage .cesium-widget-credits a {
+  color: #e6d4b4;
+}
+.earth-imagery-status i.photoreal-on {
+  background: #88c4c4;
+}
+.earth-imagery-status i.photoreal-error {
+  background: #ef8b74;
+}
+.earth-imagery-status {
+  cursor: help;
+}
+
+/* Zone list */
+.earth-zones {
+  position: absolute;
+  top: 18px;
+  left: 18px;
+  bottom: 44px;
+  width: min(340px, calc(100% - 36px));
+  overflow-y: auto;
+  background: #1a201d;
+  border: 1px solid var(--rule);
+  z-index: 2;
+}
+.earth-zones section + section {
+  border-top: 1px solid var(--rule);
+}
+.earth-zones-head {
+  padding: 16px 18px 10px;
+  display: grid;
+  gap: 4px;
+}
+.earth-eyebrow {
+  font: 10px var(--mono);
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: #e7b479;
+}
+.earth-zones-head h2 {
+  font-family: Georgia, serif;
+  font-size: 30px;
+  font-weight: 400;
+  letter-spacing: -0.8px;
+  color: #f3f1e7;
+}
+.earth-link {
+  justify-self: start;
+  padding: 0;
+  font-size: 12px;
+  color: #d9c8a8;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.earth-hint {
+  padding: 0 18px 12px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+.earth-zones ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.earth-zone {
+  width: 100%;
+  display: grid;
+  gap: 3px;
+  text-align: left;
+  padding: 12px 18px 13px;
+  border-top: 1px solid #343d36;
+}
+.earth-zone:hover:not(:disabled),
+.earth-zone.is-hot {
+  background: #242c27;
+  filter: none;
+}
+.earth-zone-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #f0eee4;
+}
+.earth-zone.is-hot .earth-zone-name {
+  color: var(--amber);
+}
+.earth-zone-meta {
+  font: 10.5px var(--mono);
+  letter-spacing: 0.03em;
+  color: #9fab9f;
+}
+.earth-zone-sum {
+  font-size: 12px;
+  line-height: 1.4;
+  color: #c6cdc3;
+}
+.earth-zone-go {
+  margin-top: 4px;
+  font: 11px var(--mono);
+  color: #e7b479;
+}
+.earth-zone:disabled {
+  opacity: 0.6;
+}
+
+/* Map chrome */
+.earth-tooltip {
+  position: absolute;
+  z-index: 4;
+  pointer-events: none;
+  max-width: 280px;
+  padding: 6px 9px;
+  font-size: 12px;
+  color: #f3f1e7;
+  background: #19231f;
+  border: 1px solid var(--rule);
+}
+.earth-controls {
+  position: absolute;
+  right: 18px;
+  bottom: 44px;
+  z-index: 2;
+  display: grid;
+  background: #1a201d;
+  border: 1px solid var(--rule);
+}
+.earth-controls button {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 36px;
+  font-size: 17px;
+  color: #eaece4;
+}
+.earth-controls button + button {
+  border-top: 1px solid #343d36;
+}
+.earth-controls button[aria-pressed="true"] {
+  color: var(--amber);
+}
+.earth-rule {
+  height: 6px;
+  border-top: 1px solid var(--rule);
+}
+.earth-failed {
+  position: absolute;
+  inset: auto 18px 18px auto;
+  max-width: 360px;
+  padding: 12px 14px;
+  background: var(--paper);
+  color: var(--ink);
+  z-index: 3;
+}
+
+@media (max-width: 860px) {
+  .earth-shell .study-location,
+  .earth-shell .earth-imagery-status {
+    display: none;
+  }
+  .earth-zones {
+    top: auto;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    max-height: 46%;
+    border-width: 1px 0 0;
+  }
+  .earth-controls {
+    bottom: calc(46% + 12px);
+  }
+}
+
+/* Keep the globe controls clear of the docked simulator panel. */
+.zone-open .earth-controls {
+  right: calc(min(460px, 100%) + 18px);
+}
+@media (max-width: 860px) {
+  .zone-open .earth-controls {
+    right: 18px;
+    bottom: calc(62% + 12px);
+  }
+}
