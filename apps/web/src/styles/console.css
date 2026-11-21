@@ -293,6 +293,7 @@ svg {
   font-size: 12px;
 }
 .field-scenario strong {
+  white-space: nowrap;
   font-size: 15px;
   font-weight: 550;
 }

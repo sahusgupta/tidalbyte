@@ -338,6 +338,7 @@ export function FlatMap(props: AtlasMapProps & { measurement?: Point[]; onMeasur
           Downtown Houston
         </text>
         <text
+          className="flat-place-west"
           x={X([-95.446, 29.777]) - 16 / scaleFactor}
           y={Y([-95.446, 29.777]) - 24 / scaleFactor}
           textAnchor="end"
@@ -345,6 +346,7 @@ export function FlatMap(props: AtlasMapProps & { measurement?: Point[]; onMeasur
           Buffalo Bayou
         </text>
         <text
+          className="flat-place-east"
           x={X([-95.185, 29.735]) + 12 / scaleFactor}
           y={Y([-95.185, 29.735]) + 20 / scaleFactor}
         >

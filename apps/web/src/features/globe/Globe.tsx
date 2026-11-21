@@ -212,7 +212,6 @@ export default function Globe(props: AtlasMapProps) {
         contextOptions: { webgl: { alpha: false, preserveDrawingBuffer: true } },
       });
     } catch {
-      setNote("3D unavailable · interactive 2D aerial map");
       setRendererUnavailable(true);
       setFlat(true);
       return;
@@ -434,7 +433,6 @@ export default function Globe(props: AtlasMapProps) {
     removers.push(
       viewer.scene.renderError.addEventListener(() => {
         if (!disposed) {
-          setNote("3D renderer stopped · interactive 2D aerial map");
           setRendererUnavailable(true);
           setFlat(true);
         }
@@ -921,7 +919,7 @@ export default function Globe(props: AtlasMapProps) {
           aria-controls="atlas-view-options"
           onClick={() => setViewOptionsOpen((value) => !value)}
         >
-          View
+          {flat ? "2D view" : "View"}
           <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><path d="m5 8 5 5 5-5" /></svg>
         </button>
         {viewOptionsOpen && <div className="atlas-view-panel" id="atlas-view-options" role="group" aria-label="Map view options">
@@ -943,6 +941,7 @@ export default function Globe(props: AtlasMapProps) {
         </div>}
       </div>
       <div className="atlas-map-a11y" aria-live="polite">
+        {rendererUnavailable && "3D is unavailable. The interactive 2D map is active. "}
         {props.tool === "track"
           ? "Click the map to add a waypoint. Drag numbered waypoints to move them."
           : props.tool === "flood"
