@@ -218,9 +218,9 @@ export function App({ onEarth }: { onEarth?: () => void } = {}) {
       </div>
       {displayedPage === "inspector" &&
         (countyOpen ? (
-          <div className="notebook county-page">
+          <div className="notebook-page county-page">
             <CountyEvidence evaluation={evaluation} serviceStatus={countyStatus} />
-            <button className="closure-button" onClick={() => setCountyOpen(false)}>
+            <button className="notebook-primary" onClick={() => setCountyOpen(false)}>
               Return to road inspector
             </button>
           </div>
