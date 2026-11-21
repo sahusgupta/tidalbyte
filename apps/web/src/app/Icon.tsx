@@ -1,5 +1,3 @@
-import type { CSSProperties } from "react";
-
 const paths = {
   atlas: (
     <>
@@ -49,11 +47,6 @@ const paths = {
       <path d="M3 5q5-2 9 1 5-3 9-1v14q-5-2-9 1-5-3-9-1zM12 6v14" />
     </>
   ),
-  expand: (
-    <>
-      <path d="M5 10V5h5m4 0h5v5m0 4v5h-5m-4 0H5v-5" />
-    </>
-  ),
   cursor: <path d="m5 3 14 10-7 1-3 6z" />,
   edit: (
     <>
@@ -73,20 +66,6 @@ const paths = {
   ),
   down: <path d="m6 9 6 6 6-6" />,
   close: <path d="m6 6 12 12M6 18 18 6" />,
-  route: (
-    <>
-      <circle cx="5" cy="17" r="2" />
-      <circle cx="19" cy="6" r="2" />
-      <path d="M6.5 15.5 11 9l3 3 3.5-4.5" />
-    </>
-  ),
-  target: (
-    <>
-      <circle cx="12" cy="12" r="7" />
-      <circle cx="12" cy="12" r="2" />
-      <path d="M12 2v3m0 14v3M2 12h3m14 0h3" />
-    </>
-  ),
   closure: (
     <>
       <path d="M4 8h16v7H4zM5 20v-5m14 5v-5M5 13l4-4m3 4 4-4" />
@@ -98,27 +77,13 @@ const paths = {
       <path d="M12 11v6m0-10v1" />
     </>
   ),
-  clock: (
-    <>
-      <circle cx="12" cy="12" r="9" />
-      <path d="M12 6v6l4 2" />
-    </>
-  ),
-  wind: (
-    <>
-      <path d="M2 8h13c4 0 4-6 0-6M2 12h17c4 0 4-5 1-5M5 16h9c4 0 4 6 0 6" />
-    </>
-  ),
-  menu: <path d="M3 6h18M3 12h18M3 18h18" />,
 } as const;
 export function Icon({
   name,
   size = 18,
-  style,
 }: {
   name: keyof typeof paths;
   size?: number;
-  style?: CSSProperties;
 }) {
   return (
     <svg
@@ -131,7 +96,6 @@ export function Icon({
       strokeWidth="1.65"
       strokeLinecap="round"
       strokeLinejoin="round"
-      style={style}
     >
       {paths[name]}
     </svg>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useAtlasStore } from "./store";
 import { Dial, LayerToggle } from "./FieldTools";
 import { Icon } from "./Icon";
@@ -21,6 +21,7 @@ export function ScenarioRail({
   const state = useAtlasStore();
   const hurricane = state.mode === "hurricane";
   const [pointIndex, setPointIndex] = useState(0);
+  const coordinates = useRef<HTMLDetailsElement>(null);
   const idx = Math.min(pointIndex, state.track.length - 1);
   const position = hurricane ? state.track[idx] : state.floodCenter;
   function nudge(lon: number, lat: number) {
@@ -54,7 +55,7 @@ export function ScenarioRail({
         </button>
       </div>
       <div className="scenario-name">
-        <div className="kicker">Training scenario</div>
+        <div className="kicker">Hypothetical scenario</div>
         <h2>{hurricane ? "Gulf approach" : "Bayou footprint"}</h2>
         <p>
           {hurricane
@@ -130,7 +131,7 @@ export function ScenarioRail({
           set={(v) => onLayer("outages", v)}
         />
       </section>
-      <details className="rail-section geometry">
+      <details ref={coordinates} className="rail-section geometry">
         <summary>
           <Icon name="edit" size={15} />
           Coordinate editor
@@ -198,6 +199,7 @@ export function ScenarioRail({
         <button
           onClick={() => {
             state.reset();
+            if (coordinates.current) coordinates.current.open = false;
             setPointIndex(0);
             inspectMode();
             onLayer("hazard", true);

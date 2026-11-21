@@ -50,16 +50,20 @@ export const ASSUMPTION_LIMITS = {
 } as const;
 export const ILLUSTRATIVE_STORM_RADIUS_KM = 6;
 export const ROAD_SOURCE_ID = "earthlab:houston-schematic-roads-v1";
-export const ROAD_PROVENANCE = "EarthLab original CC0 schematic road fixture. Geometry and topology are invented for interaction; not a street survey, official road inventory, or road-condition feed.";
-export const GEOMETRY_ASSUMPTIONS = "Geometric intersection with a drawn circle only. Flood radius grows linearly from 35% to 100% across the timeline; the hurricane marker has an arbitrary 6 km display footprint. Intensity and rainfall are display assumptions, not inputs to flood physics, road safety, or outage inference.";
-export const CONNECTIVITY_ASSUMPTIONS = "Reachability from the schematic downtown junction after manually assumed closures. These are ordinary illustrative road connections, not emergency routes or verified street connectivity.";
+export const ROAD_PROVENANCE =
+  "EarthLab original CC0 schematic road fixture. Geometry and topology are invented for interaction; not a street survey, official road inventory, or road-condition feed.";
+export const GEOMETRY_ASSUMPTIONS =
+  "Geometric intersection with a drawn circle only. Flood radius grows linearly from 35% to 100% across the timeline; the hurricane marker has an arbitrary 6 km display footprint. Intensity and rainfall are display assumptions, not inputs to flood physics, road safety, or outage inference.";
+export const CONNECTIVITY_ASSUMPTIONS =
+  "Reachability from the schematic downtown junction after manually assumed closures. These are ordinary illustrative road connections, not emergency routes or verified street connectivity.";
 
-export const HOUSTON_BOOKMARKS: Record<BookmarkId, { label: string; center: Point; height: number }> = {
-  houston: { label: "Greater Houston", center: [-95.35, 29.76], height: 55_000 },
-  downtown: { label: "Downtown Houston", center: [-95.3698, 29.7604], height: 15_000 },
-  bayou: { label: "Buffalo Bayou", center: [-95.425, 29.765], height: 18_000 },
-  channel: { label: "Ship Channel", center: [-95.25, 29.74], height: 23_000 },
-};
+export const HOUSTON_BOOKMARKS: Record<BookmarkId, { label: string; point: Point; range: number }> =
+  {
+    houston: { label: "Greater Houston", point: [-95.347, 29.748], range: 58_000 },
+    downtown: { label: "Downtown Houston", point: [-95.3698, 29.7604], range: 19_000 },
+    bayou: { label: "Buffalo Bayou", point: [-95.443, 29.764], range: 23_000 },
+    channel: { label: "Ship Channel", point: [-95.187, 29.735], range: 31_000 },
+  };
 
 // Hand-authored ordinary junctions. There are no utility assets or facilities.
 const junctions: Record<string, Point> = {
@@ -77,9 +81,18 @@ const junctions: Record<string, Point> = {
   southeast: [-95.127, 29.698],
 };
 
-function road(id: string, name: string, from: string, to: string, bends: Point[] = []): RoadSegment {
+function road(
+  id: string,
+  name: string,
+  from: string,
+  to: string,
+  bends: Point[] = [],
+): RoadSegment {
   return {
-    id, name, from, to,
+    id,
+    name,
+    from,
+    to,
     points: [[...junctions[from]], ...bends, [...junctions[to]]],
     sourceId: ROAD_SOURCE_ID,
     provenance: ROAD_PROVENANCE,
@@ -102,7 +115,10 @@ export const HOUSTON_ROADS: RoadSegment[] = [
 ];
 
 export const SEED_TRACK: Point[] = [
-  [-95.085, 29.665], [-95.255, 29.725], [-95.37, 29.765], [-95.505, 29.845],
+  [-95.085, 29.665],
+  [-95.255, 29.725],
+  [-95.37, 29.765],
+  [-95.505, 29.845],
 ];
 
 export const BASELINE: AtlasSnapshot = {
@@ -120,17 +136,29 @@ export const SEED_SCENARIO: AtlasSnapshot = {
   closedRoadIds: ["channel-bridge"],
 };
 
-export const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+export const clamp = (value: number, min: number, max: number) =>
+  Math.min(max, Math.max(min, value));
 export function isFinitePoint(point: unknown): point is Point {
-  return Array.isArray(point) && point.length === 2 && point.every((value) => typeof value === "number" && Number.isFinite(value));
+  return (
+    Array.isArray(point) &&
+    point.length === 2 &&
+    point.every((value) => typeof value === "number" && Number.isFinite(value))
+  );
 }
 export function clampPoint(point: Point): Point {
-  if (!isFinitePoint(point)) throw new RangeError("Map points must contain two finite longitude/latitude values.");
-  return [clamp(point[0], HOUSTON_BOUNDS[0], HOUSTON_BOUNDS[2]), clamp(point[1], HOUSTON_BOUNDS[1], HOUSTON_BOUNDS[3])];
+  if (!isFinitePoint(point))
+    throw new RangeError("Map points must contain two finite longitude/latitude values.");
+  return [
+    clamp(point[0], HOUSTON_BOUNDS[0], HOUSTON_BOUNDS[2]),
+    clamp(point[1], HOUSTON_BOUNDS[1], HOUSTON_BOUNDS[3]),
+  ];
 }
 
 function kmOffset(point: Point, origin: Point): Point {
-  return [(point[0] - origin[0]) * 111.32 * Math.cos(origin[1] * Math.PI / 180), (point[1] - origin[1]) * 111.32];
+  return [
+    (point[0] - origin[0]) * 111.32 * Math.cos((origin[1] * Math.PI) / 180),
+    (point[1] - origin[1]) * 111.32,
+  ];
 }
 function distanceKm(a: Point, b: Point): number {
   const [x, y] = kmOffset(b, a);
@@ -151,8 +179,10 @@ export function getStormPosition(track: Point[], progress: number): Point {
     const length = lengths[index];
     if (remaining <= length && length > 0) {
       const fraction = remaining / length;
-      return [track[index][0] + (track[index + 1][0] - track[index][0]) * fraction,
-        track[index][1] + (track[index + 1][1] - track[index][1]) * fraction];
+      return [
+        track[index][0] + (track[index + 1][0] - track[index][0]) * fraction,
+        track[index][1] + (track[index + 1][1] - track[index][1]) * fraction,
+      ];
     }
     remaining -= length;
   }
@@ -168,16 +198,23 @@ export function getFloodRadiusAtProgress(radiusKm: number, progress: number): nu
 export function getFloodPolygon(center: Point, radiusKm: number, progress = 1): Point[] {
   const radius = getFloodRadiusAtProgress(radiusKm, progress);
   const latitudeRadius = radius / 111.32;
-  const longitudeRadius = latitudeRadius / Math.cos(center[1] * Math.PI / 180);
+  const longitudeRadius = latitudeRadius / Math.cos((center[1] * Math.PI) / 180);
   const ring: Point[] = Array.from({ length: 48 }, (_, index) => {
-    const angle = index * Math.PI * 2 / 48;
-    return [center[0] + Math.cos(angle) * longitudeRadius, center[1] + Math.sin(angle) * latitudeRadius];
+    const angle = (index * Math.PI * 2) / 48;
+    return [
+      center[0] + Math.cos(angle) * longitudeRadius,
+      center[1] + Math.sin(angle) * latitudeRadius,
+    ];
   });
   return [...ring, [...ring[0]]];
 }
 
 /** Pure geometry only; intersection never changes a road's closure/safety status. */
-export function polylineIntersectsCircle(points: Point[], center: Point, radiusKm: number): boolean {
+export function polylineIntersectsCircle(
+  points: Point[],
+  center: Point,
+  radiusKm: number,
+): boolean {
   if (points.length === 0 || radiusKm < 0 || !Number.isFinite(radiusKm)) return false;
   if (points.length === 1) return distanceKm(center, points[0]) <= radiusKm;
   for (let index = 1; index < points.length; index += 1) {
@@ -186,18 +223,25 @@ export function polylineIntersectsCircle(points: Point[], center: Point, radiusK
     const dx = b[0] - a[0];
     const dy = b[1] - a[1];
     const lengthSquared = dx * dx + dy * dy;
-    const fraction = lengthSquared === 0 ? 0 : clamp(-(a[0] * dx + a[1] * dy) / lengthSquared, 0, 1);
+    const fraction =
+      lengthSquared === 0 ? 0 : clamp(-(a[0] * dx + a[1] * dy) / lengthSquared, 0, 1);
     if (Math.hypot(a[0] + fraction * dx, a[1] + fraction * dy) <= radiusKm + 1e-8) return true;
   }
   return false;
 }
 
 export function getOverlayIntersections(snapshot: AtlasSnapshot, roads = HOUSTON_ROADS): string[] {
-  const center = snapshot.mode === "flood" ? snapshot.floodCenter : getStormPosition(snapshot.track, snapshot.progress);
-  const radius = snapshot.mode === "flood"
-    ? getFloodRadiusAtProgress(snapshot.floodRadiusKm, snapshot.progress)
-    : ILLUSTRATIVE_STORM_RADIUS_KM;
-  return roads.filter((segment) => polylineIntersectsCircle(segment.points, center, radius)).map((segment) => segment.id);
+  const center =
+    snapshot.mode === "flood"
+      ? snapshot.floodCenter
+      : getStormPosition(snapshot.track, snapshot.progress);
+  const radius =
+    snapshot.mode === "flood"
+      ? getFloodRadiusAtProgress(snapshot.floodRadiusKm, snapshot.progress)
+      : ILLUSTRATIVE_STORM_RADIUS_KM;
+  return roads
+    .filter((segment) => polylineIntersectsCircle(segment.points, center, radius))
+    .map((segment) => segment.id);
 }
 
 export function analyzeRoadNetwork(closedIds: string[], roads = HOUSTON_ROADS): RoadNetworkSummary {
@@ -218,7 +262,8 @@ export function analyzeRoadNetwork(closedIds: string[], roads = HOUSTON_ROADS): 
       const node = pending.pop()!;
       if (visited.has(node)) continue;
       visited.add(node);
-      for (const neighbor of adjacency.get(node) ?? []) if (!visited.has(neighbor)) pending.push(neighbor);
+      for (const neighbor of adjacency.get(node) ?? [])
+        if (!visited.has(neighbor)) pending.push(neighbor);
     }
     return visited;
   };
@@ -235,22 +280,30 @@ export function analyzeRoadNetwork(closedIds: string[], roads = HOUSTON_ROADS): 
     reachableNodeCount: reachable.size,
     totalNodeCount: nodes.size,
     openRoadCount: roads.length - closed.size,
-    disconnectedRoadIds: roads.filter((segment) => !closed.has(segment.id)
-      && (!reachable.has(segment.from) || !reachable.has(segment.to))).map((segment) => segment.id),
+    disconnectedRoadIds: roads
+      .filter(
+        (segment) =>
+          !closed.has(segment.id) && (!reachable.has(segment.from) || !reachable.has(segment.to)),
+      )
+      .map((segment) => segment.id),
     closedRoadIds: [...closed],
   };
 }
 
-export function deriveAtlas(snapshot: AtlasSnapshot) {
+export function deriveAtlas(
+  snapshot: AtlasSnapshot,
+  network = analyzeRoadNetwork(snapshot.closedRoadIds),
+) {
   const stormPosition = getStormPosition(snapshot.track, snapshot.progress);
   const currentFloodRadiusKm = getFloodRadiusAtProgress(snapshot.floodRadiusKm, snapshot.progress);
   return {
     stormPosition,
     currentFloodRadiusKm,
-    footprint: snapshot.mode === "flood"
-      ? getFloodPolygon(snapshot.floodCenter, currentFloodRadiusKm)
-      : getFloodPolygon(stormPosition, ILLUSTRATIVE_STORM_RADIUS_KM),
+    footprint:
+      snapshot.mode === "flood"
+        ? getFloodPolygon(snapshot.floodCenter, currentFloodRadiusKm)
+        : getFloodPolygon(stormPosition, ILLUSTRATIVE_STORM_RADIUS_KM),
     intersectedRoadIds: getOverlayIntersections(snapshot),
-    network: analyzeRoadNetwork(snapshot.closedRoadIds),
+    network,
   };
 }

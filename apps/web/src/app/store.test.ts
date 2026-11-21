@@ -1,5 +1,11 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { BASELINE, HOUSTON_BOUNDS, SEED_SCENARIO, analyzeRoadNetwork, deriveAtlas } from "../atlas/domain";
+import {
+  BASELINE,
+  HOUSTON_BOUNDS,
+  SEED_SCENARIO,
+  analyzeRoadNetwork,
+  deriveAtlas,
+} from "../atlas/domain";
 import { snapshotOf, useAtlasStore } from "./store";
 
 beforeEach(() => useAtlasStore.getState().reset());
@@ -10,11 +16,16 @@ describe("Houston local editor controller", () => {
     expect(state.bookmark).toBe("houston");
     expect(state.playing).toBe(false);
     expect(snapshotOf(state)).toEqual(SEED_SCENARIO);
-    expect(deriveAtlas(state).network.reachableNodeCount).toBeLessThan(analyzeRoadNetwork(BASELINE.closedRoadIds).reachableNodeCount);
+    expect(deriveAtlas(state).network.reachableNodeCount).toBeLessThan(
+      analyzeRoadNetwork(BASELINE.closedRoadIds).reachableNodeCount,
+    );
   });
   it("undoes geometry edits without rewinding independent camera or inspection state", () => {
     const state = useAtlasStore.getState();
-    state.setTrack([[-95.5, 29.8], [-95.2, 29.7]]);
+    state.setTrack([
+      [-95.5, 29.8],
+      [-95.2, 29.7],
+    ]);
     state.flyTo("bayou");
     state.selectRoad("park-approach");
     const beforeUndo = useAtlasStore.getState().version;
@@ -32,10 +43,17 @@ describe("Houston local editor controller", () => {
     state.setAssumption("intensity", 200);
     state.setAssumption("rainfallMm", -100);
     state.setAssumption("durationHours", 0);
-    expect(useAtlasStore.getState().assumptions).toEqual({ intensity: 5, rainfallMm: 0, durationHours: 1 });
+    expect(useAtlasStore.getState().assumptions).toEqual({
+      intensity: 5,
+      rainfallMm: 0,
+      durationHours: 1,
+    });
     const before = snapshotOf(useAtlasStore.getState());
     state.setFlood([Number.NaN, 29.76], 4);
-    state.setTrack([[-95.4, 29.7], [Number.POSITIVE_INFINITY, 29.8]]);
+    state.setTrack([
+      [-95.4, 29.7],
+      [Number.POSITIVE_INFINITY, 29.8],
+    ]);
     state.setAssumption("rainfallMm", Number.NaN);
     state.setProgress(Number.NaN);
     expect(snapshotOf(useAtlasStore.getState())).toEqual(before);

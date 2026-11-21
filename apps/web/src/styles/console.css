@@ -164,14 +164,10 @@ svg {
 }
 .workbench {
   display: grid;
-  grid-template-columns: clamp(225px, 17.4vw, 286px) minmax(0, 1fr) clamp(
-      228px,
-      17.6vw,
-      290px
-    );
+  grid-template-columns: clamp(225px, 17.4vw, 286px) minmax(0, 1fr) clamp(228px, 17.6vw, 290px);
   min-height: 0;
   position: relative;
-  overflow: hidden;
+  overflow: clip;
 }
 .rail-slot,
 .inspector-slot {
@@ -312,6 +308,7 @@ svg {
   margin-top: 14px;
 }
 .layer-row {
+  position: relative;
   height: 32px;
   display: flex;
   align-items: center;
@@ -351,7 +348,10 @@ svg {
 .layer-row input {
   position: absolute;
   opacity: 0;
-  width: 1px;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
 }
 .toggle-track {
   margin-left: auto;
@@ -579,12 +579,11 @@ svg {
 .map-bottom {
   position: absolute;
   left: 15px;
-  bottom: 42px;
+  bottom: 63px;
   z-index: 2;
   max-width: calc(100% - 68px);
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
   gap: 6px;
   pointer-events: none;
 }
@@ -604,6 +603,7 @@ svg {
   margin-right: 7px;
 }
 .legend-container {
+  order: -1;
   position: relative;
   pointer-events: auto;
 }
@@ -623,6 +623,26 @@ svg {
   gap: 9px;
   font-size: 10px;
   line-height: 1.4;
+}
+.map-frame .atlas-map-scale {
+  left: auto;
+  right: 84px;
+  bottom: 31px;
+}
+.map-frame .is-flat .atlas-map-scale {
+  right: 145px;
+}
+.storm-mode .line-key.hazard {
+  border-top-style: solid;
+}
+.line-key.isolated {
+  border-top-style: dashed;
+  border-color: #bf9fce;
+}
+.county-evidence .county-status {
+  color: #4d5d4e;
+  font-weight: 650;
+  margin: 6px 0;
 }
 .tool-hint {
   display: flex;
@@ -674,11 +694,7 @@ svg {
 .time-ticks {
   display: flex;
   justify-content: space-between;
-  background: repeating-linear-gradient(
-    to right,
-    #798273 0 1px,
-    transparent 1px 3.125%
-  );
+  background: repeating-linear-gradient(to right, #798273 0 1px, transparent 1px 3.125%);
   background-size: 100% 3px;
   background-repeat: no-repeat;
   padding-top: 6px;
@@ -893,6 +909,17 @@ svg {
   border-top: 1px solid #414b40;
   z-index: 4;
 }
+.command-base .atlas-command-bar {
+  background: transparent;
+  border: 0;
+  padding: 4px 0;
+}
+.command-base .atlas-command-status:empty {
+  padding: 0;
+}
+.inspector-slot {
+  background-image: repeating-linear-gradient(0deg, transparent 0 3px, #a5a08c09 3px 4px);
+}
 .drawer-close,
 .mobile-switch {
   display: none;
@@ -960,6 +987,52 @@ svg {
   }
   .map-toolbar button span {
     display: none;
+  }
+}
+@media (max-height: 790px) and (min-width: 901px) {
+  .scenario-rail,
+  .notebook {
+    padding-top: 14px;
+    padding-bottom: 12px;
+  }
+  .mode-pair {
+    margin: 11px 0 15px;
+  }
+  .mode-pair button {
+    flex-direction: row;
+    justify-content: center;
+    padding: 9px 3px;
+  }
+  .mode-pair svg {
+    width: 18px;
+    height: 18px;
+  }
+  .rail-section {
+    margin-top: 11px;
+    padding-top: 10px;
+  }
+  .dial {
+    margin-top: 8px;
+  }
+  .dial input {
+    margin: 9px 0;
+  }
+  .layer-row {
+    height: 26px;
+  }
+  .rail-actions {
+    padding-top: 12px;
+  }
+  .segment-id {
+    margin-top: 10px;
+  }
+  .notebook h2 {
+    font-size: 24px;
+  }
+  .notebook-block,
+  .notebook-source {
+    margin-top: 12px;
+    padding-top: 10px;
   }
 }
 @media (max-width: 900px) {
@@ -1065,6 +1138,8 @@ svg {
   }
   .map-bottom {
     left: 9px;
+    max-width: calc(100% - 53px);
+    gap: 3px;
   }
   .time-read {
     font-size: 12px;

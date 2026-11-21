@@ -1,11 +1,6 @@
 import type { Evaluation } from "@earthlab/contracts";
 import { offlineCounties } from "@earthlab/contracts";
-import {
-  BASELINE,
-  HOUSTON_ROADS,
-  deriveAtlas,
-  type Point,
-} from "../atlas/domain";
+import { BASELINE, HOUSTON_ROADS, deriveAtlas, type Point } from "../atlas/domain";
 import { useAtlasStore } from "./store";
 import { Icon } from "./Icon";
 import { RoadSketch, timeLabel } from "./FieldTools";
@@ -18,7 +13,13 @@ type Props = {
 function coordinate(point: Point) {
   return `${point[1].toFixed(2)}° N, ${Math.abs(point[0]).toFixed(2)}° W`;
 }
-export function CountyEvidence({ evaluation, serviceStatus }: { evaluation: Evaluation; serviceStatus:string }) {
+export function CountyEvidence({
+  evaluation,
+  serviceStatus,
+}: {
+  evaluation: Evaluation;
+  serviceStatus: string;
+}) {
   const trained = evaluation.modelMetadata.dataMode === "trained_conditional";
   const metrics = evaluation.modelMetadata.evaluation;
   return (
@@ -34,8 +35,8 @@ export function CountyEvidence({ evaluation, serviceStatus }: { evaluation: Eval
         {evaluation.predictions.map((p) => (
           <li key={p.countyFips}>
             <span>
-              {offlineCounties.features.find((f) => f.id === p.countyFips)
-                ?.properties.name ?? p.countyFips}
+              {offlineCounties.features.find((f) => f.id === p.countyFips)?.properties.name ??
+                p.countyFips}
             </span>
             <strong>
               {p.predictedSeverity} {trained ? p.severityUnit : "/ 3"}
@@ -52,24 +53,19 @@ export function CountyEvidence({ evaluation, serviceStatus }: { evaluation: Eval
         <details className="model-evidence">
           <summary>Model evaluation & sources</summary>
           <p>
-            {evaluation.modelMetadata.target} ·{" "}
-            {evaluation.scenario.selection.eventTimeUtc}
+            {evaluation.modelMetadata.target} · {evaluation.scenario.selection.eventTimeUtc}
           </p>
           {metrics && (
             <p>
-              {metrics.splitPolicy} · {metrics.testEventCount} test events. Mean
-              absolute error {metrics.modelMae} {metrics.targetUnit}.{" "}
-              {metrics.baselineName} baseline {metrics.baselineMae}.
+              {metrics.splitPolicy} · {metrics.testEventCount} test events. Mean absolute error{" "}
+              {metrics.modelMae} {metrics.targetUnit}. {metrics.baselineName} baseline{" "}
+              {metrics.baselineMae}.
             </p>
           )}
           {evaluation.modelMetadata.limitations.map((l) => (
             <p key={l}>{l}</p>
           ))}
-          <p>
-            {[
-              ...new Set(evaluation.predictions.flatMap((p) => p.sourceIds)),
-            ].join(", ")}
-          </p>
+          <p>{[...new Set(evaluation.predictions.flatMap((p) => p.sourceIds))].join(", ")}</p>
         </details>
       )}
     </section>
@@ -77,9 +73,7 @@ export function CountyEvidence({ evaluation, serviceStatus }: { evaluation: Eval
 }
 export function RoadInspector({ current, onSources }: Props) {
   const state = useAtlasStore();
-  const road =
-    HOUSTON_ROADS.find((r) => r.id === state.selectedRoadId) ??
-    HOUSTON_ROADS[0];
+  const road = HOUSTON_ROADS.find((r) => r.id === state.selectedRoadId) ?? HOUSTON_ROADS[0];
   const closed = state.closedRoadIds.includes(road.id);
   const disconnected = current.network.disconnectedRoadIds.includes(road.id);
   const intersects = current.intersectedRoadIds.includes(road.id);
@@ -94,10 +88,7 @@ export function RoadInspector({ current, onSources }: Props) {
       <RoadSketch points={road.points} closed={closed} />
       <label className="road-picker">
         Inspect segment
-        <select
-          value={road.id}
-          onChange={(e) => state.selectRoad(e.target.value)}
-        >
+        <select value={road.id} onChange={(e) => state.selectRoad(e.target.value)}>
           {HOUSTON_ROADS.map((r) => (
             <option key={r.id} value={r.id}>
               {r.name}
@@ -159,7 +150,7 @@ export function Comparison({
 }: {
   current: Derived;
   evaluation: Evaluation;
-  serviceStatus:string;
+  serviceStatus: string;
   children: React.ReactNode;
 }) {
   const s = useAtlasStore();
@@ -167,52 +158,29 @@ export function Comparison({
   const rows = [
     [
       s.mode === "hurricane" ? "Track points" : "Current footprint",
-      s.mode === "hurricane"
-        ? BASELINE.track.length
-        : `${base.currentFloodRadiusKm.toFixed(1)} km`,
-      s.mode === "hurricane"
-        ? s.track.length
-        : `${current.currentFloodRadiusKm.toFixed(1)} km`,
+      s.mode === "hurricane" ? BASELINE.track.length : `${base.currentFloodRadiusKm.toFixed(1)} km`,
+      s.mode === "hurricane" ? s.track.length : `${current.currentFloodRadiusKm.toFixed(1)} km`,
     ],
     [
       s.mode === "hurricane" ? "Storm center" : "Footprint center",
-      coordinate(
-        s.mode === "hurricane" ? base.stormPosition : BASELINE.floodCenter,
-      ),
-      coordinate(
-        s.mode === "hurricane" ? current.stormPosition : s.floodCenter,
-      ),
+      coordinate(s.mode === "hurricane" ? base.stormPosition : BASELINE.floodCenter),
+      coordinate(s.mode === "hurricane" ? current.stormPosition : s.floodCenter),
     ],
-    [
-      "Road intersections",
-      base.intersectedRoadIds.length,
-      current.intersectedRoadIds.length,
-    ],
+    ["Road intersections", base.intersectedRoadIds.length, current.intersectedRoadIds.length],
     ["Closed segments", 0, s.closedRoadIds.length],
-    [
-      "Reachable nodes",
-      base.network.reachableNodeCount,
-      current.network.reachableNodeCount,
-    ],
-    [
-      "Components",
-      base.network.connectedComponents,
-      current.network.connectedComponents,
-    ],
+    ["Reachable nodes", base.network.reachableNodeCount, current.network.reachableNodeCount],
+    ["Components", base.network.connectedComponents, current.network.connectedComponents],
   ];
   return (
-    <section
-      className="notebook compare-panel"
-      aria-label="Baseline and alternative comparison"
-    >
+    <section className="notebook compare-panel" aria-label="Baseline and alternative comparison">
       <div className="panel-caption">
         <Icon name="compare" size={15} />
         Scenario comparison
       </div>
       <h2>Before & after</h2>
       <p>
-        Baseline uses the seeded geometry and open sample roads. Both columns
-        use the selected timeline position.
+        Baseline uses the seeded geometry and open sample roads. Both columns use the selected
+        timeline position.
       </p>
       <table>
         <caption>Hypothetical fixture</caption>
@@ -234,11 +202,14 @@ export function Comparison({
         </tbody>
       </table>
       <p>
-        Reachability starts at the fixture reference node. Highlighted links
-        show the consequences of assumed closures within this sample.
+        Reachability starts at the fixture reference node. Highlighted links show the consequences
+        of assumed closures within this sample.
       </p>
       {children}
-      <CountyEvidence evaluation={evaluation} serviceStatus={serviceStatus} />
+      <CountyEvidence
+        evaluation={evaluation}
+        serviceStatus={`Both cases use the same county preset. ${serviceStatus}`}
+      />
     </section>
   );
 }

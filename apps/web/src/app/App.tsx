@@ -1,13 +1,11 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import {
-  offlineEvaluation,
-  offlineScenario,
-  type Scenario,
-} from "@earthlab/contracts";
+import { offlineEvaluation, offlineScenario, type Scenario } from "@earthlab/contracts";
 import {
   BASELINE,
   HOUSTON_ROADS,
+  HOUSTON_BOOKMARKS,
+  analyzeRoadNetwork,
   deriveAtlas,
   type BookmarkId,
   type EditorTool,
@@ -24,12 +22,6 @@ import { Timeline } from "./FieldTools";
 import { Sources } from "./Sources";
 
 const Globe = lazy(() => import("../features/globe/Globe"));
-const locations: Record<BookmarkId, string> = {
-  houston: "Greater Houston",
-  downtown: "Downtown Houston",
-  bayou: "Buffalo Bayou",
-  channel: "Ship Channel",
-};
 const fallbackText = "ILLUSTRATIVE FLOOD EXTENT — NOT A FLOOD FORECAST";
 const makeScenario = (version: number): Scenario => ({
   ...offlineScenario,
@@ -49,17 +41,17 @@ export function App() {
   const [countyOpen, setCountyOpen] = useState(false);
   const [drawer, setDrawer] = useState<"editor" | "evidence" | null>(null);
   const [mapNotice, setMapNotice] = useState("");
+  const editorPane = useRef<HTMLDivElement>(null);
+  const evidencePane = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (drawer === "editor") editorPane.current?.scrollTo(0, 0);
+    else if (drawer === "evidence") evidencePane.current?.scrollTo(0, 0);
+  }, [drawer, countyOpen, s.comparison]);
+  // Keep static road entities in place while the storm moves.
+  const network = useMemo(() => analyzeRoadNetwork(s.closedRoadIds), [s.closedRoadIds]);
   const current = useMemo(
-    () => deriveAtlas(s),
-    [
-      s.mode,
-      s.track,
-      s.progress,
-      s.floodRadiusKm,
-      s.floodCenter,
-      s.closedRoadIds,
-      s.assumptions,
-    ],
+    () => deriveAtlas(s, network),
+    [s.mode, s.track, s.progress, s.floodRadiusKm, s.floodCenter, network, s.assumptions],
   );
   const base = useMemo(
     () => deriveAtlas({ ...BASELINE, mode: s.mode, progress: s.progress }),
@@ -69,16 +61,17 @@ export function App() {
   // Local trajectory and footprint edits do not change the historical model input.
   const evaluationQuery = useQuery({
     queryKey: ["houston-county-evaluation", offlineScenario.presetEventId],
-    queryFn: ({ signal }) =>
-      evaluateScenario(offlineScenario, fetch, undefined, signal),
+    queryFn: ({ signal }) => evaluateScenario(offlineScenario, fetch, undefined, signal),
     enabled: layers.outages || s.comparison || countyOpen,
     staleTime: 120_000,
     refetchOnWindowFocus: false,
   });
   const evaluation = evaluationQuery.data?.evaluation ?? offlineEvaluation;
-  const countyStatus = evaluationQuery.data?.message ?? (evaluationQuery.isError
-    ? "Service rejected the request · showing the bundled example"
-    : "Checking county service · showing the bundled example");
+  const countyStatus =
+    evaluationQuery.data?.message ??
+    (evaluationQuery.isError
+      ? "Service rejected the request · showing the bundled example"
+      : "Checking county service · showing the bundled example");
   function layer(id: keyof Layers, value: boolean) {
     setLayers((old) => ({ ...old, [id]: value }));
     if (id === "outages") {
@@ -116,9 +109,7 @@ export function App() {
         sources ||
         (e.target instanceof HTMLElement &&
           (e.target.isContentEditable ||
-            ["INPUT", "SELECT", "TEXTAREA", "BUTTON"].includes(
-              e.target.tagName,
-            )))
+            ["INPUT", "SELECT", "TEXTAREA", "BUTTON"].includes(e.target.tagName)))
       )
         return;
       const id = (
@@ -234,9 +225,7 @@ export function App() {
         </button>
       </div>
       <main className="workbench">
-        <div
-          className={`rail-slot ${drawer === "editor" ? "drawer-open" : ""}`}
-        >
+        <div ref={editorPane} className={`rail-slot ${drawer === "editor" ? "drawer-open" : ""}`}>
           <button
             className="drawer-close"
             onClick={() => setDrawer(null)}
@@ -262,11 +251,7 @@ export function App() {
             tabIndex={-1}
             aria-label="Houston scenario map"
           >
-            <Suspense
-              fallback={
-                <div className="map-loading">Loading the Houston map…</div>
-              }
-            >
+            <Suspense fallback={<div className="map-loading">Loading the Houston map…</div>}>
               <Globe
                 roads={HOUSTON_ROADS}
                 track={s.track}
@@ -285,9 +270,7 @@ export function App() {
                 cameraRevision={s.cameraRevision}
                 showRoads={layers.roads}
                 showFlood={layers.hazard}
-                countyPredictions={
-                  layers.outages ? evaluation.predictions : undefined
-                }
+                countyPredictions={layers.outages ? evaluation.predictions : undefined}
                 baselineTrack={BASELINE.track}
                 baselineFloodCenter={BASELINE.floodCenter}
                 baselineFloodRadiusKm={base.currentFloodRadiusKm}
@@ -308,7 +291,7 @@ export function App() {
                     value={s.bookmark}
                     onChange={(e) => s.flyTo(e.target.value as BookmarkId)}
                   >
-                    {Object.entries(locations).map(([id, name]) => (
+                    {Object.entries(HOUSTON_BOOKMARKS).map(([id, { label: name }]) => (
                       <option key={id} value={id}>
                         {name}
                       </option>
@@ -346,10 +329,7 @@ export function App() {
                 {hurricane ? "Hypothetical storm track" : fallbackText}
               </div>
               <div className="legend-container">
-                <button
-                  aria-expanded={legend}
-                  onClick={() => setLegend(!legend)}
-                >
+                <button aria-expanded={legend} onClick={() => setLegend(!legend)}>
                   <Icon name="layers" size={14} />
                   Legend
                   <Icon name="down" size={12} />
@@ -358,9 +338,7 @@ export function App() {
                   <div className="legend-body">
                     <span>
                       <i className="line-key hazard" />
-                      {hurricane
-                        ? "Manual track · 6 km inspection radius"
-                        : fallbackText}
+                      {hurricane ? "Manual track · 6 km inspection radius" : fallbackText}
                     </span>
                     <span>
                       <i className="line-key road" />
@@ -423,14 +401,14 @@ export function App() {
             <span className="compare-count">
               Connected components{" "}
               <b>
-                {base.network.connectedComponents} →{" "}
-                {current.network.connectedComponents}
+                {base.network.connectedComponents} → {current.network.connectedComponents}
               </b>
             </span>
             <span aria-hidden="true">↗</span>
           </button>
         </div>
         <aside
+          ref={evidencePane}
           className={`inspector-slot ${drawer === "evidence" ? "drawer-open" : ""}`}
           aria-label="Evidence"
         >
@@ -456,27 +434,19 @@ export function App() {
           ) : countyOpen ? (
             <div className="notebook">
               <CountyEvidence evaluation={evaluation} serviceStatus={countyStatus} />
-              <button
-                className="closure-button"
-                onClick={() => setCountyOpen(false)}
-              >
+              <button className="closure-button" onClick={() => setCountyOpen(false)}>
                 Return to road inspector
               </button>
             </div>
           ) : (
-            <RoadInspector
-              current={current}
-              onSources={() => setSources(true)}
-            />
+            <RoadInspector current={current} onSources={() => setSources(true)} />
           )}
         </aside>
       </main>
       <footer className="command-base">
         <CommandBar
           scenario={scenario}
-          getCurrentScenario={() =>
-            makeScenario(useAtlasStore.getState().version)
-          }
+          getCurrentScenario={() => makeScenario(useAtlasStore.getState().version)}
           capabilities={{
             presetEventIds: [],
             overlayIds: ["roads", "hazard", "outages"],
