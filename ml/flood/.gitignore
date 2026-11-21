@@ -1,0 +1,5 @@
+artifacts/*
+!artifacts/evaluation_report.md
+!artifacts/flood_model_metadata.json
+!artifacts/flood_model_metadata_v2.json
+!artifacts/*.sha256

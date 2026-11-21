@@ -30,3 +30,6 @@ ml/artifacts/*
 *.pt
 *.pth
 *.log
+
+# Isolated flood-training environment
+.venv-flood/

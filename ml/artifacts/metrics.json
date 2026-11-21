@@ -1,0 +1,636 @@
+{
+ "test": {
+  "split": "test",
+  "houston": {
+   "model": {
+    "n": 13479,
+    "mae": 3477.503,
+    "median_ae": 71.6258,
+    "p90_ae": 1073.8122,
+    "mae_log1p": 1.9345,
+    "within_factor_2": 0.2626,
+    "median_signed_error": -52.9392,
+    "interval_coverage": 0.6664
+   },
+   "global_median": {
+    "n": 13479,
+    "mae": 3506.6263,
+    "median_ae": 83.75,
+    "p90_ae": 1220.575,
+    "mae_log1p": 2.5588,
+    "within_factor_2": 0.1336,
+    "median_signed_error": -83.75
+   },
+   "warning_type_median": {
+    "n": 13479,
+    "mae": 3506.3254,
+    "median_ae": 83.5938,
+    "p90_ae": 1219.9688,
+    "mae_log1p": 2.597,
+    "within_factor_2": 0.1338,
+    "median_signed_error": -83.5938
+   },
+   "county_median": {
+    "n": 13479,
+    "mae": 3485.7788,
+    "median_ae": 78.5,
+    "p90_ae": 1125.425,
+    "mae_log1p": 2.4158,
+    "within_factor_2": 0.1736,
+    "median_signed_error": -67.625
+   },
+   "county_x_warning_median": {
+    "n": 13479,
+    "mae": 3486.618,
+    "median_ae": 79.25,
+    "p90_ae": 1117.2688,
+    "mae_log1p": 2.4157,
+    "within_factor_2": 0.1745,
+    "median_signed_error": -66.4688
+   }
+  },
+  "houston_excluding_largest_episode": {
+   "excluded_episode": "ep-20210211-15",
+   "model": {
+    "n": 12027,
+    "mae": 239.4606,
+    "median_ae": 60.9001,
+    "p90_ae": 517.3753,
+    "mae_log1p": 1.6143,
+    "within_factor_2": 0.2788,
+    "median_signed_error": -42.2169,
+    "interval_coverage": 0.7136
+   },
+   "global_median": {
+    "n": 12027,
+    "mae": 267.1939,
+    "median_ae": 70.3125,
+    "p90_ae": 606.7625,
+    "mae_log1p": 2.2306,
+    "within_factor_2": 0.1413,
+    "median_signed_error": -70.3125
+   },
+   "warning_type_median": {
+    "n": 12027,
+    "mae": 267.0051,
+    "median_ae": 70.1875,
+    "p90_ae": 606.1687,
+    "mae_log1p": 2.2875,
+    "within_factor_2": 0.142,
+    "median_signed_error": -70.1875
+   },
+   "county_median": {
+    "n": 12027,
+    "mae": 247.7016,
+    "median_ae": 66.8125,
+    "p90_ae": 526.625,
+    "mae_log1p": 2.0909,
+    "within_factor_2": 0.1831,
+    "median_signed_error": -56.375
+   },
+   "county_x_warning_median": {
+    "n": 12027,
+    "mae": 250.3311,
+    "median_ae": 67.625,
+    "p90_ae": 538.4875,
+    "mae_log1p": 2.0987,
+    "within_factor_2": 0.1873,
+    "median_signed_error": -55.5
+   }
+  },
+  "houston_full_source_records": {
+   "model": {
+    "n": 10909,
+    "mae": 4234.6834,
+    "median_ae": 104.6797,
+    "p90_ae": 1486.9318,
+    "mae_log1p": 2.1023,
+    "within_factor_2": 0.2177,
+    "median_signed_error": -83.0483,
+    "interval_coverage": 0.6481
+   },
+   "global_median": {
+    "n": 10909,
+    "mae": 4270.1374,
+    "median_ae": 125.0,
+    "p90_ae": 1613.1,
+    "mae_log1p": 2.8034,
+    "within_factor_2": 0.1096,
+    "median_signed_error": -125.0
+   },
+   "warning_type_median": {
+    "n": 10909,
+    "mae": 4269.6517,
+    "median_ae": 125.0625,
+    "p90_ae": 1611.9688,
+    "mae_log1p": 2.8466,
+    "within_factor_2": 0.108,
+    "median_signed_error": -125.0625
+   },
+   "county_median": {
+    "n": 10909,
+    "mae": 4244.4867,
+    "median_ae": 113.75,
+    "p90_ae": 1515.7625,
+    "mae_log1p": 2.6407,
+    "within_factor_2": 0.1483,
+    "median_signed_error": -100.9375
+   },
+   "county_x_warning_median": {
+    "n": 10909,
+    "mae": 4245.3374,
+    "median_ae": 114.875,
+    "p90_ae": 1506.8625,
+    "mae_log1p": 2.6358,
+    "within_factor_2": 0.1438,
+    "median_signed_error": -98.875
+   }
+  },
+  "by_county": [
+   {
+    "countyFips": "48339",
+    "county": "Montgomery",
+    "n": 1075,
+    "model_mae": 3960.8558,
+    "model_mae_log1p": 1.5375,
+    "baseline_mae": 3974.7191,
+    "baseline_mae_log1p": 1.8467
+   },
+   {
+    "countyFips": "48039",
+    "county": "Brazoria",
+    "n": 1066,
+    "model_mae": 7801.0225,
+    "model_mae_log1p": 2.5426,
+    "baseline_mae": 7816.6479,
+    "baseline_mae_log1p": 3.1189
+   },
+   {
+    "countyFips": "48291",
+    "county": "Liberty",
+    "n": 1065,
+    "model_mae": 797.1967,
+    "model_mae_log1p": 1.577,
+    "baseline_mae": 813.9106,
+    "baseline_mae_log1p": 2.1925
+   },
+   {
+    "countyFips": "48167",
+    "county": "Galveston",
+    "n": 1062,
+    "model_mae": 5140.8789,
+    "model_mae_log1p": 1.9012,
+    "baseline_mae": 5145.5056,
+    "baseline_mae_log1p": 2.2029
+   },
+   {
+    "countyFips": "48473",
+    "county": "Waller",
+    "n": 1053,
+    "model_mae": 2514.378,
+    "model_mae_log1p": 2.6576,
+    "baseline_mae": 2518.5654,
+    "baseline_mae_log1p": 3.2556
+   },
+   {
+    "countyFips": "48071",
+    "county": "Chambers",
+    "n": 1051,
+    "model_mae": 904.8228,
+    "model_mae_log1p": 1.7835,
+    "baseline_mae": 909.4272,
+    "baseline_mae_log1p": 2.3879
+   },
+   {
+    "countyFips": "48201",
+    "county": "Harris",
+    "n": 1041,
+    "model_mae": 12219.8638,
+    "model_mae_log1p": 1.1436,
+    "baseline_mae": 12246.3377,
+    "baseline_mae_log1p": 1.3321
+   },
+   {
+    "countyFips": "48157",
+    "county": "Fort Bend",
+    "n": 1033,
+    "model_mae": 4263.983,
+    "model_mae_log1p": 2.0197,
+    "baseline_mae": 4272.7208,
+    "baseline_mae_log1p": 2.2087
+   },
+   {
+    "countyFips": "48015",
+    "county": "Austin",
+    "n": 1032,
+    "model_mae": 1913.4604,
+    "model_mae_log1p": 2.481,
+    "baseline_mae": 1918.344,
+    "baseline_mae_log1p": 3.2734
+   },
+   {
+    "countyFips": "48481",
+    "county": "Wharton",
+    "n": 1031,
+    "model_mae": 3106.0166,
+    "model_mae_log1p": 2.8366,
+    "baseline_mae": 3111.2791,
+    "baseline_mae_log1p": 3.5349
+   },
+   {
+    "countyFips": "48089",
+    "county": "Colorado",
+    "n": 1025,
+    "model_mae": 975.9962,
+    "model_mae_log1p": 1.8247,
+    "baseline_mae": 978.8603,
+    "baseline_mae_log1p": 2.3363
+   },
+   {
+    "countyFips": "48321",
+    "county": "Matagorda",
+    "n": 1018,
+    "model_mae": 672.0859,
+    "model_mae_log1p": 1.2939,
+    "baseline_mae": 680.6837,
+    "baseline_mae_log1p": 1.8435
+   },
+   {
+    "countyFips": "48471",
+    "county": "Walker",
+    "n": 927,
+    "model_mae": 436.9678,
+    "model_mae_log1p": 1.5004,
+    "baseline_mae": 437.6149,
+    "baseline_mae_log1p": 1.8094
+   }
+  ],
+  "top_episodes": [
+   {
+    "episode": "ep-20210211-15",
+    "start": "2021-02-11 15:00:00+00:00",
+    "warnings": "HZ;WC;WS;WW",
+    "n": 1452,
+    "observed_peak": 359049.3125,
+    "predicted_at_peak_hour": 487.88362195346326,
+    "interval_at_peak_hour": [
+     23.45993471978358,
+     1444.1172079045482
+    ],
+    "model_mae": 30298.3949,
+    "baseline_mae": 30292.9692
+   },
+   {
+    "episode": "ep-20221025-00",
+    "start": "2022-10-25 00:00:00+00:00",
+    "warnings": "SV;TO",
+    "n": 116,
+    "observed_peak": 21080.75,
+    "predicted_at_peak_hour": 718.5230616114967,
+    "interval_at_peak_hour": [
+     24.29688219579761,
+     5672.181128555162
+    ],
+    "model_mae": 1864.5424,
+    "baseline_mae": 1851.4916
+   },
+   {
+    "episode": "ep-20220810-23",
+    "start": "2022-08-10 23:00:00+00:00",
+    "warnings": "SV;TO",
+    "n": 39,
+    "observed_peak": 20075.9375,
+    "predicted_at_peak_hour": 702.8879350171455,
+    "interval_at_peak_hour": [
+     26.198789309027404,
+     4335.453289004958
+    ],
+    "model_mae": 3160.0534,
+    "baseline_mae": 3201.6378
+   },
+   {
+    "episode": "ep-20210518-19",
+    "start": "2021-05-18 19:00:00+00:00",
+    "warnings": "SV;TO",
+    "n": 182,
+    "observed_peak": 15383.4375,
+    "predicted_at_peak_hour": 699.0212334974944,
+    "interval_at_peak_hour": [
+     26.198789309027404,
+     4230.510333772266
+    ],
+    "model_mae": 1642.0452,
+    "baseline_mae": 1676.5203
+   },
+   {
+    "episode": "ep-20211027-13",
+    "start": "2021-10-27 13:00:00+00:00",
+    "warnings": "SV;TO;WI",
+    "n": 169,
+    "observed_peak": 9725.9375,
+    "predicted_at_peak_hour": 697.3174496084739,
+    "interval_at_peak_hour": [
+     26.198789309027404,
+     4134.174910026939
+    ],
+    "model_mae": 946.814,
+    "baseline_mae": 982.1744
+   },
+   {
+    "episode": "ep-20210912-15",
+    "start": "2021-09-12 15:00:00+00:00",
+    "warnings": "HU;TR",
+    "n": 459,
+    "observed_peak": 9425.5625,
+    "predicted_at_peak_hour": 12.1795477444789,
+    "interval_at_peak_hour": [
+     2.6276798735782307,
+     62.523102976704415
+    ],
+    "model_mae": 268.4715,
+    "baseline_mae": 273.2496
+   },
+   {
+    "episode": "ep-20220708-15",
+    "start": "2022-07-08 15:00:00+00:00",
+    "warnings": "EH;HT;SV",
+    "n": 1656,
+    "observed_peak": 6104.75,
+    "predicted_at_peak_hour": 503.3057127853659,
+    "interval_at_peak_hour": [
+     25.56185042739687,
+     1766.805222935374
+    ],
+    "model_mae": 274.0921,
+    "baseline_mae": 279.0095
+   },
+   {
+    "episode": "ep-20220108-20",
+    "start": "2022-01-08 20:00:00+00:00",
+    "warnings": "SV;TO",
+    "n": 182,
+    "observed_peak": 5924.875,
+    "predicted_at_peak_hour": 771.6704436798162,
+    "interval_at_peak_hour": [
+     24.404386292684745,
+     4782.324444116565
+    ],
+    "model_mae": 582.9649,
+    "baseline_mae": 664.5874
+   }
+  ],
+  "failure_cases": [
+   {
+    "hour": "2021-02-17 08:00:00+00:00",
+    "county": "Harris",
+    "warnings": "WS",
+    "observed": 359049.3,
+    "predicted": 487.9,
+    "interval": [
+     23.5,
+     1444.1
+    ],
+    "source_completeness_pct": 100.0
+   },
+   {
+    "hour": "2022-10-25 08:00:00+00:00",
+    "county": "Harris",
+    "warnings": "SV",
+    "observed": 21080.8,
+    "predicted": 718.5,
+    "interval": [
+     24.3,
+     5672.2
+    ],
+    "source_completeness_pct": 100.0
+   },
+   {
+    "hour": "2022-08-11 01:00:00+00:00",
+    "county": "Harris",
+    "warnings": "SV",
+    "observed": 20075.9,
+    "predicted": 702.9,
+    "interval": [
+     26.2,
+     4335.5
+    ],
+    "source_completeness_pct": 100.0
+   },
+   {
+    "hour": "2021-05-19 06:00:00+00:00",
+    "county": "Harris",
+    "warnings": "SV",
+    "observed": 15383.4,
+    "predicted": 699.0,
+    "interval": [
+     26.2,
+     4230.5
+    ],
+    "source_completeness_pct": 100.0
+   },
+   {
+    "hour": "2021-09-14 03:00:00+00:00",
+    "county": "Matagorda",
+    "warnings": "HU;TR",
+    "observed": 9425.6,
+    "predicted": 12.2,
+    "interval": [
+     2.6,
+     62.5
+    ],
+    "source_completeness_pct": 100.0
+   }
+  ]
+ },
+ "selection": {
+  "geography_candidates": {
+   "gulf_coast": {
+    "n_train_rows": 35440,
+    "fit_seconds": 2.1,
+    "val_houston": {
+     "n": 6345,
+     "mae": 189.635,
+     "median_ae": 11.6849,
+     "p90_ae": 300.6617,
+     "mae_log1p": 1.1121,
+     "within_factor_2": 0.4258,
+     "median_signed_error": 0.2043
+    }
+   },
+   "texas": {
+    "n_train_rows": 201385,
+    "fit_seconds": 6.6,
+    "val_houston": {
+     "n": 6345,
+     "mae": 185.6062,
+     "median_ae": 11.0843,
+     "p90_ae": 266.2219,
+     "mae_log1p": 1.0941,
+     "within_factor_2": 0.4361,
+     "median_signed_error": 0.1858
+    }
+   },
+   "conus": {
+    "n_train_rows": 1199936,
+    "fit_seconds": 23.6,
+    "val_houston": {
+     "n": 6345,
+     "mae": 184.4139,
+     "median_ae": 10.8473,
+     "p90_ae": 271.3758,
+     "mae_log1p": 1.069,
+     "within_factor_2": 0.4467,
+     "median_signed_error": 0.0823
+    }
+   }
+  },
+  "chosen_geography": "conus",
+  "grid": [
+   {
+    "params": {
+     "max_iter": 300,
+     "max_leaf_nodes": 31,
+     "min_samples_leaf": 40
+    },
+    "val_houston": {
+     "n": 6345,
+     "mae": 184.6632,
+     "median_ae": 11.2657,
+     "p90_ae": 274.0526,
+     "mae_log1p": 1.0714,
+     "within_factor_2": 0.446,
+     "median_signed_error": 0.1293
+    }
+   },
+   {
+    "params": {
+     "max_iter": 300,
+     "max_leaf_nodes": 31,
+     "min_samples_leaf": 200
+    },
+    "val_houston": {
+     "n": 6345,
+     "mae": 184.5622,
+     "median_ae": 11.1748,
+     "p90_ae": 275.6803,
+     "mae_log1p": 1.0704,
+     "within_factor_2": 0.4479,
+     "median_signed_error": 0.1344
+    }
+   },
+   {
+    "params": {
+     "max_iter": 300,
+     "max_leaf_nodes": 63,
+     "min_samples_leaf": 40
+    },
+    "val_houston": {
+     "n": 6345,
+     "mae": 184.5157,
+     "median_ae": 10.9782,
+     "p90_ae": 279.5671,
+     "mae_log1p": 1.0704,
+     "within_factor_2": 0.4493,
+     "median_signed_error": 0.1297
+    }
+   },
+   {
+    "params": {
+     "max_iter": 300,
+     "max_leaf_nodes": 63,
+     "min_samples_leaf": 200
+    },
+    "val_houston": {
+     "n": 6345,
+     "mae": 184.8388,
+     "median_ae": 10.9289,
+     "p90_ae": 276.1749,
+     "mae_log1p": 1.0698,
+     "within_factor_2": 0.4484,
+     "median_signed_error": 0.1407
+    }
+   },
+   {
+    "params": {
+     "max_iter": 700,
+     "max_leaf_nodes": 31,
+     "min_samples_leaf": 40
+    },
+    "val_houston": {
+     "n": 6345,
+     "mae": 184.0779,
+     "median_ae": 11.0676,
+     "p90_ae": 272.5271,
+     "mae_log1p": 1.0698,
+     "within_factor_2": 0.4478,
+     "median_signed_error": 0.1014
+    }
+   },
+   {
+    "params": {
+     "max_iter": 700,
+     "max_leaf_nodes": 31,
+     "min_samples_leaf": 200
+    },
+    "val_houston": {
+     "n": 6345,
+     "mae": 184.1592,
+     "median_ae": 11.1501,
+     "p90_ae": 273.379,
+     "mae_log1p": 1.0678,
+     "within_factor_2": 0.4493,
+     "median_signed_error": 0.1031
+    }
+   },
+   {
+    "params": {
+     "max_iter": 700,
+     "max_leaf_nodes": 63,
+     "min_samples_leaf": 40
+    },
+    "val_houston": {
+     "n": 6345,
+     "mae": 184.4925,
+     "median_ae": 10.7568,
+     "p90_ae": 276.2441,
+     "mae_log1p": 1.0713,
+     "within_factor_2": 0.4512,
+     "median_signed_error": 0.1066
+    }
+   },
+   {
+    "params": {
+     "max_iter": 700,
+     "max_leaf_nodes": 63,
+     "min_samples_leaf": 200
+    },
+    "val_houston": {
+     "n": 6345,
+     "mae": 184.5475,
+     "median_ae": 10.7107,
+     "p90_ae": 273.7434,
+     "mae_log1p": 1.0696,
+     "within_factor_2": 0.4512,
+     "median_signed_error": 0.0954
+    }
+   }
+  ],
+  "chosen_params": {
+   "learning_rate": 0.06,
+   "max_iter": 700,
+   "max_leaf_nodes": 31,
+   "min_samples_leaf": 200,
+   "l2_regularization": 1.0
+  },
+  "criterion": "Houston validation MAE on log1p"
+ },
+ "texas_context": {
+  "n": 143546,
+  "mae": 422.6477,
+  "median_ae": 3.3081,
+  "p90_ae": 202.1085,
+  "mae_log1p": 1.1154,
+  "within_factor_2": 0.5291,
+  "median_signed_error": -0.0058
+ }
+}
