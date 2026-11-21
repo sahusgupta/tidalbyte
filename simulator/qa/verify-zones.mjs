@@ -10,14 +10,13 @@ import { WebMercatorViewport } from '@math.gl/web-mercator'
 const atlas = process.env.QA_ATLAS_URL ?? 'http://127.0.0.1:5173/'
 const simulator = process.env.QA_SIMULATOR_URL ?? 'http://127.0.0.1:5174/'
 const output = process.env.QA_OUTPUT_DIR ?? join(tmpdir(), `earthlab-zone-qa-${Date.now()}`)
-const zones = (process.env.QA_ZONES ?? 'medical-center-brays,meyerland,ship-channel,kingwood-lake-houston').split(',').filter(Boolean)
+const zones = (process.env.QA_ZONES ?? 'downtown-buffalo-bayou,medical-center-brays,meyerland,ship-channel,kingwood-lake-houston').split(',').filter(Boolean)
 const viewports = (process.env.QA_VIEWPORTS ?? 'desktop,mobile').split(',').map(name => {
   assert.ok(['desktop', 'mobile'].includes(name), `Unknown viewport: ${name}`)
   return { name, width: name === 'desktop' ? 1440 : 390, height: name === 'desktop' ? 900 : 844 }
 })
 const suppliedPins = JSON.parse(await readFile(process.env.QA_PINS_FILE ?? new URL('./verified-pins.json', import.meta.url), 'utf8'))
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms))
-const escape = text => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 const inBounds = (point, bbox) => point[0] >= bbox[0] && point[0] <= bbox[2] && point[1] >= bbox[1] && point[1] <= bbox[3]
 async function json(url, init) {
   const response = await fetch(url, { signal: AbortSignal.timeout(90_000), ...init })
@@ -52,6 +51,22 @@ async function choosePin(region, meta) {
   return { point: supplied.lonlat, hospital, vehicle: supplied.vehicle, expectedRoute: result.route.status, routePreset: supplied.routePreset }
 }
 async function tap(page, locator, mobile) { if (mobile) await locator.tap(); else await locator.click() }
+// A visible canvas can still be an empty basemap. Observe deck.gl's actual
+// instanced draw for the sides of elevated polygons on its WebGL canvas.
+function observeBuildingDraw() {
+  if (window.top === window || !window.WebGL2RenderingContext) return
+  const proto = WebGL2RenderingContext.prototype
+  const draw = proto.drawArraysInstanced
+  proto.drawArraysInstanced = function (mode, first, count, instances) {
+    draw.call(this, mode, first, count, instances)
+    if (this.canvas.id !== 'deckgl-overlay' || mode !== this.TRIANGLE_STRIP || count !== 4 || instances <= 0) return
+    const program = this.getParameter(this.CURRENT_PROGRAM)
+    if (program && this.getAttribLocation(program, 'elevations') >= 0 && this.getAttribLocation(program, 'nextVertexPositions') >= 0) {
+      window.__earthlabBuildingSides = instances
+      proto.drawArraysInstanced = draw
+    }
+  }
+}
 async function pickOnMap(page, context, location, mobile) {
   if (!mobile) {
     await page.mouse.move(location.x, location.y)
@@ -95,9 +110,11 @@ for (const id of zones) {
     })
     const browser = await chromium.connect(server.wsEndpoint())
     const context = await browser.newContext({ viewport: { width: viewport.width, height: viewport.height }, hasTouch: mobile, isMobile: mobile, deviceScaleFactor: 1, reducedMotion: 'reduce' })
+    await context.addInitScript(observeBuildingDraw)
     const page = await context.newPage()
     page.setDefaultTimeout(30_000)
     const errors = [], requests = [], responses = [], wrongRegions = [], pending = new Set(), blockedRemote = []
+    const regionAssets = new Set()
     const report = { id, viewport, input: mobile ? 'emulated touch; not a physical phone' : 'desktop mouse', hospital: { id: pin.hospital.id, name: pin.hospital.name, note: pin.hospital.note ?? 'No provenance note supplied by API', suppliedProvenance: suppliedPins[id]?.hospitalProvenance ?? null }, pin: pin.point, model: { model: meta.model.model, teacher: meta.model.teacher }, counts: meta.counts, status: 'failed' }
     const step = name => { report.step = name; console.log(`STEP ${label}: ${name}`) }
     page.on('pageerror', error => errors.push(error.message))
@@ -105,9 +122,13 @@ for (const id of zones) {
       if (new URL(request.url()).pathname.match(/^\/api\/regions\/[^/]+\/simulate$/)) requests.push(request.postDataJSON())
     })
     page.on('response', response => {
-      const match = new URL(response.url()).pathname.match(/^\/api\/regions\/([^/]+)\/simulate$/)
+      const match = new URL(response.url()).pathname.match(/^\/api\/regions\/([^/]+)\/(meta|roads|buildings|simulate)$/)
       if (!match) return
       if (match[1] !== id) wrongRegions.push(match[1])
+      if (match[2] !== 'simulate') {
+        if (response.ok()) regionAssets.add(match[2])
+        return
+      }
       const task = response.json().then(result => {
         assert.equal(response.status(), 200, `Simulation HTTP ${response.status()}: ${JSON.stringify(result)}`)
         responses.push(summary(result, response.request().postDataJSON()))
@@ -120,24 +141,28 @@ for (const id of zones) {
       else { blockedRemote.push(url.origin); route.abort() }
     })
     try {
-      step('atlas-study-earth-zone')
+      step('product-landing-area-simulator')
       await page.goto(atlas, { waitUntil: 'domcontentloaded' })
-      await tap(page, page.getByRole('button', { name: 'Open study menu', exact: true }), mobile)
-      await tap(page, page.getByRole('button', { name: 'Open Earth view', exact: true }), mobile)
-      await page.waitForURL(url => url.hash === '#/earth')
-      const name = meta.region.name.replace(/^Houston:\s*/, '')
-      await tap(page, page.getByRole('button', { name: `Open ${name}`, exact: true }), mobile)
+      await tap(page, page.getByRole('link', { name: 'Open EarthLab', exact: true }), mobile)
+      await page.waitForURL(url => url.hash === '#/simulate')
+      const areas = page.getByRole('navigation', { name: 'Houston simulation areas' })
+      await tap(page, areas.locator(`a[href="#/zone/${id}"]`), mobile)
       await page.waitForURL(url => url.hash === `#/zone/${id}`, { timeout: 60_000 })
       const iframe = page.locator('.sim iframe')
       await iframe.waitFor()
       const frame = page.frameLocator('.sim iframe')
       await frame.locator('.sim-map').waitFor({ timeout: 90_000 })
-      assert.match(await frame.locator('.sim-map').getAttribute('aria-label'), new RegExp(escape(meta.region.name)))
-      report.renderedRegion = { name: meta.region.name, label: await frame.locator('.sim-map').getAttribute('aria-label'), frameUrl: await iframe.getAttribute('src') }
+      const regionName = meta.region.name.replace(/^Houston:\s*/, '')
+      await page.getByRole('heading', { name: regionName, exact: true }).waitFor()
+      report.renderedRegion = { name: regionName, mapLabel: await frame.locator('.sim-map').getAttribute('aria-label'), frameUrl: await iframe.getAttribute('src') }
       assert.equal(new URL(await iframe.getAttribute('src')).searchParams.get('zone'), id)
       assert.equal(await frame.locator('.sim-zone-note').count(), 0, 'Fallback notice appeared')
       await until(() => responses.length > 0, 'Initial model response missing')
+      assert.deepEqual([...regionAssets].sort(), ['buildings', 'meta', 'roads'], 'Selected region assets missing')
       await frame.locator('.sim-map canvas').first().waitFor()
+      const regionFrame = await (await iframe.elementHandle()).contentFrame()
+      const sideDraw = await regionFrame.waitForFunction(() => window.__earthlabBuildingSides > 0 && window.__earthlabBuildingSides)
+      report.buildingWallInstances = await sideDraw.jsonValue()
       report.renderer = await frame.locator('.sim-map').evaluate(element => {
         const canvas = element.querySelector('#deckgl-overlay')
         const gl = canvas?.getContext('webgl2') ?? canvas?.getContext('webgl')

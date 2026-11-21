@@ -10,8 +10,9 @@ npm run verify
 ```
 
 The default target is atlas `http://127.0.0.1:5173/` and simulator/proxy
-`http://127.0.0.1:5174/`. All four additional regions must advertise `built: true`:
-Medical Center/Brays, Meyerland, Ship Channel/Pasadena and Kingwood/Lake Houston.
+`http://127.0.0.1:5174/`. All five Houston regions must advertise `built: true`,
+including Downtown/Buffalo Bayou, Medical Center/Brays, Meyerland,
+Ship Channel/Pasadena and Kingwood/Lake Houston.
 An unprepared region fails immediately; a fallback region cannot pass.
 
 The harness uses installed Windows Chrome when available. Otherwise install
@@ -20,9 +21,10 @@ to an existing Chrome executable. Node 20+ is required. Dependencies are pinned 
 the package lock; this package is separate from production frontend dependencies.
 
 For each region, desktop (1440×900) and **emulated touch** (390×844) runs navigate
-the actual atlas Study menu → Earth → zone. The checks require the rendered map's
-accessible name, iframe zone and simulation endpoint to match the requested region,
-with no fallback notice. They select a storm through the UI, play it, and require
+the product landing page via **Open EarthLab**, then the Houston area chooser. The checks require the region heading,
+iframe zone, road and building datasets, and simulation endpoint to match the requested region,
+with no fallback notice. A WebGL probe requires the building layer to draw extruded
+walls in the selected region. The checks select a storm through the UI, play it, and require
 different hashes of the returned road/building depth arrays across playback frames.
 They then choose a mild preset, select a destination and vehicle, and click/tap an
 in-bounds starting pin in the actual region camera view (zooming out if needed). A passing route has

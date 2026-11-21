@@ -1,5 +1,5 @@
-import { memo, useEffect, useMemo, useRef, useState } from 'react'
-import DeckGL from '@deck.gl/react'
+import { memo, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
+import DeckGL, { type DeckGLRef } from '@deck.gl/react'
 import {
   BitmapLayer,
   IconLayer,
@@ -132,6 +132,55 @@ function pointAlong(coords: LonLat[], cum: number[], f: number): LonLat {
 }
 
 function MapView({ meta, roads, buildings, result, buildingMode, showWater, storm, onPick }: Props) {
+  const deckRef = useRef<DeckGLRef>(null)
+  const pointers = useRef(new Set<number>())
+  const groundTap = useRef<{ id: number; x: number; y: number } | null>(null)
+
+  useEffect(() => {
+    const release = (event: PointerEvent) => {
+      pointers.current.delete(event.pointerId)
+      if (groundTap.current?.id === event.pointerId) groundTap.current = null
+    }
+    const reset = () => {
+      pointers.current.clear()
+      groundTap.current = null
+    }
+    window.addEventListener('pointerup', release)
+    window.addEventListener('pointercancel', release)
+    window.addEventListener('blur', reset)
+    return () => {
+      window.removeEventListener('pointerup', release)
+      window.removeEventListener('pointercancel', release)
+      window.removeEventListener('blur', reset)
+    }
+  }, [])
+
+  const startGroundTap = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!(event.target instanceof Element) || event.target.closest('button,a,input,select,.maplibregl-control-container')) return
+    pointers.current.add(event.pointerId)
+    groundTap.current = pointers.current.size === 1 && event.isPrimary && event.button === 0
+      ? { id: event.pointerId, x: event.clientX, y: event.clientY }
+      : null
+  }
+  const moveGroundTap = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const tap = groundTap.current
+    if (tap?.id === event.pointerId && Math.hypot(event.clientX - tap.x, event.clientY - tap.y) > 6) groundTap.current = null
+  }
+  const finishGroundTap = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const tap = groundTap.current
+    pointers.current.delete(event.pointerId)
+    groundTap.current = null
+    if (!tap || tap.id !== event.pointerId || pointers.current.size || Math.hypot(event.clientX - tap.x, event.clientY - tap.y) > 6) return
+    const bounds = event.currentTarget.getBoundingClientRect()
+    const x = event.clientX - bounds.left
+    const y = event.clientY - bounds.top
+    const viewport = deckRef.current?.deck?.getViewports({ x, y })[0]
+    if (!viewport) return
+    // Route pins belong on the ground even when the user taps the roof of a building.
+    const [lon, lat] = viewport.unproject([x - viewport.x, y - viewport.y], { targetZ: 0 })
+    if (Number.isFinite(lon) && Number.isFinite(lat)) onPick([lon, lat])
+  }
+
   const [view, setView] = useState<ViewState>(meta.region.view)
   const [viewOptions, setViewOptions] = useState(false)
   const [imageryWarning, setImageryWarning] = useState(false)

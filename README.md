@@ -1,9 +1,8 @@
 # EarthLab
 
-EarthLab opens on the Houston Disaster Atlas. Draw a hypothetical hurricane track
-or flood footprint, inspect a sample road, and compare the connectivity of the
-edited network with its baseline. The local demo needs no keys. County outage
-values come from a labeled fixture until a trained model is connected.
+EarthLab opens on a guided introduction to Houston. Choose an area to explore
+modeled flood depths on roads and 3D buildings, play a storm, or trace a
+hypothetical route to a hospital. All five areas use the AquaGrid simulator.
 
 ## Run locally
 
@@ -31,41 +30,46 @@ Install Python dependencies using the matching platform command:
 .venv/bin/python -m pip install -r requirements.lock
 ```
 
-Then start both services from the repository root:
+To serve AquaGrid locally, complete the [simulator setup](simulator/README.md)
+to install its frontend and Python dependencies. Prepare the regional data with
+`python -m aquagrid.prepare_zones` from `simulator/backend` using the simulator
+Python environment. Alternatively, point to a hosted AquaGrid map using
+`VITE_SIMULATOR_URL`. Start the product from the repository root:
 
 ```sh
 pnpm dev
 ```
 
-Open [the console](http://127.0.0.1:5173/) and [API docs](http://127.0.0.1:8000/docs).
-`pnpm dev` selects the repository's `.venv` automatically. Web only:
-`pnpm --filter web dev`; API only: `pnpm dev:api`.
-No `.env` or provider credentials are required for this scaffold. To change local
-configuration, copy `.env.example` to `.env`; Vite reads root frontend variables.
-For API environment overrides, export variables in the launching shell (the API
-also accepts the documented Uvicorn `--env-file .env` option if python-dotenv is
-installed separately). Server secrets must never use the `VITE_` prefix.
+Open [EarthLab](http://127.0.0.1:5173/), follow **Explore Houston**, and select
+**Open EarthLab** to choose an area. You can also go directly to the
+[five-area chooser](http://127.0.0.1:5173/#/simulate).
+`pnpm dev` and `pnpm dev:integrated` run the same local stack.
 
-## Try the atlas
+| Local service | Address |
+| --- | --- |
+| EarthLab product site | http://127.0.0.1:5173 |
+| EarthLab planning API | http://127.0.0.1:8000/docs |
+| AquaGrid 3D map | http://127.0.0.1:5174 |
+| AquaGrid region catalog | http://127.0.0.1:8001/api/regions |
 
-1. Select a road on the map to inspect its source and intersection with the scenario. Choose **Gulf approach** to edit the storm, then play or scrub the timeline.
-2. Open **Compare** to inspect the local sketch. Expand **Infrastructure network** for interventions, connectivity and the two-agency protection game on its own illustrative graph.
-3. Choose **Ask the atlas** to type a request or review a recording transcript. Review the proposed action before applying it. Without provider keys, the API labels its built-in command interpreter and fixed sample transcript.
-4. The **Study menu** opens the Downtown **Flood simulator** or the **Earth view** with all five Houston study zones.
-5. Choose **Study menu → Resource planning** for the mitigation and response scenarios. Adjust shared resources and agency preferences, compare the three strategies, then inspect the selected links on the atlas. **Before**, **After** and the play control show when each modeled action takes effect. Run both reference cases from a terminal with `pnpm demo:allocation`. See the [planning and regional verification handoff](docs/handoffs/houston-resource-planning.md).
+For a hosted AquaGrid map, set `VITE_SIMULATOR_URL` to its frontend URL before
+starting EarthLab. The launcher then starts only the product site and EarthLab
+API. To use the local map with an existing AquaGrid backend, set `AQUAGRID_API`
+to its origin. The launcher reads these settings from the shell or a root
+`.env.local` file. With no overrides it starts all four services. Local simulation
+requires no provider credentials. Keep server secrets out of `VITE_*` variables.
 
-### Run the atlas and flood simulator together
+## Try a simulation
 
-Complete the [simulator setup](simulator/README.md), then run `pnpm dev:integrated` from the repository root. This starts the atlas at [port 5173](http://127.0.0.1:5173), its API at 8000, the flood map at [port 5174](http://127.0.0.1:5174), and AquaGrid at 8001. Each frontend talks to its own API. Prepared regional data and a trained AquaGrid artifact enable flood depths, impacts and modeled hospital routes. The county example and illustrative graph run independently with `pnpm dev`.
+1. Choose a Houston area. Its street and building map opens inside EarthLab.
+2. Open **Storm controls**, select a storm, and play the modeled changes.
+3. Choose a hospital in **Impact and routing** and place a pin on the map to
+   calculate a hypothetical route. Use the area selector to open another region.
 
-The [frontend walkthrough](apps/web/README.md) includes controls, screenshots,
-imagery provenance, and optional service contracts.
-
-Restart the integrated launcher after changing Python code or refreshing a regional hospital catalog. The separate `pnpm dev:api` command supports automatic reload during API development.
-
-The polygons are original schematic rectangles, not official county boundaries.
-The arbitrary event timestamp and severity indices do not describe observed
-weather or outages. See `data/fixtures/README.md` for provenance and limitations.
+The separate resource-allocation engine is available through the EarthLab API
+and `pnpm demo:allocation` for the mitigation and response examples. It uses
+an illustrative graph. The [planning handoff](docs/handoffs/houston-resource-planning.md)
+documents its assumptions and utility functions.
 
 ## Verify
 

@@ -1,4 +1,15 @@
 {
+  "downtown-buffalo-bayou": {
+    "vehicle": "ambulance",
+    "hospitalId": "houston-methodist-emergency-care-center",
+    "hospitalProvenance": {
+      "provider": "Overture Places",
+      "scope": "Regional model catalog entry used to exercise route selection. No live facility or road status is verified."
+    },
+    "lonlat": [-95.3825, 29.7625],
+    "routePreset": "shower",
+    "stormPreset": "memorial"
+  },
   "kingwood-lake-houston": {
     "vehicle": "ambulance",
     "hospitalId": "townsen-memorial-hospital-emergency-room",

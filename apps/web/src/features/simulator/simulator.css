@@ -366,4 +366,30 @@
 
 .sim-area-select { max-width: min(290px, 65vw); min-height: 40px; padding: 8px 12px; border: 1px solid var(--rule); border-radius: 3px; color: #e4ebf3; background: #17212d; font: inherit; font-size: 14px; }
 
+@media (max-width: 640px) {
+  .sim-connected .sim-bar {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  /* The area selector already shows the name. Keep the dialog heading accessible. */
+  .sim-connected .sim-title {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .sim-connected .sim-toolbar-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 44px;
+    gap: 4px;
+  }
+  .sim-area-select {
+    min-width: 0;
+    width: 100%;
+    max-width: none;
+    min-height: 44px;
+  }
+}
+
 .sim { --rule:#3e5062; --amber:#a4cbee; }
