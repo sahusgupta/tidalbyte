@@ -20,11 +20,10 @@ import {
   ScreenSpaceEventHandler,
   ScreenSpaceEventType,
   SingleTileImageryProvider,
-  UrlTemplateImageryProvider,
   Viewer,
 } from "cesium";
 import { offlineCounties, type Prediction } from "@earthlab/contracts";
-import { sharpenRendering, usgsImageryLayer } from "../earth/imagery";
+import { installZoomDetail, sharpenRendering, type ImageryStatus } from "../earth/imagery";
 import type { AtlasMode, BookmarkId, EditorTool, Point, RoadSegment } from "../../atlas/domain";
 import { FLOOD_RADIUS_LIMITS, getFloodPolygon } from "../../atlas/domain";
 import { FlatMap } from "./FlatMap";
@@ -128,6 +127,11 @@ export default function Globe(props: AtlasMapProps) {
   const [tilted, setTilted] = useState(true);
   const [scale, setScale] = useState({ km: 5, pixels: 80 });
   const [rendererUnavailable, setRendererUnavailable] = useState(false);
+  const [imageryStatus, setImageryStatus] = useState<ImageryStatus>({
+    kind: "local",
+    label: "Bundled aerial archive",
+    credit: "USDA / USGS The National Map",
+  });
 
   useEffect(() => {
     if (!mount.current) return;
@@ -196,42 +200,29 @@ export default function Globe(props: AtlasMapProps) {
       layer.gamma = 1.12;
       removers.push(
         layer.errorEvent.addEventListener(() => {
-          if (!disposed) setNote("Aerial reference unavailable · switch to the 2D atlas");
+          if (!disposed)
+            setNote("Bundled aerial reference unavailable; scenario geometry remains usable.");
         }),
       );
       viewer.imageryLayers.add(layer);
     };
     addAerial("/map/houston-usgs.webp", [-95.9, 29.249921875, -94.7, 30.200078125]);
     addAerial("/map/houston-detail-usgs.webp", [-95.570036869, 29.6, -95.079963131, 29.96]);
-    // The bundled images are single tiles and blur when zoomed. Tiled USGS orthoimagery on top keeps
-    // street-level detail (~2 m/px); the bundled images stay underneath as an offline fallback.
-    const tiled = usgsImageryLayer(BOUNDS);
-    Object.assign(tiled, { saturation: 0.48, brightness: 0.79, contrast: 1.13, gamma: 1.12 });
-    viewer.imageryLayers.add(tiled);
-    // An explicitly configured licensed template is optional; local imagery
-    // remains underneath, and the failed provider layer is removed.
+    // Opening stays local. Transparent coarse parents preserve the sharper
+    // archive until a close zoom actually loads higher-resolution detail.
     const imageryUrl = import.meta.env.VITE_ATLAS_IMAGERY_URL?.trim();
     const imageryCredit = import.meta.env.VITE_ATLAS_IMAGERY_CREDIT?.trim();
-    if (imageryUrl && imageryCredit) {
-      const provider = new UrlTemplateImageryProvider({
-        url: imageryUrl,
-        rectangle: Rectangle.fromDegrees(...BOUNDS),
-        maximumLevel: 18,
-        credit: new Credit(imageryCredit, true),
-      });
-      const layer = viewer.imageryLayers.addImageryProvider(provider);
-      let failed = false;
-      removers.push(
-        provider.errorEvent.addEventListener(() => {
-          if (disposed || failed) return;
-          failed = true;
-          setNote("Imagery provider offline · using bundled USGS aerial reference");
-          queueMicrotask(() => {
-            if (!disposed && !viewer.isDestroyed()) viewer.imageryLayers.remove(layer, true);
-          });
-        }),
-      );
-    }
+    removers.push(
+      installZoomDetail(viewer, {
+        bounds: BOUNDS,
+        activateBelowHeight: 15_000,
+        minimumDetailLevel: 13,
+        onStatus: setImageryStatus,
+        localLabel: "Bundled aerial archive",
+        localCredit: "USDA / USGS The National Map",
+        ...(imageryUrl && imageryCredit ? { url: imageryUrl, detailCredit: imageryCredit } : {}),
+      }),
+    );
     for (const place of [
       { point: [-95.3698, 29.7604] as Point, name: "DOWNTOWN HOUSTON", size: 15 },
       { point: [-95.446, 29.767] as Point, name: "BUFFALO BAYOU", size: 11 },
@@ -782,16 +773,22 @@ export default function Globe(props: AtlasMapProps) {
       />
       {flat && <FlatMap {...props} />}
       <div className="atlas-map-credit">
-        USDA / USGS aerial reference <span>National Map tiles + bundled archive · display only</span>
+        {flat || imageryStatus.kind !== "detail"
+          ? "USDA / USGS aerial reference"
+          : imageryStatus.credit}
+        <span>
+          {flat || imageryStatus.kind !== "detail" ? "2017–2021 archive" : "Tiled archival imagery"}{" "}
+          · display only
+        </span>
       </div>
       {!flat && (
         <div className="atlas-map-scale">
           <span style={{ width: scale.pixels }} />≈ {scale.km} km
         </div>
       )}
-      {note && (
+      {(note || (!flat && imageryStatus.warning)) && (
         <div className="atlas-map-notice" role="status">
-          {note}
+          {note || imageryStatus.warning}
         </div>
       )}
       <div className="atlas-map-hover" role="status">

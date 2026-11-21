@@ -6,6 +6,10 @@ Source: [USGS ImageryOnly service](https://basemap.nationalmap.gov/arcgis/rest/s
 
 This is archival visualization, not a current road/weather feed or measured flood/terrain evidence. No Google tiles are used, cached, extracted, or used to train models. The map uses an ellipsoid; local tilt is an inspection convenience, not reconstructed terrain or photorealistic buildings.
 
-Optional `VITE_ATLAS_IMAGERY_URL` may configure a licensed image-tile template. Set `VITE_ATLAS_IMAGERY_CREDIT` to the provider's required attribution. The layer is removed on a provider error and the local USGS reference remains. With neither variable set, there are no runtime imagery requests to external services.
+The atlas opens with these bundled archives only. Best-effort USGS detail is created only below a 15 km camera height inside the Houston study extent. Its coarse parent levels are transparent, so they cannot cover the sharper archive while detail loads. The remote layer is removed on its first provider error or an eight-second loading timeout; the archive and editor remain usable. There is no application tile download, proxy, persistent tile cache, or added redistribution of remote tiles.
+
+Optional `VITE_ATLAS_IMAGERY_URL` with `VITE_ATLAS_IMAGERY_CREDIT` substitutes an explicitly licensed detail template under the same zoom/failure rules. Both variables are required. The visible credit follows the actual renderer: the SVG fallback always displays the bundled USDA/USGS archive credit.
+
+Earth navigation uses bundled, public-domain Natural Earth II globally. Its optional USGS detail is geographically bounded to Houston (`[-95.9, 29.24, -94.7, 30.2]`, including Kingwood) and starts only on regional/closer views. We do not request Alaska SPOT imagery or claim public-domain rights for imagery outside this CONUS extent. [The service metadata](https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer?f=pjson) documents the CONUS sources and the Alaska licensing exception; [USGS copyright guidance](https://www.usgs.gov/information-policies-and-instructions/copyrights-and-credits) distinguishes USGS-produced material from credited third-party material.
 
 `storm-eye.svg` is an original EarthLab vector marker (CC0), separate from the aerial reference. It denotes the manually drawn hypothetical scenario, with no observed storm data implied.
