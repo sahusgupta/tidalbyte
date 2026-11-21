@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect } from "react";
 import { findZone } from "../features/earth/zones";
 import { SimulatorHost } from "../features/simulator/SimulatorHost";
+import { simulatorUrl } from "../features/simulator/contract";
 import { App } from "./App";
 import { useHashRoute } from "./route";
 
@@ -18,6 +19,8 @@ export function Root() {
     if (theme) theme.content = route.name === "atlas" ? "#1b1e1a" : "#1b211f";
   }, [route.name, zone]);
   if (route.name === "atlas") return <App onEarth={() => navigate({ name: "earth" })} />;
+  // A configured simulator is shown full-bleed over the globe (see simulator.css .sim-connected).
+  const simulatorCoversGlobe = !!zone && simulatorUrl(import.meta.env.VITE_SIMULATOR_URL, zone) !== null;
   return (
     <Suspense
       fallback={
@@ -33,9 +36,11 @@ export function Root() {
         activeZoneId={zone?.id ?? null}
         onZoneEntered={(zoneId) => navigate({ name: "zone", zoneId })}
         onOpenAtlas={() => navigate({ name: "atlas" })}
+        paused={simulatorCoversGlobe}
       >
         {zone && (
           <SimulatorHost
+            key={zone.id}
             zone={zone}
             onExit={() => navigate({ name: "earth" })}
             onOpenAtlas={() => navigate({ name: "atlas" })}

@@ -42,6 +42,8 @@ export interface EarthViewProps {
   /** Called once the camera has flown into a zone; the parent then opens the simulator. */
   onZoneEntered: (zoneId: string) => void;
   onOpenAtlas: () => void;
+  /** The open simulator fully covers the globe: stop rendering (and fetching tiles) until it closes. */
+  paused?: boolean;
   children?: ReactNode;
 }
 
@@ -65,6 +67,7 @@ export default function EarthView({
   activeZoneId,
   onZoneEntered,
   onOpenAtlas,
+  paused = false,
   children,
 }: EarthViewProps) {
   const mount = useRef<HTMLDivElement>(null);
@@ -339,6 +342,14 @@ export default function EarthView({
     for (const [id, entity] of zoneEntities.current)
       if (entity.polygon) entity.polygon.material = fill(id === hovered || id === activeZoneId);
   }, [hovered, activeZoneId, ready]);
+
+  // Hidden globe: hand the main thread and GPU to the simulator. Declared before the camera effect so
+  // rendering resumes before the fly-back to the region starts.
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    if (!ready || !viewer || viewer.isDestroyed()) return;
+    viewer.useDefaultRenderLoop = !paused;
+  }, [paused, ready]);
 
   // Route-driven camera: deep links open a zone directly; leaving a zone returns to its region.
   const lastActive = useRef<string | null>(null);
