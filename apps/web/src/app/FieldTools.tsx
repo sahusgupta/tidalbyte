@@ -1,6 +1,7 @@
 import { useId } from "react";
 import { Icon } from "./Icon";
 import type { Point } from "../atlas/domain";
+import { distanceKm } from "../features/globe/mapGeometry";
 
 export function Dial({
   label,
@@ -38,7 +39,7 @@ export function Dial({
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
         style={{
-          background: `linear-gradient(to right, var(--active) ${(100 * (value - min)) / (max - min)}%, var(--rule) 0)`,
+          backgroundImage: `linear-gradient(to right, var(--active) ${(100 * (value - min)) / (max - min)}%, var(--rule) 0)`,
         }}
       />
     </div>
@@ -113,7 +114,7 @@ export function Timeline({
           value={Math.round(progress * 1000)}
           onChange={(e) => onScrub(Number(e.target.value) / 1000)}
           style={{
-            background: `linear-gradient(to right,var(--amber) ${progress * 100}%,#424b47 0)`,
+            backgroundImage: `linear-gradient(to right,var(--amber) ${progress * 100}%,#424b47 0)`,
           }}
         />
         <div className="time-ticks">
@@ -133,6 +134,7 @@ export function RoadSketch({
   points: Point[];
   closed: boolean;
 }) {
+  const lengthKm = points.slice(1).reduce((sum, point, index) => sum + distanceKm(points[index], point), 0);
   const mid = points[Math.floor(points.length / 2)] ?? [-95.37, 29.76];
   const xy = points.map((p) => [
     (p[0] - mid[0]) * Math.cos((mid[1] * Math.PI) / 180),
@@ -151,12 +153,15 @@ export function RoadSketch({
     36 + (p[1] - (Math.min(...ys) + height / 2)) * scale,
   ]);
   return (
-    <svg
+    <figure className="segment-instrument">
+      <svg
       className={"road-sketch" + (closed ? " closed" : "")}
       viewBox="0 0 220 72"
-      aria-label="Sketch of the selected fixture segment"
+      aria-label={`Selected fixture segment, ${lengthKm.toFixed(1)} kilometers along ${points.length} authored vertices`}
       role="img"
     >
+      <text x={line[0][0] - 8} y={Math.max(10, line[0][1] - 8)} textAnchor="end" className="segment-end-label">A</text>
+      <text x={line.at(-1)![0] + 8} y={Math.min(67, line.at(-1)![1] + 12)} className="segment-end-label">B</text>
       <path
         d="M0 18h220M0 36h220M0 54h220M36 0v72M72 0v72M108 0v72M144 0v72M180 0v72"
         stroke="currentColor"
@@ -182,6 +187,8 @@ export function RoadSketch({
           strokeWidth="2"
         />
       ))}
-    </svg>
+      </svg>
+      <figcaption><span>Fixture geometry</span><strong>{lengthKm.toFixed(1)} <small>km</small></strong><span>{points.length} vertices</span></figcaption>
+    </figure>
   );
 }

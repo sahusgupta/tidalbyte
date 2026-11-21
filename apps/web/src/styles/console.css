@@ -1167,3 +1167,126 @@ svg {
     transition-duration: 0.001ms !important;
   }
 }
+
+/* Atlas refinement: readable field instruments and deliberate touch surfaces. */
+.atlas-shell ::selection { background: #d8b781; color: #202a23; }
+.atlas-shell input { caret-color: var(--amber); }
+.header-end .earth-link {
+  border: 1px solid #657565;
+  border-radius: 3px;
+  padding: 7px 10px;
+  min-height: 34px;
+  color: #e8eddf;
+  font-size: 12px;
+}
+.header-end .earth-link:hover { background: #344336; }
+.drawer-backdrop { display: none; }
+.dial input,
+.time-axis input {
+  height: 24px;
+  background-color: transparent;
+  background-repeat: no-repeat;
+  background-size: 100% 3px;
+  background-position: center;
+}
+.dial input { margin-block: 2px; }
+.time-axis input { margin-block: 0; }
+.segment-instrument { margin: 0; }
+.segment-instrument .road-sketch { height: 75px; }
+.segment-end-label { font: 600 9px var(--mono); fill: currentColor; }
+.segment-instrument figcaption {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 7px 0;
+  border-bottom: 1px solid #c7ccba;
+  color: #56624f;
+  font-size: 9px;
+}
+.segment-instrument figcaption strong { margin-left: auto; color: #344831; font: 600 13px var(--mono); }
+.segment-instrument figcaption strong small { font: 10px var(--mono); }
+.segment-instrument figcaption > span:last-child { font: 9px var(--mono); }
+.sources-dialog { overflow: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: #919c85 transparent; padding: 22px; }
+.sources-dialog .dialog-head {
+  position: sticky;
+  top: -22px;
+  z-index: 1;
+  background: var(--paper);
+  gap: 14px;
+  margin: -22px -22px 0;
+  padding: 17px 22px 14px;
+  border-bottom: 1px solid #c3c9b6;
+}
+.dialog-head > div { min-width: 0; }
+.dialog-head h2 { line-height: 1.1; letter-spacing: -0.025em; }
+.sources-dialog .icon-button { width: 44px; height: 44px; flex-shrink: 0; }
+.sources-dialog dl { padding-top: 2px; }
+
+@media (max-width: 900px) {
+  .atlas-shell { grid-template-rows: 54px 44px minmax(0, 1fr) auto; }
+  .mobile-switch button { min-height: 44px; padding-inline: 3px; }
+  .mobile-switch button[aria-expanded="true"] { color: var(--active); }
+  .drawer-backdrop { display: block; position: absolute; inset: 0; z-index: 4; background: #101b1555; }
+  .drawer-close {
+    position: sticky;
+    top: 4px;
+    right: auto;
+    width: 44px;
+    height: 44px;
+    margin: 4px 6px -48px auto;
+    z-index: 2;
+    background: var(--enclosure);
+    border: 1px solid #73806c;
+    border-radius: 3px;
+  }
+  .inspector-slot .drawer-close { background: var(--paper); border-color: #a6ad98; }
+  .scenario-rail .rail-title { padding-right: 43px; }
+  .map-toolbar button { min-width: 44px; min-height: 44px; justify-content: center; }
+  .map-top { gap: 8px; }
+  .view-reset { min-width: 44px; min-height: 44px; right: 0; }
+  .map-top .map-title { padding-right: 47px; }
+  .map-title select { min-height: 27px; }
+  .layer-row { height: 44px; font-size: 12px; }
+  .dial input { height: 44px; margin-block: 0; }
+  .dial input::-webkit-slider-thumb,
+  .time-axis input::-webkit-slider-thumb { width: 16px; height: 16px; }
+  .geometry summary,
+  .rail-actions button,
+  .nudge button,
+  .row-buttons button,
+  .closure-button,
+  .notebook-source button { min-height: 44px; }
+  .geometry select,
+  .road-picker select { min-height: 44px; }
+  .nudge { display: grid; grid-template-columns: repeat(4, 1fr); }
+  .row-buttons > button { flex: 1; }
+  .rail-actions { position: sticky; bottom: -15px; background: var(--enclosure); padding-block: 9px; border-top: 1px solid var(--rule); }
+  .geometry { scroll-margin-bottom: 70px; }
+  .time-axis input { height: 44px; }
+  .play { width: 44px; height: 44px; flex-shrink: 0; }
+  .comparison-strip { min-height: 44px; }
+  .legend-container > button { min-height: 44px; }
+  .map-bottom { align-items: flex-end; }
+  .notebook p,
+  .notebook small { font-size: 12px; }
+}
+@media (max-width: 580px) {
+  .mast { gap: 10px; }
+  .mast .brand-divider { display: none; }
+  .mast .product-title { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .header-end { gap: 9px; }
+  .mast .brand { min-height: 44px; }
+  .header-end .earth-link { min-height: 44px; padding-inline: 7px; font-size: 11px; gap: 5px; }
+  .header-end > button:not(.earth-link) { min-height: 44px; }
+  .map-top { flex-wrap: wrap; align-items: flex-start; }
+  .map-top .map-title { flex: 0 1 auto; }
+  .map-title select { font-size: 15px; }
+  .map-toolbar { margin-left: auto; }
+  .map-toolbar button { min-width: 44px; min-height: 44px; padding: 7px; }
+  .map-title { padding-block: 6px; }
+  .map-frame .atlas-map-scale,
+  .map-frame .is-flat .atlas-map-scale { right: 75px; bottom: 125px; }
+  .atlas-shell.legend-open .map-frame .atlas-map-scale { visibility: hidden; }
+  .hazard-stamp { font-size: 9px; padding: 7px 8px; }
+  .sources-dialog { max-height: 88svh; }
+}

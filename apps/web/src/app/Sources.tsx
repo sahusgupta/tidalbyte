@@ -17,7 +17,6 @@ export function Sources({ onClose }: { onClose: () => void }) {
     >
       <div className="dialog-head">
         <div>
-          <span className="kicker">Houston Disaster Atlas</span>
           <h2 id="sources-title">Sources & assumptions</h2>
         </div>
         <button

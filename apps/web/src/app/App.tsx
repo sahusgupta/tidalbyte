@@ -178,8 +178,12 @@ export function App({ onEarth }: { onEarth?: () => void } = {}) {
     flood: "Click to place the footprint. Drag its edge to resize.",
   };
   return (
-    <div className={`atlas-shell ${hurricane ? "storm-mode" : "flood-mode"}`}>
-      <a className="skip" href="#atlas-map">
+    <div className={`atlas-shell ${hurricane ? "storm-mode" : "flood-mode"} ${legend ? "legend-open" : ""}`}>
+      <a className="skip" href="#atlas-map" onClick={(event) => {
+        event.preventDefault();
+        setDrawer(null);
+        requestAnimationFrame(() => document.getElementById("atlas-map")?.focus());
+      }}>
         Skip to map
       </a>
       <header className="mast">
@@ -197,6 +201,10 @@ export function App({ onEarth }: { onEarth?: () => void } = {}) {
         <span className="brand-divider" />
         <h1 className="product-title">Disaster Atlas</h1>
         <div className="header-end">
+          {onEarth && <button className="earth-link" onClick={onEarth} aria-label="Open Earth view">
+            <svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.65"><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3c5 5 5 13 0 18-5-5-5-13 0-18Z" /></svg>
+            Earth
+          </button>}
           <span className="study-location">
             <Icon name="pin" size={14} />
             Houston, TX
@@ -232,6 +240,7 @@ export function App({ onEarth }: { onEarth?: () => void } = {}) {
         </button>
       </div>
       <main className="workbench">
+        {drawer && <button type="button" className="drawer-backdrop" aria-label="Close open panel" tabIndex={-1} onClick={() => setDrawer(null)} />}
         <div ref={editorPane} className={`rail-slot ${drawer === "editor" ? "drawer-open" : ""}`}>
           <button
             className="drawer-close"
