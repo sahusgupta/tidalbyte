@@ -10,4 +10,8 @@ const heights = JSON.parse(await readFile(asset("Assets/approximateTerrainHeight
 assert.ok(Object.keys(heights).length > 0);
 const worker = await readFile(asset("Workers/createGeometry.js"), "utf8");
 assert.ok(worker.length > 0);
-console.log("Verified bundled Cesium imagery, terrain metadata and workers.");
+const widgetCss = await readFile(asset("Widgets/CesiumWidget/CesiumWidget.css"), "utf8");
+assert.ok(widgetCss.length > 0);
+const creditImage = await readFile(asset("Assets/Images/cesium_credit.png"));
+assert.ok(creditImage.length > 0);
+console.log("Verified bundled Cesium imagery, terrain metadata, workers, widget styles and attribution image.");
