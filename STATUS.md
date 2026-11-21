@@ -9,7 +9,7 @@ current demo and its verification. The bootstrap checks below are historical.
 |---|---|---|---|---|
 | Lead/contracts/CI | Codex lead | integrate/bootstrap → main | Bootstrap complete | Teammates pull the scaffold commit |
 | Globe/UI | Frontend | feat/globe-houston-atlas | Houston editor, Earth index and illustrative local connectivity | Connect verified model and graph services when available |
-| ML/data | unassigned | — | Fail-closed placeholder; no model or verified data | prompts/02-ML-DATA.md |
+| ML/data | ML/data | feat/ml-harvey-peak-flood | Training pipelines and evaluations merged in PR #2 | Transfer weights and connect the county model to the API. See the [ML handoff](docs/handoffs/feat-ml-harvey-peak-flood.md). |
 | Infrastructure/graph | unassigned | — | 503 route stubs only | prompts/03-INFRA-GAME-THEORY.md |
 | AI/voice | unassigned | — | 503 route stubs only | prompts/04-GEMINI-ELEVENLABS.md |
 

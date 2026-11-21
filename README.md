@@ -74,7 +74,7 @@ pnpm openapi:check
 python scripts/validate_kit.py
 ```
 
-`pnpm test` runs web tests and Python API/contract/ML-guard tests using `.venv`.
+`pnpm test` runs web tests and Python API, contract and ML checks using `.venv`.
 For the original direct Python command, activate `.venv` first, then run
 `python -m pytest apps/api/tests ml/tests`. The API docs are generated from the
 runnable skeleton; schema drift is checked in CI. Regenerate after approved
@@ -84,19 +84,20 @@ contract edits with `pnpm contracts:generate` and `pnpm openapi:generate`.
 python ml/train.py --config ml/config.yaml
 ```
 
-Training deliberately exits **2** until the ML owner implements and validates a
-real pipeline with verified data. It writes no fabricated model or metrics.
+Training needs the separate ML dependencies and prepared dataset. Missing inputs
+produce exit code 2. The training pipelines and evaluation reports are in the
+repository. The application still serves the offline county example.
+See the [ML setup and artifact handoff](ml/README.md).
 
 ## Team handoff
 
 - Lead: root configuration, `packages/contracts`, schemas, CI and integration.
-- Frontend: `apps/web/**`; implement the frontend prompt after pulling bootstrap.
+- Frontend: `apps/web/**`, including the atlas and Earth index.
 - ML/data: `ml/**`, provenance and prediction/model service paths.
 - Infrastructure: network routes/service and independently sourced graph fixture.
 - AI/voice: interpretation/voice routes and provider services.
 
-Only prompt 00 has been executed. Future feature prompts remain separate tasks.
-Read `docs/05-TEAM-PROTOCOL.md` before branching; use isolated worktrees on a shared
+Read `docs/05-TEAM-PROTOCOL.md` before branching. Use isolated worktrees on a shared
 machine. Shared wire changes require a proposal and lead approval. All UI work
 must read and apply the installed `$interface-craft` skill and `docs/04-DESIGN.md`.
 
