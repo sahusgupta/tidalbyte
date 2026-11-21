@@ -137,8 +137,10 @@ export function FlatMap(props: AtlasMapProps) {
         const feature = offlineCounties.features.find((item) => item.properties.countyFips === prediction.countyFips);
         if (!feature) return null;
         const ring = feature.geometry.coordinates[0] as Point[];
-        const midpoint = ring[Math.floor(ring.length / 2)];
-        return <g key={prediction.countyFips} pointerEvents="none"><polyline points={path(ring)} fill="none" stroke="#d9ddc8" strokeOpacity=".6" strokeWidth="2" strokeDasharray="12 10" vectorEffect="non-scaling-stroke" /><text x={X(midpoint)} y={Y(midpoint)} fontSize="10">{feature.properties.name} · {prediction.predictedSeverity} {prediction.severityUnit} · SCHEMATIC · {prediction.dataMode === "offline_example" ? "OFFLINE EXAMPLE" : "CONDITIONAL MODEL"}</text></g>;
+        const midpoint = clampPoint([ring.reduce((sum, point) => sum + point[0], 0) / ring.length, ring.reduce((sum, point) => sum + point[1], 0) / ring.length]);
+        const labelX = Math.max(view.x + 12, Math.min(view.x + view.width - 220, X(midpoint)));
+        const labelY = Math.max(view.y + 35, Math.min(view.y + view.height - 32, Y(midpoint)));
+        return <g key={prediction.countyFips} pointerEvents="none"><polyline points={path(ring)} fill="none" stroke="#d9ddc8" strokeOpacity=".6" strokeWidth="2" strokeDasharray="12 10" vectorEffect="non-scaling-stroke" /><text x={labelX} y={labelY} fontSize="10"><tspan x={labelX}>{feature.properties.name} · {prediction.predictedSeverity} {prediction.severityUnit}</tspan><tspan x={labelX} dy="14">SCHEMATIC · {prediction.dataMode === "offline_example" ? "OFFLINE EXAMPLE" : "CONDITIONAL MODEL"}</tspan></text></g>;
       })}
     </svg>
     <div className="atlas-map-scale"><span style={{ width: Math.min(150, Math.max(10, scaleKm * pixelsPerKm)) }} />≈ {scaleKm} km</div>
