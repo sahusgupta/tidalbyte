@@ -1,5 +1,6 @@
 /** Local reference first; optional remote imagery is display-only and never persisted. */
 import {
+  ArcGisMapServerImageryProvider,
   Cartesian2,
   Cartographic,
   Credit,
@@ -249,6 +250,7 @@ export function installZoomDetail(viewer: Viewer, options: DetailOptions): () =>
 export function installEarthImagery(
   viewer: Viewer,
   onStatus: (status: ImageryStatus) => void,
+  options: { detailedGlobe?: boolean } = {},
 ): () => void {
   let disposed = false;
   const base = ImageryLayer.fromProviderAsync(
@@ -257,6 +259,34 @@ export function installEarthImagery(
     }),
   );
   viewer.imageryLayers.add(base, 0);
+  // The bundled globe stops at overview resolution. Load a real tile pyramid
+  // for the landing descent, below the Houston archive and street-detail layers.
+  let globalDetail: ImageryLayer | undefined;
+  const globalRemovers: (() => void)[] = [];
+  if (options.detailedGlobe) {
+    globalDetail = ImageryLayer.fromProviderAsync(
+      ArcGisMapServerImageryProvider.fromUrl(
+        'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer',
+        { enablePickFeatures: false },
+      ),
+    );
+    viewer.imageryLayers.add(globalDetail, 1);
+    const fail = () => {
+      if (disposed || !globalDetail) return;
+      globalDetail.show = false;
+      viewer.scene.requestRender();
+      onStatus({ kind: 'fallback', label: 'Bundled globe', credit: 'Natural Earth II',
+        warning: 'Satellite detail unavailable; showing the lower-resolution bundled globe.' });
+    };
+    globalRemovers.push(globalDetail.errorEvent.addEventListener(fail));
+    globalRemovers.push(globalDetail.readyEvent.addEventListener(provider => {
+      globalRemovers.push(provider.errorEvent.addEventListener(error => {
+        error.retry = false;
+        fail();
+      }));
+      viewer.scene.requestRender();
+    }));
+  }
   const localFailure = base.errorEvent.addEventListener(() => {
     if (!disposed)
       onStatus({
@@ -289,7 +319,7 @@ export function installEarthImagery(
         // Keep these above Natural Earth and below any optional detail layer.
         viewer.imageryLayers.add(
           item.layer,
-          viewer.imageryLayers.indexOf(base) + 1 + archives.length,
+          viewer.imageryLayers.indexOf(globalDetail ?? base) + 1 + archives.length,
         );
         archives.push(item);
       }
@@ -335,6 +365,9 @@ export function installEarthImagery(
       if (!viewer.isDestroyed() && viewer.imageryLayers.contains(archive.layer))
         viewer.imageryLayers.remove(archive.layer, true);
     }
+    globalRemovers.forEach(remove => remove());
+    if (globalDetail && !viewer.isDestroyed() && viewer.imageryLayers.contains(globalDetail))
+      viewer.imageryLayers.remove(globalDetail, true);
     localFailure();
     if (!viewer.isDestroyed() && viewer.imageryLayers.contains(base))
       viewer.imageryLayers.remove(base, true);

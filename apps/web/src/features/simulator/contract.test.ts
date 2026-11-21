@@ -67,13 +67,14 @@ describe("simulator contract", () => {
 });
 
 describe("routes", () => {
-  it("round-trips earth, atlas and zone routes", () => {
-    for (const route of [{ name: "earth" }, { name: "atlas" }, { name: "zone", zoneId: zone.id }] as const)
+  it("round-trips landing, earth and zone routes", () => {
+    for (const route of [{ name: "choose" }, { name: "landing" }, { name: "zone", zoneId: zone.id }] as const)
       expect(parseRoute(routeHash(route))).toEqual(route);
   });
 
-  it("opens the Houston editor on home and unknown routes", () => {
-    for (const hash of ["", "#/", "#/atlas", "#/zone/atlantis", "#/whatever"])
-      expect(parseRoute(hash)).toEqual({ name: "atlas" });
+  it("opens home and unknown routes on landing; redirects legacy atlas to the simulator", () => {
+    for (const hash of ["", "#/", "#/earth", "#/zone/atlantis", "#/whatever"]) expect(parseRoute(hash)).toEqual({ name: "landing" });
+    for (const hash of ["#/atlas", "#/simulate"])
+      expect(parseRoute(hash)).toEqual({ name: "choose" });
   });
 });

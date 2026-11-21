@@ -119,7 +119,7 @@ export default function ControlPanel({ meta, controls, preset, onControls, onPre
               step={1}
               display={`${controls.rain.toFixed(0)} mm/h`}
               sub={`${(controls.rain / 25.4).toFixed(1)} in/h`}
-              accent="#d99a43"
+              accent="#83b6dd"
               onChange={set('rain')}
             />
             <Slider
@@ -131,7 +131,7 @@ export default function ControlPanel({ meta, controls, preset, onControls, onPre
               step={0.25}
               display={`${controls.duration.toFixed(controls.duration < 10 ? 2 : 1).replace(/\.?0+$/, '')} h`}
               sub={`${(total / 25.4).toFixed(1)} in total`}
-              accent="#d99a43"
+              accent="#83b6dd"
               onChange={set('duration')}
             />
             <Slider
@@ -155,7 +155,7 @@ export default function ControlPanel({ meta, controls, preset, onControls, onPre
               step={1}
               display={`${Math.round(controls.clog * 100)}%`}
               sub="capacity lost"
-              accent="#f59e0b"
+              accent="#9dbbd5"
               onChange={(v) => onControls({ ...controls, clog: v / 100 })}
             />
           </div>

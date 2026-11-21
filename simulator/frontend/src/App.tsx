@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useDeferredValue, useEffect, useRef, useState } from 'react'
 import { Droplets, Layers3, LoaderCircle, PanelLeftOpen, PanelRightOpen, Play, Square } from 'lucide-react'
 import {
   api,
@@ -14,6 +14,7 @@ import {
   type SimResult,
 } from './lib/api'
 import MapView from './components/MapView'
+import { sameRouteSelection } from './lib/routeSelection'
 import ControlPanel from './components/ControlPanel'
 import ImpactPanel from './components/ImpactPanel'
 import Legend from './components/Legend'
@@ -137,7 +138,7 @@ export default function App() {
     else if (error) window.parent.postMessage({ source: 'simulator', type: 'status', message: error.includes('No simulation region has been built') ? 'No prepared simulator region is available' : 'Simulator API or region data could not load' }, '*')
   }, [data, error])
 
-  // latest-wins request scheduler: at most one request in flight, newest queued
+  // Stream completed scenario results while dragging; retain only the newest queued request.
   const inflight = useRef(false)
   const pending = useRef<SimRequest | null>(null)
   const send = useCallback((req: SimRequest) => {
@@ -151,7 +152,10 @@ export default function App() {
     api
       .simulate(forRegion, req)
       .then((r) => {
-        if (!playingRef.current && !pending.current && regionRef.current === forRegion) setResult(r)
+        // A newer storm value must not starve rendering during continuous dragging.
+        // A changed route endpoint/vehicle must still discard the old route.
+        if (!playingRef.current && regionRef.current === forRegion &&
+            (!pending.current || sameRouteSelection(req, pending.current))) setResult(r)
       })
       .catch((e) => setError(String(e)))
       .finally(() => {
@@ -206,6 +210,18 @@ export default function App() {
     setPlaying(null)
   }, [controls, routeParams])
 
+  // Keep input urgent; expensive map updates can yield while the slider moves.
+  const deferredResult = useDeferredValue(result)
+  const severity = Math.min(1, controls.rain / 170 + (controls.surge / 3) * 0.6) * 0.85
+  const mapSeverity = useDeferredValue(severity)
+  const onPick = useCallback((lonlat: LonLat) => {
+    stop()
+    setResult(null)
+    setDest({ lonlat })
+    returnFocus.current = document.getElementById('show-impact')
+    setPanel('impact')
+  }, [stop])
+
   const onControls = (c: Scenario) => {
     stop()
     setPreset(null)
@@ -222,7 +238,6 @@ export default function App() {
   if (!data) return <Splash name={regions.find((r) => r.id === region)?.name} />
 
   const { meta, roads, buildings } = data
-  const severity = Math.min(1, controls.rain / 170 + (controls.surge / 3) * 0.6) * 0.85
   const wind = Math.min(1, (controls.surge / 3) * 0.8 + (controls.rain / 200) * 0.35)
   const p = preset ? meta.presets[preset] : null
   const redirected = EARTH_ZONE_ID ? EARTH_ZONE_ID !== meta.region.id : Boolean(EARTH_ZONE && !overlaps(EARTH_BBOX, meta.region.bbox))
@@ -240,15 +255,9 @@ export default function App() {
         </nav>
       </header>
       <main className="sim-stage">
-        <div id="sim-map" className="sim-map" tabIndex={-1} aria-label={`${meta.region.name} scenario map. Click to choose a starting point, or use the starting point selector in Impact and routing.`} inert={modal}>
-          <MapView key={meta.region.id} meta={meta} roads={roads} buildings={buildings} result={result} buildingMode={buildingMode} showWater={showWater} storm={severity}
-            onPick={(lonlat) => {
-              stop()
-              setResult(null)
-              setDest({ lonlat })
-              returnFocus.current = document.getElementById('show-impact')
-              setPanel('impact')
-            }}
+        <div id="sim-map" className="sim-map" tabIndex={-1} aria-label="Houston scenario map. Click to choose a starting point, or use the starting point selector in Impact and routing." inert={modal}>
+          <MapView key={meta.region.id} meta={meta} roads={roads} buildings={buildings} result={deferredResult} buildingMode={buildingMode} showWater={showWater} storm={mapSeverity}
+            onPick={onPick}
           />
           <RainOverlay rain={controls.rain} wind={wind} severity={severity} />
         </div>

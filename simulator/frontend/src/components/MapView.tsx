@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
-import DeckGL, { type DeckGLRef } from '@deck.gl/react'
+import { memo, useEffect, useMemo, useRef, useState } from 'react'
+import DeckGL from '@deck.gl/react'
 import {
   BitmapLayer,
   IconLayer,
@@ -131,48 +131,7 @@ function pointAlong(coords: LonLat[], cum: number[], f: number): LonLat {
   return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]
 }
 
-export default function MapView({ meta, roads, buildings, result, buildingMode, showWater, storm, onPick }: Props) {
-  const deckRef = useRef<DeckGLRef>(null)
-  const pointers = useRef(new Set<number>())
-  const groundTap = useRef<{ id: number; x: number; y: number } | null>(null)
-  const releasePointer = (event: PointerEvent) => {
-    pointers.current.delete(event.pointerId)
-    if (groundTap.current?.id === event.pointerId) groundTap.current = null
-  }
-  useEffect(() => {
-    const cancel = () => { pointers.current.clear(); groundTap.current = null }
-    window.addEventListener('pointerup', releasePointer)
-    window.addEventListener('pointercancel', releasePointer)
-    window.addEventListener('blur', cancel)
-    return () => {
-      window.removeEventListener('pointerup', releasePointer)
-      window.removeEventListener('pointercancel', releasePointer)
-      window.removeEventListener('blur', cancel)
-    }
-  }, [])
-  const startGroundTap = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (!(event.target instanceof Element) || event.target.closest('button,a,input,select,.maplibregl-control-container')) return
-    pointers.current.add(event.pointerId)
-    if (pointers.current.size !== 1 || (event.pointerType === 'mouse' && event.button !== 0)) { groundTap.current = null; return }
-    groundTap.current = { id: event.pointerId, x: event.clientX, y: event.clientY }
-  }
-  const moveGroundTap = (event: ReactPointerEvent<HTMLDivElement>) => {
-    const tap = groundTap.current
-    if (tap?.id === event.pointerId && Math.hypot(event.clientX - tap.x, event.clientY - tap.y) > 6) groundTap.current = null
-  }
-  const finishGroundTap = (event: ReactPointerEvent<HTMLDivElement>) => {
-    const tap = groundTap.current
-    pointers.current.delete(event.pointerId)
-    groundTap.current = null
-    if (!tap || tap.id !== event.pointerId || pointers.current.size || Math.hypot(event.clientX - tap.x, event.clientY - tap.y) > 6) return
-    const box = event.currentTarget.getBoundingClientRect()
-    const x = event.clientX - box.left, y = event.clientY - box.top
-    const viewport = deckRef.current?.deck?.getViewports({ x, y })[0]
-    if (!viewport) return
-    // Ground routing pins need the active camera's ground plane, not a GPU object/depth pick.
-    const coordinate = viewport.unproject([x - viewport.x, y - viewport.y], { targetZ: 0 })
-    if (coordinate.slice(0, 2).every(Number.isFinite)) onPick([coordinate[0], coordinate[1]])
-  }
+function MapView({ meta, roads, buildings, result, buildingMode, showWater, storm, onPick }: Props) {
   const [view, setView] = useState<ViewState>(meta.region.view)
   const [viewOptions, setViewOptions] = useState(false)
   const [imageryWarning, setImageryWarning] = useState(false)
@@ -201,12 +160,14 @@ export default function MapView({ meta, roads, buildings, result, buildingMode, 
   const bldDepth = result?.buildings
   const access = result?.access
 
-  const effects = useMemo(() => {
-    const ambient = new AmbientLight({ color: [255, 255, 255], intensity: 1.05 - 0.4 * storm })
-    const sun = new DirectionalLight({ color: [255, 240, 220], intensity: 1.7 - 0.9 * storm, direction: [-3, -8, -3] })
+  const lighting = useMemo(() => {
+    const ambient = new AmbientLight({ color: [255, 255, 255], intensity: 1.05 })
+    const sun = new DirectionalLight({ color: [255, 240, 220], intensity: 1.7, direction: [-3, -8, -3] })
     const sky = new DirectionalLight({ color: [170, 200, 255], intensity: 0.55, direction: [4, 6, -2] })
-    return [new LightingEffect({ ambient, sun, sky })]
-  }, [storm])
+    return { ambient, sun, effects: [new LightingEffect({ ambient, sun, sky })] }
+  }, [])
+  lighting.ambient.intensity = 1.05 - 0.4 * storm
+  lighting.sun.intensity = 1.7 - 0.9 * storm
 
   const baseLayers = useMemo(() => {
     // only create the water layer once its image has decoded (an undefined image breaks texture init)
@@ -426,9 +387,9 @@ export default function MapView({ meta, roads, buildings, result, buildingMode, 
   const getTooltip = ({ layer, index }: PickingInfo) => {
     if (!layer || index < 0) return null
     const style = {
-      background: '#20221f',
-      color: '#d5cfbd',
-      border: '1px solid #4a4c45',
+      background: '#1c2632',
+      color: '#d5e0eb',
+      border: '1px solid #3e5062',
       borderRadius: '2px',
       padding: '8px 10px',
       fontSize: '12px',
@@ -476,7 +437,7 @@ export default function MapView({ meta, roads, buildings, result, buildingMode, 
       controller={{ inertia: 250 }}
       onInteractionStateChange={({ isDragging }) => { if (isDragging) groundTap.current = null }}
       layers={[...baseLayers, ...routeLayers, ...ambulance, ...markerLayers]}
-      effects={effects}
+      effects={lighting.effects}
       getTooltip={getTooltip}
     >
       <Map reuseMaps mapStyle={BASEMAP} onError={() => setImageryWarning(true)} attributionControl={{ compact: false, customAttribution: 'USDA / USGS · 2017–2021 aerial archive' }}>
@@ -496,3 +457,6 @@ export default function MapView({ meta, roads, buildings, result, buildingMode, 
     </div></>
   )
 }
+
+// Slider labels can render without reconciling the entire map.
+export default memo(MapView)
