@@ -73,11 +73,12 @@ export function SimulatorHost({
     if (!url) return;
     let deliveredAfterReady = false;
     readyTimer.current = window.setTimeout(() => {
-      setConnection({
+      setConnection((current) => ({
         phase: "slow",
         message:
+          current.message ||
           "The external simulator has not reported ready. You can keep waiting or open the Houston editor.",
-      });
+      }));
     }, READY_TIMEOUT_MS);
     const onMessage = (event: MessageEvent) => {
       if (

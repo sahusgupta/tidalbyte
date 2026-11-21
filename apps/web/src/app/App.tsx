@@ -35,7 +35,13 @@ const instructions: Partial<Record<EditorTool, string>> = {
   flood: "Place the center or drag the edge to resize",
 };
 
-export function App({ onEarth, onSimulator }: { onEarth?: () => void; onSimulator?: () => void } = {}) {
+export function App({
+  onEarth,
+  onSimulator,
+}: {
+  onEarth?: () => void;
+  onSimulator?: () => void;
+} = {}) {
   const s = useAtlasStore();
   const hurricane = s.mode === "hurricane";
   const [layers, setLayers] = useState<Layers>(initialLayers);
