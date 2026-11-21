@@ -1,0 +1,68 @@
+{
+  "kingwood-lake-houston": {
+    "vehicle": "ambulance",
+    "hospitalId": "townsen-memorial-hospital-emergency-room",
+    "hospitalProvenance": {
+      "kind": "actual catalogued healthcare ER, not proxy",
+      "address": "1475 FM1960 Bypass Rd E",
+      "officialIdentitySource": "https://www.townsenmemorial.com/townsen-locations/townsen-memorial-emergency-room",
+      "provider": "Overture Places",
+      "scope": "Address checked against facility operator; entrance, operating status and road safety require field verification."
+    },
+    "lonlat": [
+      -95.21533,
+      30.034656
+    ],
+    "routePreset": "shower"
+  },
+  "ship-channel": {
+    "vehicle": "ambulance",
+    "hospitalId": "community-first-emergency-room",
+    "hospitalProvenance": {
+      "kind": "actual catalogued freestanding healthcare ER, not proxy",
+      "address": "1101 East Blvd, Deer Park",
+      "officialIdentitySource": "https://www.communityfirster.com/home",
+      "provider": "Overture Places",
+      "scope": "Address checked against facility operator; entrance, operating status and road safety require field verification."
+    },
+    "lonlat": [
+      -95.176069,
+      29.725599
+    ],
+    "routePreset": "shower"
+  },
+  "medical-center-brays": {
+    "vehicle": "ambulance",
+    "hospitalProvenance": {
+      "kind": "actual catalogued healthcare POI, not proxy",
+      "address": "6411 Fannin St",
+      "officialIdentitySource": "https://memorialhermann.org/locations/red-duke-trauma-institute",
+      "provider": "Overture Places",
+      "scope": "Address checked against facility operator; entrance, operating status and road safety require field verification."
+    },
+    "hospitalId": "red-duke-trauma-institute",
+    "stormPreset": "memorial",
+    "lonlat": [
+      -95.402584,
+      29.702416
+    ],
+    "routePreset": "shower"
+  },
+  "meyerland": {
+    "vehicle": "ambulance",
+    "hospitalProvenance": {
+      "kind": "actual catalogued freestanding ER, not proxy",
+      "address": "5302 Bellaire Blvd",
+      "officialIdentitySource": "https://www.bellaireer.com/contact",
+      "provider": "Overture Places",
+      "scope": "Address checked against facility operator; entrance, operating status and road safety require field verification."
+    },
+    "hospitalId": "bellaire-emergency-room",
+    "stormPreset": "memorial",
+    "lonlat": [
+      -95.46214,
+      29.684973
+    ],
+    "routePreset": "shower"
+  }
+}
