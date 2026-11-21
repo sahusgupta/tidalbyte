@@ -240,7 +240,7 @@ export default function App() {
         </nav>
       </header>
       <main className="sim-stage">
-        <div id="sim-map" className="sim-map" tabIndex={-1} aria-label="Houston scenario map. Click to choose a starting point, or use the starting point selector in Impact and routing." inert={modal}>
+        <div id="sim-map" className="sim-map" tabIndex={-1} aria-label={`${meta.region.name} scenario map. Click to choose a starting point, or use the starting point selector in Impact and routing.`} inert={modal}>
           <MapView key={meta.region.id} meta={meta} roads={roads} buildings={buildings} result={result} buildingMode={buildingMode} showWater={showWater} storm={severity}
             onPick={(lonlat) => {
               stop()
