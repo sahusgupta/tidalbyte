@@ -68,3 +68,14 @@ embedded; use the "Open in new tab" link, which carries the same query parameter
 
 Per `docs/01-PRODUCT.md`, the simulator must label its output as hypothetical or exploratory
 unless it is validated. EarthLab's globe imagery is a display layer only.
+
+## Audit verification
+
+The simulator audit passed frontend type checking, all 62 frontend tests, and the
+production build. Temporary Playwright checks passed nine groups: disconnected
+editor navigation, tablet layout, current-zone handshake, modal focus containment,
+fresh per-zone status/frame, delayed readiness and retry, rejected message sources,
+exit cleanup, and absence of runtime errors. Desktop and tablet captures were
+inspected twice; the selected-bounds diagram was refined to preserve the area's
+approximate aspect ratio. Live simulation physics and third-party output remain
+outside this host's validation.

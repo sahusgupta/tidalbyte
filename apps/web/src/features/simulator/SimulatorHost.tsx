@@ -122,6 +122,11 @@ export function SimulatorHost({
     frame.current?.contentWindow?.postMessage(zoneMessage(zone), url!.origin);
   const [w, s, e, n] = zone.bbox;
   const [x, y] = zoneSizeKm(zone);
+  const diagramScale = Math.min(174 / x, 78 / y);
+  const diagramWidth = x * diagramScale;
+  const diagramHeight = y * diagramScale;
+  const diagramLeft = 154 - diagramWidth / 2;
+  const diagramTop = 63 - diagramHeight / 2;
   const example = simulatorUrl(EXAMPLE_BASE, zone)!.toString();
   const copy = async () => {
     const revision = copyRevision.current;
@@ -249,9 +254,15 @@ export function SimulatorHost({
                 d="M16 24h276M16 63h276M16 102h276M46 12v102M154 12v102M262 12v102"
                 className="sim-grid"
               />
-              <path d="M67 24h174v78H67z" className="sim-bounds" />
+              <rect
+                x={diagramLeft}
+                y={diagramTop}
+                width={diagramWidth}
+                height={diagramHeight}
+                className="sim-bounds"
+              />
               <path
-                d="M67 36V24h12m150 0h12v12m0 54v12h-12M79 102H67V90"
+                d={`M${diagramLeft} ${diagramTop + 12}v-12h12M${diagramLeft + diagramWidth - 12} ${diagramTop}h12v12M${diagramLeft + diagramWidth} ${diagramTop + diagramHeight - 12}v12h-12M${diagramLeft + 12} ${diagramTop + diagramHeight}h-12v-12`}
                 className="sim-corners"
               />
               <path
@@ -261,7 +272,7 @@ export function SimulatorHost({
               <text x="286" y="47">
                 N
               </text>
-              <text x="93" y="116">
+              <text x="154" y="116" textAnchor="middle">
                 Selected navigation bounds
               </text>
             </svg>
@@ -348,8 +359,8 @@ export function SimulatorHost({
               </div>
               {copyFailed && (
                 <p role="status">
-                  Copy unavailable. Select the zone coordinates above to copy
-                  them manually.
+                  Copy unavailable. Select the zone JSON above to copy it
+                  manually.
                 </p>
               )}
             </div>
