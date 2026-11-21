@@ -24,7 +24,7 @@ import {
   Viewer,
   buildModuleUrl,
 } from "cesium";
-import { offlineCounties, type Prediction } from "@earthlab/contracts";
+import { offlineCounties, type Prediction, type AllocationFootprint } from "@earthlab/contracts";
 import {
   HOUSTON_ARCHIVE_LAYERS,
   createHoustonArchiveLayer,
@@ -36,6 +36,7 @@ import type { AtlasMode, BookmarkId, EditorTool, Point, RoadSegment } from "../.
 import { FLOOD_RADIUS_LIMITS, getFloodPolygon } from "../../atlas/domain";
 import { FlatMap, HOUSTON_OVERVIEW_CENTER } from "./FlatMap";
 import { MapMeasure } from "./MapMeasure";
+import type { PlanningAsset } from "../allocation/map";
 import { addMeasurementPoint } from "./measurement";
 import {
   BOOKMARKS,
@@ -48,6 +49,9 @@ import {
 import "./atlas-map.css";
 
 export interface AtlasMapProps {
+  planningAssets?: PlanningAsset[];
+  planningFootprint?: AllocationFootprint | null;
+  onPlanningAsset?: (id: string) => void;
   roads: RoadSegment[];
   track: Point[];
   stormPosition: Point;
@@ -123,6 +127,7 @@ export default function Globe(props: AtlasMapProps) {
   const viewerRef = useRef<Viewer | null>(null);
   const sources = useRef<{
     roads: CustomDataSource;
+    planning: CustomDataSource;
     hazard: CustomDataSource;
     reference: CustomDataSource;
     counties: CustomDataSource;
@@ -233,6 +238,7 @@ export default function Globe(props: AtlasMapProps) {
     autoCamera.current = { position: viewer.camera.position.clone(), heading: viewer.camera.heading, pitch: viewer.camera.pitch };
     const group = {
       roads: new CustomDataSource("curated-roads"),
+      planning: new CustomDataSource("illustrative-allocation"),
       hazard: new CustomDataSource("hypothetical-scenario"),
       reference: new CustomDataSource("local-reference-labels"),
       counties: new CustomDataSource("schematic-counties"),
@@ -314,6 +320,8 @@ export default function Globe(props: AtlasMapProps) {
             : [],
         );
       const tool = latest.current.tool;
+      const planning = ids.find(id => id.startsWith("plan:") || id.startsWith("plan-marker:"));
+      if (planning) return "plan:" + planning.slice(planning.indexOf(":") + 1);
       const handle = ids.find(
         (id) =>
           (tool === "track" && id.startsWith("track-handle:")) ||
@@ -393,6 +401,12 @@ export default function Globe(props: AtlasMapProps) {
         ? state.roads.find((item) => item.id === id.slice(5))
         : undefined;
       setHoveredRoad(road?.id ?? null);
+      if (id?.startsWith("plan:")) {
+        const asset = state.planningAssets?.find(a => a.id === id.slice(5));
+        setHover(asset ? asset.name + " · " + asset.caption : "");
+        viewer.canvas.style.cursor = "pointer";
+        return;
+      }
       setHover(
         road
           ? `${road.name} · ${state.closedRoadIds.includes(road.id) ? "hypothetical closure" : "flood exposure unknown"}`
@@ -411,6 +425,10 @@ export default function Globe(props: AtlasMapProps) {
       if (performance.now() < suppressClickUntil.current) return;
       const id = pick(event.position);
       const state = latest.current;
+      if (id?.startsWith("plan:")) {
+        state.onPlanningAsset?.(id.slice(5));
+        return;
+      }
       if (state.tool === "measure") {
         const point = groundPoint(event.position);
         if (point) placeMeasurement(point);
@@ -607,6 +625,36 @@ export default function Globe(props: AtlasMapProps) {
     observer.observe(node);
     return () => observer.disconnect();
   }, [ready, flat, tilted]);
+
+  useEffect(() => {
+    const source = sources.current?.planning;
+    if (!source || !ready) return;
+    source.entities.removeAll();
+    const footprint = props.planningFootprint;
+    if (footprint) {
+      const ring = getFloodPolygon([footprint.longitude, footprint.latitude], footprint.radiusKm);
+      source.entities.add({polyline: {positions: linePositions([...ring, ring[0]], 75), width: 2,
+        material: new PolylineDashMaterialProperty({color: c("#aec9c0"), dashLength: 12})}});
+    }
+    for (const asset of props.planningAssets ?? []) {
+      const first = asset.points[0];
+      if (asset.kind === "road") {
+        source.entities.add({id: "plan:" + asset.id, polyline: {
+          positions: linePositions(asset.points, 115), width: asset.selected ? 6 : 4,
+          material: asset.dashed ? new PolylineDashMaterialProperty({color: c(asset.color), dashLength: 14}) : c(asset.color),
+        }});
+        if (!asset.selected) continue;
+        const last = asset.points.at(-1)!;
+        source.entities.add({id: "plan-marker:" + asset.id,
+          position: Cartesian3.fromDegrees((first[0]+last[0])/2, (first[1]+last[1])/2, 150),
+          point: {pixelSize: 11, color: c(asset.color), outlineColor: c(colors.ink), outlineWidth: 2}});
+      } else {
+        source.entities.add({id: "plan:" + asset.id, position: Cartesian3.fromDegrees(...first, 130),
+          point: {pixelSize: asset.kind === "facility" ? 12 : 7, color: c(asset.color), outlineColor: c(colors.ink), outlineWidth: 2},
+          label: asset.kind === "facility" ? label(asset.name) : undefined});
+      }
+    }
+  }, [props.planningAssets, props.planningFootprint, ready]);
 
   useEffect(() => {
     const source = sources.current?.roads;

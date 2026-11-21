@@ -195,7 +195,7 @@ def test_native_openapi_documents_request_and_envelope(client):
     response = client.get("/openapi.json")
     assert response.status_code == 200
     spec = response.json()
-    assert spec["info"]["version"] == "1.0.0"
+    assert spec["info"]["version"] == "1.1.0"
     operation = spec["paths"]["/api/v1/scenarios/evaluate"]["post"]
     assert "requestBody" in operation
     assert "422" in operation["responses"]

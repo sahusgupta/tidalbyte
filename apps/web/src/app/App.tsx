@@ -22,6 +22,8 @@ import { Sources } from "./Sources";
 import { AtlasHeader, AtlasTools, StudyDialog, StudyMenu, type StudyPage } from "./AtlasChrome";
 import { MapLayers } from "./MapLayers";
 import { downloadStudy } from "../atlas/exportStudy";
+import { ResourcePlanning, Playback } from "../features/allocation/ResourcePlanning";
+import { usePlanner, strategyNames } from "../features/allocation/usePlanner";
 
 const Globe = lazy(() => import("../features/globe/Globe"));
 const initialLayers: Layers = { hazard: true, roads: true, outages: false };
@@ -48,9 +50,17 @@ export function App({
   const [mapStyle, setMapStyle] = useState<"field" | "aerial">("field");
   const [pages, setPages] = useState<StudyPage[]>([]);
   const page = pages.at(-1) ?? null;
+  const [planning, setPlanning] = useState(false);
+  const planner = usePlanner(planning);
+  const edge = planner.assets.find(asset => asset.id === planner.assetId && asset.kind === "road");
   const [mapNotice, setMapNotice] = useState("");
   const focusMap = () => document.getElementById("atlas-map")?.focus({ preventScroll: true });
   function openPage(next: StudyPage | null) {
+    if (next === "allocation") {
+      setPlanning(true);
+      s.setTool("inspect");
+    }
+    if (next && ["compare", "scenario", "inspector", "layers", "county"].includes(next)) setPlanning(false);
     if (next && s.playing) s.setPlaying(false);
     s.setComparison(next === "compare");
     setPages((previous) =>
@@ -75,7 +85,7 @@ export function App({
     () => deriveAtlas({ ...BASELINE, mode: s.mode, progress: s.progress }),
     [s.mode, s.progress],
   );
-  const scenario = useMemo(() => makeScenario(s.version), [s.version]);
+  const scenario = useMemo(() => makeScenario(s.version + planner.revision), [s.version, planner.revision]);
   // Local trajectory and footprint edits do not change the historical model input.
   const evaluationQuery = useQuery({
     queryKey: ["houston-county-evaluation", offlineScenario.presetEventId],
@@ -139,6 +149,7 @@ export function App({
     return () => window.removeEventListener("keydown", listener);
   }, [page]);
   function selectTool(tool: EditorTool) {
+    setPlanning(false);
     s.setPlaying(false);
     if (tool === "track" && !hurricane) s.setMode("hurricane");
     if (tool === "flood" && hurricane) s.setMode("flood");
@@ -178,6 +189,9 @@ export function App({
       <main className="map-frame" id="atlas-map" tabIndex={-1} aria-label="Houston scenario map">
         <Suspense fallback={<div className="map-loading">Loading the Houston map…</div>}>
           <Globe
+            planningAssets={planning ? planner.assets : undefined}
+            planningFootprint={planning ? planner.run?.request.footprint : null}
+            onPlanningAsset={id => { planner.selectAsset(id); openPage("allocation"); }}
             mapStyle={mapStyle}
             onResetView={() => s.flyTo("houston")}
             roads={HOUSTON_ROADS}
@@ -195,9 +209,9 @@ export function App({
             tool={s.tool}
             bookmark={s.bookmark}
             cameraRevision={s.cameraRevision}
-            showRoads={layers.roads}
-            showFlood={layers.hazard}
-            countyPredictions={layers.outages ? evaluation.predictions : undefined}
+            showRoads={!planning && layers.roads}
+            showFlood={!planning && layers.hazard}
+            countyPredictions={!planning && layers.outages ? evaluation.predictions : undefined}
             baselineTrack={BASELINE.track}
             baselineFloodCenter={BASELINE.floodCenter}
             baselineFloodRadiusKm={base.currentFloodRadiusKm}
@@ -207,8 +221,15 @@ export function App({
             onMapPoint={mapPoint}
           />
         </Suspense>
-        <AtlasTools tool={s.tool} onTool={selectTool} bookmark={s.bookmark} onBookmark={s.flyTo} />
-        {hint && (
+        {!planning && <AtlasTools tool={s.tool} onTool={selectTool} bookmark={s.bookmark} onBookmark={s.flyTo} />}
+        {planning && planner.run && planner.strategy && !page && <div className="plan-map-controls">
+          <div className="plan-map-toolbar">
+            <button onClick={() => openPage("allocation")}>Planning ledger ↗</button>
+            <span>{planner.run.offline ? "Offline example" : strategyNames[planner.strategy.id]}</span>
+            <button aria-label="Exit resource planning" onClick={() => { setPlanning(false); focusMap(); }}><Icon name="close" size={16}/></button>
+          </div>
+        </div>}
+        {!planning && hint && (
           <div className="field-map-hint">
             <span role="status">{hint}</span>
             <button onClick={() => selectTool("inspect")}>Done</button>
@@ -216,7 +237,9 @@ export function App({
         )}
       </main>
       <footer className="field-foot">
-        <Timeline
+        {planning && planner.strategy ? <div className="plan-footer">
+          <span>{planner.run?.request.phase === "response" ? "Clearance" : "Mitigation"} playback</span>
+          <Playback p={planner}/></div> : <Timeline
           caption={hurricane ? "Hypothetical storm" : "Illustrative flood"}
           progress={s.progress}
           playing={s.playing}
@@ -229,7 +252,7 @@ export function App({
             if (!s.playing && s.progress >= 1) s.setProgress(0);
             s.setPlaying(!s.playing);
           }}
-        />
+        />}
         <button
           className="foot-command"
           onClick={() => openPage("ask")}
@@ -278,6 +301,8 @@ export function App({
             />
           )}
           {page === "sources" && <Sources />}
+          {page === "allocation" && <ResourcePlanning p={planner} footprint={hurricane ? null :
+            {longitude:s.floodCenter[0],latitude:s.floodCenter[1],radiusKm:s.floodRadiusKm}} onMap={closeToMap}/>}
           {page === "county" && (
             <div className="notebook-page county-page">
               <CountyEvidence evaluation={evaluation} serviceStatus={countyStatus} />
@@ -289,20 +314,44 @@ export function App({
           {page === "compare" && (
             <Comparison current={current} evaluation={evaluation} serviceStatus={countyStatus}>
               <NetworkComparison />
+              <button className="sheet-link" onClick={() => openPage("allocation")}><Icon name="atlas"/> Resource planning <Icon name="arrow" size={14}/></button>
             </Comparison>
           )}
           {page === "ask" && (
             <CommandBar
               scenario={scenario}
-              getCurrentScenario={() => makeScenario(useAtlasStore.getState().version)}
+              getCurrentScenario={() => makeScenario(useAtlasStore.getState().version + planner.revision)}
               capabilities={{
                 presetEventIds: [offlineScenario.presetEventId],
                 overlayIds: ["roads", "hazard", "outages"],
                 canRunAnalysis: true,
                 canExplain: true,
+                canPlan: true,
+                selectedPlanningEdge: edge?.id ?? null,
               }}
               onCommand={async (cmd) => {
                 switch (cmd.action) {
+                  case "COMPARE_INTERVENTION": {
+                    openPage("allocation");
+                    const draft = planner.draft ?? (await import("../features/allocation/service")).example("mitigation").request;
+                    switch (cmd.args.intent) {
+                      case "resources":
+                        planner.compare({...draft, totalBudget: cmd.args.totalBudget, crewCapacity: cmd.args.crewCapacity});
+                        break;
+                      case "prioritize_hospitals":
+                        planner.compare({...draft, agencies: Object.fromEntries(Object.entries(draft.agencies).map(([id,a]) =>
+                          [id, {...a, clinicWeight: 10, shelterWeight: Math.min(a.shelterWeight, 3)}])) as typeof draft.agencies});
+                        break;
+                      case "assume_blocked":
+                        if (!edge) throw new Error("Select a planning link first.");
+                        planner.compare({...draft, blockedEdgeIds: [...new Set([...draft.blockedEdgeIds, edge.id])],
+                          impairedEdgeIds: draft.impairedEdgeIds.filter(id => id !== edge.id)});
+                        break;
+                      case "compare": planner.compare(draft); break;
+                      case "explain": planner.selectStrategy("bargaining"); break;
+                    }
+                    return;
+                  }
                   case "SELECT_REGION":
                     useAtlasStore.getState().flyTo("houston");
                     return;

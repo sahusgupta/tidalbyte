@@ -1,4 +1,4 @@
-# Wire contracts v1.0.0
+# Wire contracts v1.1.0
 
 `*.schema.json` are canonical JSON Schema 2020-12. The v1 initial freeze is
 approved in `docs/proposals/001-bootstrap-contracts.md`. `api.schema.json` is a
