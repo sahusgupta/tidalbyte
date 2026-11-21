@@ -21,6 +21,12 @@ Build downloads regional geography. Training fits a flood-depth surrogate to a p
 
 ## Open the map
 
+From `simulator/backend`, prepare all five zones sequentially with the simulator environment. The command reuses complete local builds and trains missing models with the standard settings.
+
+```powershell
+../.venv/Scripts/python.exe -m aquagrid.prepare_zones
+```
+
 After completing the [atlas setup](../README.md), run `pnpm dev:integrated` from the repository root. Open the [Houston atlas](http://127.0.0.1:5173) and choose **Study menu → Flood simulator**. **Open Earth view** lists all zones. The [standalone map](http://127.0.0.1:5174) also accepts `?region=<id>`. The [AquaGrid region catalog](http://127.0.0.1:8001/api/regions) reports which regions are built.
 
 For standalone development, start Uvicorn with `python -m uvicorn aquagrid.api:app --port 8000` from `simulator/backend` using the simulator environment, and `npm run dev -- --port 5174` from `simulator/frontend`. Set the frontend process variable `AQUAGRID_API` when its API runs at a different address. To embed a separately served simulator, set `VITE_SIMULATOR_URL` to its public URL before starting or building the atlas. A static deployment of the simulator must forward its `/api/` requests to the AquaGrid backend.
