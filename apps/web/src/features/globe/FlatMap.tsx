@@ -6,7 +6,7 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import type { Point } from "../../atlas/domain";
-import { FLOOD_RADIUS_LIMITS, getFloodPolygon } from "../../atlas/domain";
+import { FLOOD_RADIUS_LIMITS, HOUSTON_ROADS, SEED_TRACK, getFloodPolygon } from "../../atlas/domain";
 import { offlineCounties } from "@earthlab/contracts";
 import type { AtlasMapProps } from "./Globe";
 import {
@@ -21,7 +21,13 @@ import {
 const X = (point: Point) => ((point[0] - BOUNDS[0]) / (BOUNDS[2] - BOUNDS[0])) * 1000;
 const Y = (point: Point) => ((BOUNDS[3] - point[1]) / (BOUNDS[3] - BOUNDS[1])) * 760;
 const path = (points: Point[]) => points.map((point) => `${X(point)},${Y(point)}`).join(" ");
-const dark = "#172b30";
+const dark = "#202c28";
+const overviewPoints = [...SEED_TRACK, ...HOUSTON_ROADS.flatMap((road) => road.points)];
+/** Fixed authored study extent; user edits never trigger automatic reframing. */
+export const HOUSTON_OVERVIEW_CENTER: Point = [
+  (Math.min(...overviewPoints.map((point) => point[0])) + Math.max(...overviewPoints.map((point) => point[0]))) / 2,
+  (Math.min(...overviewPoints.map((point) => point[1])) + Math.max(...overviewPoints.map((point) => point[1]))) / 2,
+];
 
 export function FlatMap(props: AtlasMapProps) {
   const svg = useRef<SVGSVGElement>(null);
@@ -49,10 +55,11 @@ export function FlatMap(props: AtlasMapProps) {
 
   useEffect(() => {
     const target = BOOKMARKS[props.bookmark];
-    const scale = props.bookmark === "houston" ? 1 : props.bookmark === "downtown" ? 0.35 : 0.45;
+    const scale = props.bookmark === "houston" ? 1.08 : props.bookmark === "downtown" ? 0.35 : 0.45;
+    const point = props.bookmark === "houston" ? HOUSTON_OVERVIEW_CENTER : target.point;
     setView({
-      x: X(target.point) - 500 * scale,
-      y: Y(target.point) - 380 * scale,
+      x: X(point) - 500 * scale,
+      y: Y(point) - 380 * scale,
       width: 1000 * scale,
       height: 760 * scale,
     });
@@ -237,13 +244,11 @@ export function FlatMap(props: AtlasMapProps) {
             const selected = props.selectedRoadId === road.id || hoveredRoad === road.id;
             const closed = props.closedRoadIds.includes(road.id);
             const disconnected = props.disconnectedRoadIds?.includes(road.id);
-            const color = selected
-              ? "#f7ce83"
-              : closed
-                ? "#ef8b74"
+            const color = closed
+                ? "#d58b76"
                 : disconnected
-                  ? "#bf9fce"
-                  : "#d3d4bd";
+                  ? "#b2a4c1"
+                  : selected ? "#fff5dc" : "#c9cec3";
             const middle = road.points[Math.floor(road.points.length / 2)];
             return (
               <g key={road.id}>
@@ -251,7 +256,8 @@ export function FlatMap(props: AtlasMapProps) {
                   points={path(road.points)}
                   fill="none"
                   stroke={dark}
-                  strokeWidth={selected ? 9 : 6}
+                  strokeWidth={selected ? 6 : 3.5}
+                  strokeOpacity={0.72}
                   vectorEffect="non-scaling-stroke"
                   pointerEvents="none"
                 />
@@ -263,7 +269,7 @@ export function FlatMap(props: AtlasMapProps) {
                   points={path(road.points)}
                   fill="none"
                   stroke={color}
-                  strokeWidth={selected ? 5 : 3}
+                  strokeWidth={selected ? 3.5 : 1.75}
                   strokeDasharray={closed || disconnected ? "8 6" : undefined}
                   vectorEffect="non-scaling-stroke"
                   onPointerEnter={() => setHoveredRoad(road.id)}
@@ -297,15 +303,15 @@ export function FlatMap(props: AtlasMapProps) {
                     {road.name}
                   </text>
                 )}
-                {[road.points[0], road.points[road.points.length - 1]].map((point, index) => (
+                {selected && [road.points[0], road.points[road.points.length - 1]].map((point, index) => (
                   <circle
                     key={index}
                     cx={X(point)}
                     cy={Y(point)}
-                    r={3 / scaleFactor}
+                    r={2.5 / scaleFactor}
                     fill="#e9e6d0"
                     stroke={dark}
-                    strokeWidth={1.5 / scaleFactor}
+                    strokeWidth={1 / scaleFactor}
                     pointerEvents="none"
                   />
                 ))}
@@ -315,23 +321,23 @@ export function FlatMap(props: AtlasMapProps) {
         <text
           className="flat-place-major"
           x={X([-95.3698, 29.7604]) + 14 / scaleFactor}
-          y={Y([-95.3698, 29.7604]) + 29 / scaleFactor}
-          fontWeight="700"
+          y={Y([-95.3698, 29.7604]) - 20 / scaleFactor}
+          fontWeight="500"
         >
-          DOWNTOWN HOUSTON
+          Downtown Houston
         </text>
         <text
           x={X([-95.446, 29.777]) - 16 / scaleFactor}
           y={Y([-95.446, 29.777]) - 24 / scaleFactor}
           textAnchor="end"
         >
-          BUFFALO BAYOU
+          Buffalo Bayou
         </text>
         <text
           x={X([-95.185, 29.735]) + 12 / scaleFactor}
           y={Y([-95.185, 29.735]) + 20 / scaleFactor}
         >
-          SHIP CHANNEL
+          Ship Channel
         </text>
         {props.showFlood !== false && (
           <>
@@ -367,17 +373,8 @@ export function FlatMap(props: AtlasMapProps) {
                 <polyline
                   points={path(track)}
                   fill="none"
-                  stroke="#e2b475"
-                  strokeOpacity=".18"
-                  strokeWidth="16"
-                  vectorEffect="non-scaling-stroke"
-                  pointerEvents="none"
-                />
-                <polyline
-                  points={path(track)}
-                  fill="none"
-                  stroke="#f2c487"
-                  strokeWidth="4"
+                  stroke="#e6aa63"
+                  strokeWidth="3"
                   vectorEffect="non-scaling-stroke"
                   pointerEvents="none"
                 />
@@ -387,9 +384,9 @@ export function FlatMap(props: AtlasMapProps) {
                   rx={X(pointAtRadius(props.stormPosition, 6)) - X(props.stormPosition)}
                   ry={(6 / 111.32 / 0.6) * 760}
                   fill="#e6ae65"
-                  fillOpacity=".17"
+                  fillOpacity=".06"
                   stroke="#efc58d"
-                  strokeOpacity=".7"
+                  strokeOpacity=".5"
                   pointerEvents="none"
                 />
                 {track.map((point, index) => (
@@ -401,10 +398,10 @@ export function FlatMap(props: AtlasMapProps) {
                       aria-label={`Waypoint ${index + 1}. Drag or use arrow keys to reposition.`}
                       cx={X(point)}
                       cy={Y(point)}
-                      r={7 / scaleFactor}
-                      fill="#213b40"
-                      stroke="#f4ce92"
-                      strokeWidth={3 / scaleFactor}
+                      r={(props.tool === "track" ? 7 : 5) / scaleFactor}
+                      fill="transparent"
+                      stroke="#f0b977"
+                      strokeWidth={2.5 / scaleFactor}
                       onPointerDown={(event) => {
                         if (props.tool === "track") begin(event, { kind: "track", index });
                       }}
@@ -422,17 +419,17 @@ export function FlatMap(props: AtlasMapProps) {
                         y={Y(point) + 20 / scaleFactor}
                         textAnchor="middle"
                       >
-                        W{index + 1}
+                        {index + 1}
                       </text>
                     )}
                   </g>
                 ))}
                 <image
                   href="/map/storm-eye.svg"
-                  x={X(props.stormPosition) - 20 / scaleFactor}
-                  y={Y(props.stormPosition) - 20 / scaleFactor}
-                  width={40 / scaleFactor}
-                  height={40 / scaleFactor}
+                  x={X(props.stormPosition) - 14 / scaleFactor}
+                  y={Y(props.stormPosition) - 14 / scaleFactor}
+                  width={28 / scaleFactor}
+                  height={28 / scaleFactor}
                   pointerEvents="none"
                 />
                 {props.tool === "track" && (
@@ -440,9 +437,9 @@ export function FlatMap(props: AtlasMapProps) {
                     x={X(props.stormPosition)}
                     y={Y(props.stormPosition) - 31 / scaleFactor}
                     textAnchor="middle"
-                    fontWeight="700"
+                    fontWeight="500"
                   >
-                    HYPOTHETICAL STORM
+                    Storm center
                   </text>
                 )}
               </>
@@ -531,7 +528,7 @@ export function FlatMap(props: AtlasMapProps) {
                     x={X(center) - 12 / scaleFactor}
                     y={Y(center) - 12 / scaleFactor}
                     textAnchor="end"
-                    fontWeight="700"
+                    fontWeight="500"
                   >
                     Extent center
                   </text>
@@ -569,20 +566,21 @@ export function FlatMap(props: AtlasMapProps) {
                   {prediction.severityUnit}
                 </tspan>
                 <tspan x={labelX} dy={14 / scaleFactor}>
-                  SCHEMATIC ·{" "}
+                  Schematic ·{" "}
                   {prediction.dataMode === "offline_example"
-                    ? "OFFLINE EXAMPLE"
-                    : "CONDITIONAL MODEL"}
+                    ? "Offline example"
+                    : "Conditional model"}
                 </tspan>
               </text>
             </g>
           );
         })}
       </svg>
-      <div className="atlas-map-scale">
-        <span style={{ width: Math.min(150, Math.max(10, scaleKm * pixelsPerKm)) }} />≈ {scaleKm} km
+      <div className="atlas-distance-scale" role="img" aria-label={`Approximate scale ${scaleKm} kilometers at view center`}>
+        <span className="atlas-scale-line" style={{ width: Math.min(120, Math.max(10, scaleKm * pixelsPerKm)) }} />
+        <span>{scaleKm} km</span>
       </div>
-      <div className="atlas-flat-controls" aria-label="2D map zoom">
+      <div className="atlas-zoom-pair atlas-flat-zoom" role="group" aria-label="2D map zoom">
         <button type="button" aria-label="Zoom 2D map in" onClick={() => zoom(0.8)}>
           +
         </button>

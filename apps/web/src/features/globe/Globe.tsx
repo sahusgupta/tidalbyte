@@ -9,6 +9,7 @@ import {
   DistanceDisplayCondition,
   Entity,
   HeadingPitchRange,
+  HorizontalOrigin,
   LabelStyle,
   Math as CesiumMath,
   Matrix4,
@@ -28,7 +29,7 @@ import {
 } from "../earth/imagery";
 import type { AtlasMode, BookmarkId, EditorTool, Point, RoadSegment } from "../../atlas/domain";
 import { FLOOD_RADIUS_LIMITS, getFloodPolygon } from "../../atlas/domain";
-import { FlatMap } from "./FlatMap";
+import { FlatMap, HOUSTON_OVERVIEW_CENTER } from "./FlatMap";
 import {
   BOOKMARKS,
   BOUNDS,
@@ -69,29 +70,34 @@ export interface AtlasMapProps {
 }
 
 const colors = {
-  road: "#ced1b5",
-  selected: "#f7ce83",
-  closed: "#ef8b74",
-  disconnected: "#bf9fce",
-  ink: "#19262b",
+  road: "#c9cec3",
+  selected: "#fff5dc",
+  closed: "#d58b76",
+  disconnected: "#b2a4c1",
+  ink: "#202c28",
 };
 const c = (hex: string, alpha = 1) => Color.fromCssColorString(hex).withAlpha(alpha);
 const positions = (points: Point[], height = 65) =>
   points.map(([lon, lat]) => Cartesian3.fromDegrees(lon, lat, height));
 const label = (text: string, extra: object = {}) => ({
   text,
-  font: "600 11px Arial",
+  font: "500 12px Arial",
   fillColor: c("#f5f0dc"),
   outlineColor: c("#142329"),
-  outlineWidth: 4,
+  outlineWidth: 3,
   style: LabelStyle.FILL_AND_OUTLINE,
-  showBackground: true,
-  backgroundColor: c("#18272b", 0.82),
-  backgroundPadding: new Cartesian2(6, 4),
+  showBackground: false,
   pixelOffset: new Cartesian2(0, -13),
   disableDepthTestDistance: Number.POSITIVE_INFINITY,
   ...extra,
 });
+const framedTarget = (bookmark: BookmarkId, canvas: HTMLCanvasElement) => {
+  const target = BOOKMARKS[bookmark];
+  const aspect = Math.max(0.4, canvas.clientWidth / Math.max(1, canvas.clientHeight));
+  return bookmark === "houston"
+    ? { point: HOUSTON_OVERVIEW_CENTER, range: Math.min(110000, target.range * Math.max(1, 1.1 / aspect)) }
+    : target;
+};
 
 export default function Globe(props: AtlasMapProps) {
   const mount = useRef<HTMLDivElement>(null);
@@ -125,11 +131,35 @@ export default function Globe(props: AtlasMapProps) {
   const [tilted, setTilted] = useState(true);
   const [scale, setScale] = useState({ km: 5, pixels: 80 });
   const [rendererUnavailable, setRendererUnavailable] = useState(false);
+  const [viewOptionsOpen, setViewOptionsOpen] = useState(false);
+  const viewControls = useRef<HTMLDivElement>(null);
+  const viewOptionsButton = useRef<HTMLButtonElement>(null);
   const [imageryStatus, setImageryStatus] = useState<ImageryStatus>({
     kind: "local",
     label: "Bundled aerial archive",
     credit: "USDA / USGS The National Map",
   });
+
+  useEffect(() => {
+    if (!viewOptionsOpen) return;
+    const outside = (event: PointerEvent) => {
+      if (event.target instanceof Node && !viewControls.current?.contains(event.target))
+        setViewOptionsOpen(false);
+    };
+    const escape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      event.stopPropagation();
+      setViewOptionsOpen(false);
+      viewOptionsButton.current?.focus();
+    };
+    document.addEventListener("pointerdown", outside);
+    document.addEventListener("keydown", escape);
+    return () => {
+      document.removeEventListener("pointerdown", outside);
+      document.removeEventListener("keydown", escape);
+    };
+  }, [viewOptionsOpen]);
 
   useEffect(() => {
     if (!mount.current) return;
@@ -168,7 +198,7 @@ export default function Globe(props: AtlasMapProps) {
     sharpenRendering(viewer);
     viewer.scene.screenSpaceCameraController.minimumZoomDistance = 1500;
     viewer.scene.screenSpaceCameraController.maximumZoomDistance = 115000;
-    const initial = BOOKMARKS[latest.current.bookmark];
+    const initial = framedTarget(latest.current.bookmark, viewer.canvas);
     viewer.camera.lookAt(
       Cartesian3.fromDegrees(...initial.point),
       new HeadingPitchRange(0, CesiumMath.toRadians(-66), initial.range),
@@ -211,23 +241,22 @@ export default function Globe(props: AtlasMapProps) {
       }),
     );
     for (const place of [
-      { point: [-95.3698, 29.7604] as Point, name: "DOWNTOWN HOUSTON", size: 15 },
-      { point: [-95.446, 29.767] as Point, name: "BUFFALO BAYOU", size: 11 },
-      { point: [-95.185, 29.735] as Point, name: "SHIP CHANNEL", size: 11 },
-      { point: [-95.395, 29.711] as Point, name: "MEDICAL CENTER", size: 10 },
-      { point: [-95.12, 29.68] as Point, name: "PASADENA", size: 10 },
+      { point: [-95.3698, 29.7604] as Point, name: "Downtown Houston", size: 14 },
+      { point: [-95.446, 29.767] as Point, name: "Buffalo Bayou", size: 12 },
+      { point: [-95.185, 29.735] as Point, name: "Ship Channel", size: 12 },
     ])
       group.reference.entities.add({
         position: Cartesian3.fromDegrees(...place.point, 120),
         label: label(place.name, {
-          font: `600 ${place.size}px Arial`,
+          font: `${place.size > 12 ? 500 : 400} ${place.size}px Arial`,
+          horizontalOrigin: place.name === "Buffalo Bayou" ? HorizontalOrigin.RIGHT : HorizontalOrigin.LEFT,
           pixelOffset: new Cartesian2(
-            place.name === "BUFFALO BAYOU" ? -24 : 0,
-            place.name === "BUFFALO BAYOU" ? -18 : 0,
+            place.name === "Buffalo Bayou" ? -12 : 16,
+            place.name === "Ship Channel" ? 20 : -20,
           ),
           distanceDisplayCondition: new DistanceDisplayCondition(
             0,
-            place.size < 12 ? 90000 : 180000,
+            place.size <= 12 ? 90000 : 180000,
           ),
         }),
       });
@@ -446,7 +475,7 @@ export default function Globe(props: AtlasMapProps) {
   useEffect(() => {
     const viewer = viewerRef.current;
     if (!viewer || !ready || flat) return;
-    const target = BOOKMARKS[props.bookmark];
+    const target = framedTarget(props.bookmark, viewer.canvas);
     const request = `${props.bookmark}:${props.cameraRevision}:${tilted}`;
     const changed = lastCameraRequest.current !== null && lastCameraRequest.current !== request;
     lastCameraRequest.current = request;
@@ -480,58 +509,45 @@ export default function Globe(props: AtlasMapProps) {
       const selected = road.id === props.selectedRoadId || road.id === hoveredRoad;
       const closed = props.closedRoadIds.includes(road.id);
       const disconnected = props.disconnectedRoadIds?.includes(road.id);
-      const stroke = selected
-        ? colors.selected
-        : closed
+      const stroke = closed
           ? colors.closed
           : disconnected
             ? colors.disconnected
-            : colors.road;
+            : selected ? colors.selected : colors.road;
       source.entities.add({
         id: `road-casing:${road.id}`,
         polyline: {
           positions: positions(road.points, 45),
-          width: selected ? 9 : 6,
-          material: c(colors.ink, 0.93),
+          width: selected ? 6 : 3.5,
+          material: c(colors.ink, 0.72),
         },
       });
       source.entities.add({
         id: `road:${road.id}`,
         polyline: {
           positions: positions(road.points, 68),
-          width: selected ? 5 : 3,
+          width: selected ? 3.5 : 1.75,
           material:
             closed || disconnected
               ? new PolylineDashMaterialProperty({ color: c(stroke), dashLength: 13 })
               : c(stroke),
         },
       });
-      const midpoint = road.points[Math.floor(road.points.length / 2)];
-      if (road.id === hoveredRoad)
-        source.entities.add({
-          id: `road-label:${road.id}`,
-          position: Cartesian3.fromDegrees(...midpoint, 130),
-          label: label(`${closed ? "× " : ""}${road.name}`, {
-            fillColor: c(stroke),
-            font: "600 11px Arial",
-            pixelOffset: new Cartesian2(0, 20),
-          }),
-        });
       for (const [index, point] of [
         road.points[0],
         road.points[road.points.length - 1],
       ].entries()) {
         const key = point.join(",");
-        if (seenNodes.has(key)) continue;
+        if (!selected || seenNodes.has(key)) continue;
         seenNodes.add(key);
         source.entities.add({
           id: `junction:${road.id}:${index}`,
           position: Cartesian3.fromDegrees(...point, 95),
           point: {
-            pixelSize: 6,
+            pixelSize: 5,
             color: c("#f1ead6"),
             outlineColor: c(colors.ink),
-            outlineWidth: 2,
+            outlineWidth: 1.5,
             disableDepthTestDistance: Number.POSITIVE_INFINITY,
           },
         });
@@ -587,28 +603,24 @@ export default function Globe(props: AtlasMapProps) {
     }
     if (props.mode === "hurricane") {
       source.entities.add({
-        id: "track-ribbon",
-        polyline: { positions: positions(track, 130), width: 16, material: c("#d5aa69", 0.16) },
-      });
-      source.entities.add({
         id: "active-track",
-        polyline: { positions: positions(track, 160), width: 4, material: c("#f3c783") },
+        polyline: { positions: positions(track, 160), width: 3, material: c("#e6aa63") },
       });
       track.forEach((point, index) =>
         source.entities.add({
           id: `track-handle:${index}`,
           position: Cartesian3.fromDegrees(...point, 190),
           point: {
-            pixelSize: props.tool === "track" ? 13 : 8,
-            color: c("#233c41"),
-            outlineColor: c("#f5d6a0"),
-            outlineWidth: 2,
+            pixelSize: props.tool === "track" ? 14 : 10,
+            color: c("#e6aa63", 0.01),
+            outlineColor: c("#f0b977"),
+            outlineWidth: 2.5,
             disableDepthTestDistance: Number.POSITIVE_INFINITY,
           },
-          label: label(`W${index + 1}`, {
+          label: label(`${index + 1}`, {
             show: props.tool === "track",
             pixelOffset: new Cartesian2(index % 2 ? 18 : -18, 20),
-            font: "700 10px Arial",
+            font: "500 12px Arial",
           }),
         }),
       );
@@ -618,9 +630,9 @@ export default function Globe(props: AtlasMapProps) {
         ellipse: {
           semiMajorAxis: 6000,
           semiMinorAxis: 6000,
-          material: c("#dca55f", 0.16),
+          material: c("#dca55f", 0.06),
           outline: true,
-          outlineColor: c("#edbc7a", 0.75),
+          outlineColor: c("#e3b16e", 0.5),
           height: 80,
         },
       });
@@ -629,14 +641,14 @@ export default function Globe(props: AtlasMapProps) {
         position: Cartesian3.fromDegrees(...props.stormPosition, 240),
         billboard: {
           image: "/map/storm-eye.svg",
-          width: 47,
-          height: 47,
+          width: 28,
+          height: 28,
           disableDepthTestDistance: Number.POSITIVE_INFINITY,
         },
-        label: label("HYPOTHETICAL STORM", {
+        label: label("Storm center", {
           show: props.tool === "track",
-          pixelOffset: new Cartesian2(0, -37),
-          font: "700 10px Arial",
+          pixelOffset: new Cartesian2(0, -27),
+          font: "500 12px Arial",
         }),
       });
     } else {
@@ -667,10 +679,10 @@ export default function Globe(props: AtlasMapProps) {
           outlineWidth: 4,
           disableDepthTestDistance: Number.POSITIVE_INFINITY,
         },
-        label: label("ILLUSTRATIVE EXTENT", {
+        label: label("Extent center", {
           show: props.tool === "flood",
           pixelOffset: new Cartesian2(0, -27),
-          font: "700 10px Arial",
+          font: "500 12px Arial",
         }),
       });
       source.entities.add({
@@ -686,7 +698,7 @@ export default function Globe(props: AtlasMapProps) {
         label: label("Resize", {
           show: props.tool === "flood",
           pixelOffset: new Cartesian2(0, -20),
-          font: "500 10px Arial",
+          font: "400 12px Arial",
         }),
       });
     }
@@ -733,8 +745,8 @@ export default function Globe(props: AtlasMapProps) {
         id: `county-label:${prediction.countyFips}`,
         position: Cartesian3.fromDegrees(...midpoint, 170),
         label: label(
-          `${feature.properties.name} · ${prediction.predictedSeverity} ${prediction.severityUnit}\nSCHEMATIC BOUNDARY · ${prediction.dataMode === "offline_example" ? "OFFLINE EXAMPLE" : "CONDITIONAL MODEL"}`,
-          { font: "500 10px Arial", pixelOffset: new Cartesian2(0, 0) },
+          `${feature.properties.name} · ${prediction.predictedSeverity} ${prediction.severityUnit}\nSchematic boundary · ${prediction.dataMode === "offline_example" ? "Offline example" : "Conditional model"}`,
+          { font: "400 12px Arial", pixelOffset: new Cartesian2(0, 0) },
         ),
       });
     }
@@ -759,18 +771,14 @@ export default function Globe(props: AtlasMapProps) {
         style={{ visibility: flat ? "hidden" : "visible" }}
       />
       {flat && <FlatMap {...props} />}
-      <div className="atlas-map-credit">
-        {flat || imageryStatus.kind !== "detail"
-          ? "USDA / USGS aerial reference"
-          : imageryStatus.credit}
-        <span>
-          {flat || imageryStatus.kind !== "detail" ? "2017–2021 archive" : "Tiled archival imagery"}{" "}
-          · display only
-        </span>
-      </div>
+      {flat && <div className="atlas-source-credit">
+        <a href="https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer" target="_blank" rel="noopener noreferrer">USDA / USGS</a>
+        <span>2017–2021 aerial archive</span>
+      </div>}
       {!flat && (
-        <div className="atlas-map-scale">
-          <span style={{ width: scale.pixels }} />≈ {scale.km} km
+        <div className="atlas-distance-scale" role="img" aria-label={`Approximate scale ${scale.km} kilometers at view center`}>
+          <span className="atlas-scale-line" style={{ width: scale.pixels }} />
+          <span>{scale.km} km</span>
         </div>
       )}
       {(note || (!flat && imageryStatus.warning)) && (
@@ -779,49 +787,47 @@ export default function Globe(props: AtlasMapProps) {
         </div>
       )}
       <div className="atlas-map-hover" role="status">
-        {hover}
+        {props.tool === "inspect" || props.tool === "closure" ? hover : ""}
       </div>
-      <div className="atlas-map-navigation" aria-label="Map navigation">
+      <div className="atlas-view-controls" ref={viewControls} aria-label="Map navigation">
         {!flat && (
-          <>
+          <div className="atlas-zoom-pair" role="group" aria-label="Map zoom">
             <button type="button" aria-label="Zoom in" onClick={() => navigate("in")}>
               +
             </button>
             <button type="button" aria-label="Zoom out" onClick={() => navigate("out")}>
               −
             </button>
-            <span className="atlas-nav-rule" />
-            <button type="button" aria-label="Face north" onClick={() => navigate("north")}>
-              N
-            </button>
-            <button
-              type="button"
-              aria-label="Toggle map tilt"
-              aria-pressed={tilted}
-              onClick={() => navigate("tilt")}
-            >
-              {tilted ? "3D" : "2D"}
-            </button>
-          </>
+          </div>
         )}
         <button
           type="button"
-          className="atlas-flat-toggle"
-          disabled={rendererUnavailable}
-          onClick={() => {
-            setFlat((value) => !value);
-            setNote("");
-          }}
-          title={
-            rendererUnavailable
-              ? "3D renderer unavailable on this device"
-              : flat
-                ? "Use 3D renderer"
-                : "Open accessible 2D atlas"
-          }
+          ref={viewOptionsButton}
+          className="atlas-view-trigger"
+          aria-label="Map view options"
+          aria-expanded={viewOptionsOpen}
+          aria-controls="atlas-view-options"
+          onClick={() => setViewOptionsOpen((value) => !value)}
         >
-          {rendererUnavailable ? "2D active" : flat ? "Use 3D" : "2D atlas"}
+          View
+          <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><path d="m5 8 5 5 5-5" /></svg>
         </button>
+        {viewOptionsOpen && <div className="atlas-view-panel" id="atlas-view-options" role="group" aria-label="Map view options">
+          {!flat && <>
+            <span className="atlas-view-caption">View angle</span>
+            <div className="atlas-view-choices">
+              <button type="button" aria-pressed={tilted} onClick={() => setTilted(true)}>Angled</button>
+              <button type="button" aria-pressed={!tilted} onClick={() => setTilted(false)}>Top-down</button>
+            </div>
+            <button type="button" className="atlas-north-action" onClick={() => navigate("north")}>Face north <span aria-hidden="true">↑</span></button>
+          </>}
+          <span className="atlas-view-caption">Renderer</span>
+          <div className="atlas-view-choices">
+            <button type="button" aria-pressed={!flat} disabled={rendererUnavailable} onClick={() => {setFlat(false);setNote("");setViewOptionsOpen(false);}}>3D map</button>
+            <button type="button" aria-pressed={flat} onClick={() => {setFlat(true);setNote("");setViewOptionsOpen(false);}}>2D map</button>
+          </div>
+          {rendererUnavailable && <p>3D is unavailable on this device</p>}
+        </div>}
       </div>
       <div className="atlas-map-a11y" aria-live="polite">
         {props.tool === "track"
