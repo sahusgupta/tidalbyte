@@ -56,3 +56,7 @@ the observed rendering; response fingerprints prove model outputs changed rather
 than merely the time label. The report distinguishes desktop mouse and emulated
 touch. A physical phone, live traffic, emergency suitability, and predictive model
 accuracy remain outside this check.
+
+## Measure local opening performance
+
+Run `node profile-opening.mjs` from this directory with the local services running. Each trial opens a fresh desktop Chrome profile, waits for the intro heading, uses the area chooser and records the first 3D building draw. It then measures browser frame intervals and completed model requests during a 3.5-second storm playback. The default is three Downtown trials. `QA_ATLAS_URL`, `QA_ZONE`, `QA_CHROME_PATH`, and `QA_TRIALS` override those settings. Use the same machine, viewport and server mode for comparisons. The [performance handoff](../../docs/handoffs/local-opening-performance.md) describes the reference run.
