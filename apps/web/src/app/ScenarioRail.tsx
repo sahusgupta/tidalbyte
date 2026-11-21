@@ -150,10 +150,12 @@ export function ScenarioRail({
   layers,
   onLayer,
   inspectMode,
+  onEditMap,
 }: {
   layers: Layers;
   onLayer: (id: keyof Layers, value: boolean) => void;
   inspectMode: () => void;
+  onEditMap: () => void;
 }) {
   const state = useAtlasStore();
   const hurricane = state.mode === "hurricane";
@@ -201,12 +203,7 @@ export function ScenarioRail({
       <button
         type="button"
         className="notebook-primary"
-        onClick={() => {
-          inspectMode();
-          state.setPlaying(false);
-          state.setTool(hurricane ? "track" : "flood");
-          onLayer("hazard", true);
-        }}
+        onClick={onEditMap}
       >
         <Icon name="edit" size={16} />
         {hurricane ? "Edit track on map" : "Edit footprint on map"}

@@ -53,6 +53,7 @@ export function App({ onEarth }: { onEarth?: () => void } = {}) {
   const compact = useCompactAtlas();
   const askTrigger = useRef<HTMLElement | null>(null);
   const legendPanel = useRef<HTMLDivElement>(null);
+  const focusMapOnDismiss = useRef(false);
   const displayedPage = s.comparison ? "compare" : bookPage;
   const openPage = (page: NotebookPage) => {
     s.setComparison(page === "compare");
@@ -63,6 +64,12 @@ export function App({ onEarth }: { onEarth?: () => void } = {}) {
   useEffect(() => {
     if (!compact) setSheetOpen(false);
   }, [compact]);
+  useEffect(() => {
+    if (!sheetOpen && focusMapOnDismiss.current) {
+      focusMapOnDismiss.current = false;
+      document.getElementById("atlas-map")?.focus();
+    }
+  }, [sheetOpen]);
   useEffect(() => {
     if (!legend) return;
     const outside = (event: PointerEvent) => {
@@ -208,6 +215,13 @@ export function App({ onEarth }: { onEarth?: () => void } = {}) {
         <ScenarioRail
           layers={layers}
           onLayer={layer}
+          onEditMap={() => {
+            selectTool(hurricane ? "track" : "flood");
+            if (sheetOpen) {
+              focusMapOnDismiss.current = true;
+              setSheetOpen(false);
+            } else document.getElementById("atlas-map")?.focus();
+          }}
           inspectMode={() => {
             setCountyOpen(false);
             setMapNotice("");
