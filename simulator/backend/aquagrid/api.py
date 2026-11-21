@@ -4,18 +4,43 @@
 """
 from __future__ import annotations
 
-from fastapi import FastAPI, HTTPException
+import asyncio
+import logging
+from contextlib import asynccontextmanager
+from importlib import import_module
+
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse, ORJSONResponse
 from pydantic import BaseModel, Field
+from starlette.staticfiles import StaticFiles
 
+from .catalog import public_meta
 from .config import DEFAULT_REGION, REGIONS
-from .engine import get_engine
+from .geometry import compressed_geometry
 
-app = FastAPI(title="AquaGrid AI", version="0.1.0", default_response_class=ORJSONResponse)
+def _preload_libraries():
+    try:
+        import_module(".engine", package=__package__)
+    except Exception:
+        # Catalog and regional geometry are still available. A simulation will retry the import.
+        logging.getLogger(__name__).exception("Could not load AquaGrid inference libraries")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    warmup = asyncio.create_task(asyncio.to_thread(_preload_libraries))
+    try:
+        yield
+    finally:
+        await warmup
+
+
+app = FastAPI(title="AquaGrid AI", version="0.1.0", default_response_class=ORJSONResponse, lifespan=lifespan)
 app.add_middleware(GZipMiddleware, minimum_size=2048, compresslevel=4)
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+geometry_files = StaticFiles()
 
 
 def _region(rid: str):
@@ -51,28 +76,38 @@ def regions():
 
 @app.get("/api/regions/{rid}/meta")
 def meta(rid: str):
-    _region(rid)
-    return get_engine(rid).public_meta()
+    return public_meta(_region(rid))
+
+
+def _geometry(rid: str, filename: str, request: Request):
+    path = _region(rid).out_dir / "static" / filename
+    encodings = {item.strip() for item in request.headers.get("accept-encoding", "").lower().split(",")}
+    precompressed = compressed_geometry(path) if "gzip" in encodings and "range" not in request.headers else None
+    selected = precompressed or path
+    response = geometry_files.file_response(selected, selected.stat(), request.scope)
+    if isinstance(response, FileResponse):
+        response.chunk_size = 1024 * 1024
+        if precompressed:
+            response.headers["Content-Type"] = "application/json"
+            response.headers["Content-Encoding"] = "gzip"
+    response.headers["Vary"] = "Accept-Encoding"
+    response.headers["Cache-Control"] = "no-cache"
+    return response
 
 
 @app.get("/api/regions/{rid}/roads")
-def roads(rid: str):
-    return FileResponse(_region(rid).out_dir / "static" / "roads.json", media_type="application/json")
+def roads(rid: str, request: Request):
+    return _geometry(rid, "roads.json", request)
 
 
 @app.get("/api/regions/{rid}/buildings")
-def buildings(rid: str):
-    return FileResponse(_region(rid).out_dir / "static" / "buildings.json", media_type="application/json")
+def buildings(rid: str, request: Request):
+    return _geometry(rid, "buildings.json", request)
 
 
 @app.post("/api/regions/{rid}/simulate")
 def simulate(rid: str, req: SimRequest):
     _region(rid)
-    return get_engine(rid).simulate(**req.model_dump())
+    from .engine import get_engine
 
-
-@app.on_event("startup")
-def warm():
-    if (REGIONS[DEFAULT_REGION].out_dir / "model" / "flood_xgb.ubj").exists():
-        eng = get_engine(DEFAULT_REGION)
-        eng.simulate(0, 1, 0, 0.1)
+    return ORJSONResponse(get_engine(rid).simulate(**req.model_dump()))

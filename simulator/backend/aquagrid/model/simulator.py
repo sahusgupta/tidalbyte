@@ -24,6 +24,8 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
+from ..catalog import HOUSTON_PRESETS
+
 DRAIN_DESIGN_MMHR = 38.0  # roughly a 5-yr design storm for urban gravity drainage
 OUTFALL_M = 0.55  # typical outfall invert relative to datum
 SURGE_GRADIENT_M_PER_KM = 0.12
@@ -83,22 +85,6 @@ def add_label_noise(depth, rng, sigma=0.12):
     """Observation-style noise so the surrogate learns a smooth expectation, not a lookup table."""
     noisy = depth * rng.lognormal(0, sigma, size=depth.shape) + rng.normal(0, 0.008, size=depth.shape)
     return np.clip(noisy, 0, None)
-
-
-HOUSTON_PRESETS = {
-    "clear": dict(label="Clear Skies", rain=0, duration=1, surge=0.0, clog=0.1,
-                  blurb="Dry day; normal bayou water levels."),
-    "shower": dict(label="Afternoon Downpour", rain=25, duration=1.2, surge=0.0, clog=0.15,
-                   blurb="1 in/hr typical Gulf downpour. Streets pond briefly, drains keep up."),
-    "memorial": dict(label="Memorial Day (2015)", rain=65, duration=3, surge=0.0, clog=0.35,
-                     blurb="~8 in cloudburst over Brays Bayou; rapid flash ponding on feeder roads."),
-    "taxday": dict(label="Tax Day (2016)", rain=75, duration=4, surge=0.0, clog=0.45,
-                   blurb="12-16 in storm; Buffalo and Brays bayous overtop banks."),
-    "100yr": dict(label="100-Yr NOAA Atlas", rain=85, duration=3, surge=0.1, clog=0.5,
-                  blurb="NOAA Atlas 14 100-year recurrence: severe road network severance."),
-    "harvey": dict(label="Harvey Deluge (2017)", rain=125, duration=8, surge=0.3, clog=0.75,
-                   blurb="Catastrophic 500-year stall: 40+ in total; medical & highway corridors submerged."),
-}
 
 
 # Training and evaluation use the same Houston scenarios exposed by the API.
