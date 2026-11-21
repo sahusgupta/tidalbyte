@@ -470,7 +470,7 @@ svg {
   pointer-events: none;
   background: var(--paper);
   color: var(--ink);
-  border-left: 3px solid var(--accent);
+  border: 1px solid var(--rule);
   padding: 8px 12px;
   font-size: 14px;
 }

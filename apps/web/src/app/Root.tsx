@@ -14,6 +14,8 @@ export function Root() {
     const title =
       zone?.name ?? (route.name === "earth" ? "Earth overview" : "Houston Disaster Atlas");
     document.title = `${title} · EarthLab`;
+    const theme = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+    if (theme) theme.content = route.name === "atlas" ? "#faf8f1" : "#1b211f";
   }, [route.name, zone]);
   if (route.name === "atlas") return <App onEarth={() => navigate({ name: "earth" })} />;
   return (
