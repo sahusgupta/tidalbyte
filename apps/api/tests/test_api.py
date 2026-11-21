@@ -1,3 +1,6 @@
+import json
+from pathlib import Path
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -145,6 +148,29 @@ def test_cors_is_an_allowlist(client):
 
 def test_missing_fixture_fails_startup(tmp_path):
     with pytest.raises(FileNotFoundError), TestClient(create_app(fixture_dir=tmp_path)):
+        pass
+
+
+@pytest.mark.parametrize(
+    "path,value",
+    [
+        (("predictions", 0, "dataMode"), "trained_conditional"),
+        (("modelMetadata", "status"), "trained"),
+        (("modelMetadata", "trainingDatasetIds"), ["invented-dataset"]),
+    ],
+)
+def test_offline_fixture_cannot_claim_training(tmp_path, path, value):
+    fixture_dir = Path(__file__).resolve().parents[3] / "data/fixtures"
+    evaluation = json.loads((fixture_dir / "offline-evaluation.json").read_text(encoding="utf-8"))
+    target = evaluation
+    for key in path[:-1]:
+        target = target[key]
+    target[path[-1]] = value
+    (tmp_path / "offline-evaluation.json").write_text(json.dumps(evaluation), encoding="utf-8")
+    (tmp_path / "houston-counties.geojson").write_text(
+        (fixture_dir / "houston-counties.geojson").read_text(encoding="utf-8"), encoding="utf-8"
+    )
+    with pytest.raises(ValueError), TestClient(create_app(fixture_dir=tmp_path)):
         pass
 
 

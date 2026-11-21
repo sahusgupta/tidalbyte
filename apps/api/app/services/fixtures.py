@@ -32,6 +32,11 @@ class OfflineFixtures:
             raise ValueError("Offline county fixture must be a non-empty GeoJSON FeatureCollection")
         if any(item["dataMode"] != "offline_example" for item in self.predictions.values()):
             raise ValueError("Offline fixtures must never claim trained predictions")
+        metadata = self.evaluation["modelMetadata"]
+        if metadata["dataMode"] != "offline_example" or metadata["status"] != "not_trained":
+            raise ValueError("Offline metadata must explicitly identify the absence of a trained model")
+        if metadata["evaluation"] is not None or metadata["trainingDatasetIds"] or metadata["featureSchema"]:
+            raise ValueError("Offline metadata must not invent evaluation results, datasets, or model features")
 
     def validate_region(self, region_id: str) -> None:
         if region_id != REGION_ID:
