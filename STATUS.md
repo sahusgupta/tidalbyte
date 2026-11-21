@@ -1,12 +1,14 @@
 # EarthLab Status
 
-Updated: 2026-11-21. **Prompt 00 lead bootstrap only**, verified locally and in a
-fresh isolated clone. Integration branch: `integrate/bootstrap`.
+Updated: 2026-11-21. Prompt 00 established the shared scaffold. [PR #1](https://github.com/sahusgupta/tidalbyte/pull/1)
+adds the Houston editor at `/`, the Earth overview at `#/earth`, and study-zone
+links at `#/zone/<id>`. The [frontend handoff](apps/web/README.md) covers the
+current demo and its verification. The bootstrap checks below are historical.
 
 | Workstream | Owner | Branch | Status | Next integration |
 |---|---|---|---|---|
 | Lead/contracts/CI | Codex lead | integrate/bootstrap → main | Bootstrap complete | Teammates pull the scaffold commit |
-| Globe/UI | unassigned feature owner | — | Lead's initial keyless globe/mock overlay only | prompts/01-FRONTEND-GLOBE.md |
+| Globe/UI | Frontend | feat/globe-houston-atlas | Houston editor, Earth index and illustrative local connectivity | Connect verified model and graph services when available |
 | ML/data | unassigned | — | Fail-closed placeholder; no model or verified data | prompts/02-ML-DATA.md |
 | Infrastructure/graph | unassigned | — | 503 route stubs only | prompts/03-INFRA-GAME-THEORY.md |
 | AI/voice | unassigned | — | 503 route stubs only | prompts/04-GEMINI-ELEVENLABS.md |
@@ -19,7 +21,7 @@ Scenario and envelope validation reject unsupported input; example evaluation
 preserves mode, provenance and severity-only scope. Subsequent wire changes
 require lead approval and consumer acknowledgement.
 
-## Current evidence
+## Prompt 00 verification
 
 - Integrated typecheck, five web tests and 53 Python tests passed.
 - Production build passed with lazy Cesium chunk-size warning.
@@ -31,7 +33,7 @@ require lead approval and consumer acknowledgement.
   contract/OpenAPI drift checks and kit validation; web/API boot and HTTP checks
   passed for health/readiness, all three fixture counties and real imagery XML.
 
-## Limits and team barrier
+## Limits at the prompt 00 handoff
 
 No real historical warning dataset, trained estimator, graph computation, Gemini,
 ElevenLabs or Google tiles are enabled. The fixture event/time/indices are

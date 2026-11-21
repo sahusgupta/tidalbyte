@@ -1,5 +1,7 @@
 # Handoff: `feat/globe-sharp-zoom-sim`
 
+Integration update for PR #1. The Houston atlas opens at `/`. The Earth index is available at `#/earth`, and zone links remain at `#/zone/<id>`. The Earth index uses bundled global imagery and requests Houston detail at closer zooms. The notes below describe the original branch before integration.
+
 Date: 2026-11-21. Base: `feat/globe-houston-atlas` @ `cfa214b` (Globe/UI workstream, unmerged at time of writing).
 **Merge order:** after `feat/globe-houston-atlas`, or as a PR into it. Its edits to that branch's files are small (20 lines).
 

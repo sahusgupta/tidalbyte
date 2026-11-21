@@ -9,6 +9,7 @@ Run `pnpm install --frozen-lockfile` and `pnpm --filter web dev` from the reposi
 3. Choose **Flood** and **Edit footprint**. Place the center and resize the edge. The circle expands with the timeline from 35% to 100% of the selected final radius. The viewport and legend identify this geometry as illustrative.
 4. Choose **Inspect** and select a road. The inspector shows its source, geometric intersection and exposure status. Use **Add closure** or **Remove closure** to change the local network. The **Baseline vs alternative** strip compares the open baseline with the edited scenario at the same time. **Reset demo** restores the seeded setup, including one assumed closure.
 5. Toggle **County severity** for the independent county context. Open **Sources** for provenance and assumptions. The tablet layout opens the editor and inspector in side drawers.
+6. Choose **Earth** to open the global view at `#/earth`. Match a letter on the Houston aerial inset to a study zone and select its name. Each zone has a direct link at `#/zone/<id>`. Set `VITE_SIMULATOR_URL` to connect a compatible external simulator. The zone panel also links back to the Houston atlas.
 
 ## Evidence and integrations
 
@@ -32,7 +33,7 @@ The shared package supplies scenario, prediction, model metadata, network compar
 | Context            | [County fixture](docs/qa/county-context-1280.jpg) · [Sources](docs/qa/sources-1440.jpg)                         |                                                                                                         |
 
 
-The [imagery manifest](public/map/provenance.json) lists the provider, service-reported acquisition period, bounds and byte sizes for each display image. To use an additional licensed XYZ template, set `VITE_ATLAS_IMAGERY_URL` and `VITE_ATLAS_IMAGERY_CREDIT`. The bundled imagery remains available if that provider fails.
+The [imagery manifest](public/map/provenance.json) lists the provider, service-reported acquisition period, bounds and byte sizes for each aerial reference. Houston opens with bundled aerial imagery. Earth opens with bundled Natural Earth imagery. Closer Houston views can load online USGS detail. To use an additional licensed XYZ template in the atlas, set `VITE_ATLAS_IMAGERY_URL` and `VITE_ATLAS_IMAGERY_CREDIT`. The bundled images remain available if that provider fails.
 
 [Interactive 2D fallback](docs/qa/accessible-map-1440.jpg) · [Unavailable command service](docs/qa/command-unavailable-1440.jpg) · [Command confirmation with a test backend](docs/qa/test-command-review-1440.jpg) · [Graph comparison with a test backend](docs/qa/test-backend-comparison-1440.jpg).
 

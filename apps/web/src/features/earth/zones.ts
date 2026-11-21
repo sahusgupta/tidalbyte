@@ -62,7 +62,7 @@ export const HOUSTON: Region = {
       id: "kingwood-lake-houston",
       name: "Kingwood & Lake Houston",
       area: "North Harris County",
-      summary: "San Jacinto River reach mapped by USGS after Hurricane Harvey (the flood model's test area).",
+      summary: "The San Jacinto River near Kingwood and the northern shore of Lake Houston.",
       bbox: [-95.3, 29.98, -95.13, 30.09],
     },
   ],

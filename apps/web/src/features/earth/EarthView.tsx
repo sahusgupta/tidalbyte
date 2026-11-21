@@ -17,8 +17,23 @@ import {
   Viewer,
 } from "cesium";
 import { Icon } from "../../app/Icon";
-import { addPhotorealTiles, photorealConfigured, sharpenRendering, usgsImageryLayer } from "./imagery";
-import { REGIONS, findZone, regionBBox, zoneSizeKm, type BBox, type Region, type Zone } from "./zones";
+import {
+  addPhotorealTiles,
+  photorealConfigured,
+  sharpenRendering,
+  installEarthImagery,
+  type ImageryStatus,
+} from "./imagery";
+import { RegionInset } from "./RegionInset";
+import {
+  REGIONS,
+  findZone,
+  regionBBox,
+  zoneSizeKm,
+  type BBox,
+  type Region,
+  type Zone,
+} from "./zones";
 import "./earth.css";
 
 export interface EarthViewProps {
@@ -39,18 +54,6 @@ const ink = Color.fromCssColorString("#19231f");
 const fill = (hot: boolean) => new ColorMaterialProperty(amber.withAlpha(hot ? 0.16 : 0.07));
 const reducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-/**
- * Widen a box on one side so the subject lands in the part of the screen not covered by a panel:
- * the zone list sits on the left of the region view, the simulator panel on the right of a zone.
- */
-function framed(bbox: BBox, side: "west" | "east", fraction: number): BBox {
-  const [w, s, e, n] = bbox;
-  const pad = (e - w) * fraction;
-  return side === "west" ? [w - pad, s, e, n] : [w, s, e + pad, n];
-}
-const zoneFrame = (zone: Zone) => framed(zone.bbox, "east", 0.75);
-const regionFrame = (region: Region) => framed(regionBBox(region), "west", 0.5);
-
 function sphereFor(bbox: BBox) {
   const [w, s, e, n] = bbox;
   return BoundingSphere.fromPoints(Cartesian3.fromDegreesArray([w, s, e, s, e, n, w, n]));
@@ -58,7 +61,12 @@ function sphereFor(bbox: BBox) {
 
 type Photoreal = "off" | "loading" | "on" | "error";
 
-export default function EarthView({ activeZoneId, onZoneEntered, onOpenAtlas, children }: EarthViewProps) {
+export default function EarthView({
+  activeZoneId,
+  onZoneEntered,
+  onOpenAtlas,
+  children,
+}: EarthViewProps) {
   const mount = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<Viewer | null>(null);
   const zoneEntities = useRef(new Map<string, Entity>());
@@ -75,6 +83,7 @@ export default function EarthView({ activeZoneId, onZoneEntered, onOpenAtlas, ch
   const [flying, setFlying] = useState<string | null>(null);
   const [photoreal, setPhotoreal] = useState<Photoreal>(photorealConfigured() ? "loading" : "off");
   const [failed, setFailed] = useState(false);
+  const [imagery, setImagery] = useState<ImageryStatus | null>(null);
 
   const stopOrbit = () => {
     rotating.current = false;
@@ -91,7 +100,11 @@ export default function EarthView({ activeZoneId, onZoneEntered, onOpenAtlas, ch
       const far = viewer.camera.positionCartographic.height > 1_500_000;
       viewer.camera.cancelFlight();
       viewer.camera.flyToBoundingSphere(sphere, {
-        offset: new HeadingPitchRange(0, CesiumMath.toRadians(pitchDeg), sphere.radius * rangeFactor),
+        offset: new HeadingPitchRange(
+          0,
+          CesiumMath.toRadians(pitchDeg),
+          sphere.radius * rangeFactor,
+        ),
         duration: reducedMotion() ? 0 : far || slow ? 3.6 : 1.8,
         complete: () => {
           if (!viewer.isDestroyed()) viewer.camera.lookAtTransform(Matrix4.IDENTITY);
@@ -103,8 +116,12 @@ export default function EarthView({ activeZoneId, onZoneEntered, onOpenAtlas, ch
 
   const enterZone = async (zone: Zone) => {
     stopOrbit();
+    if (failed || !viewerRef.current) {
+      callbacks.current.onZoneEntered(zone.id);
+      return;
+    }
     setFlying(zone.id);
-    const arrived = await flyTo(zoneFrame(zone), -50, 1.9);
+    const arrived = await flyTo(zone.bbox, -50, 1.9);
     setFlying(null);
     if (arrived) {
       atZone.current = zone.id;
@@ -113,7 +130,7 @@ export default function EarthView({ activeZoneId, onZoneEntered, onOpenAtlas, ch
   };
   const showRegion = (region: Region) => {
     stopOrbit();
-    void flyTo(regionFrame(region), -66, 2.0);
+    void flyTo(regionBBox(region), -66, 2.0);
   };
   const latestActions = useRef({ enterZone, showRegion });
   latestActions.current = { enterZone, showRegion };
@@ -135,16 +152,24 @@ export default function EarthView({ activeZoneId, onZoneEntered, onOpenAtlas, ch
         selectionIndicator: false,
         skyBox: false,
         skyAtmosphere: false,
-        baseLayer: usgsImageryLayer(),
+        baseLayer: false,
+        showRenderLoopErrors: false,
         contextOptions: { webgl: { alpha: false, preserveDrawingBuffer: true } },
       });
     } catch {
+      mount.current.replaceChildren();
       setFailed(true);
       return;
     }
     viewerRef.current = viewer;
     sharpenRendering(viewer);
     const scene = viewer.scene;
+    const stopImagery = installEarthImagery(viewer, setImagery);
+    const stopRenderError = scene.renderError.addEventListener(() => {
+      rotating.current = false;
+      setFlying(null);
+      setFailed(true);
+    });
     scene.backgroundColor = Color.fromCssColorString("#161c19");
     scene.globe.baseColor = Color.fromCssColorString("#2a332d");
     scene.globe.enableLighting = false;
@@ -163,7 +188,10 @@ export default function EarthView({ activeZoneId, onZoneEntered, onOpenAtlas, ch
           outlineColor: ink,
           outlineWidth: 3,
           disableDepthTestDistance: Number.POSITIVE_INFINITY,
-          distanceDisplayCondition: new DistanceDisplayCondition(REGION_MARKER_MIN_M, Number.MAX_VALUE),
+          distanceDisplayCondition: new DistanceDisplayCondition(
+            REGION_MARKER_MIN_M,
+            Number.MAX_VALUE,
+          ),
         },
         label: {
           text: `${region.name.toUpperCase()} · ${region.zones.length} ZONES`,
@@ -178,7 +206,10 @@ export default function EarthView({ activeZoneId, onZoneEntered, onOpenAtlas, ch
           pixelOffset: new Cartesian2(0, -18),
           verticalOrigin: VerticalOrigin.BOTTOM,
           disableDepthTestDistance: Number.POSITIVE_INFINITY,
-          distanceDisplayCondition: new DistanceDisplayCondition(REGION_MARKER_MIN_M, Number.MAX_VALUE),
+          distanceDisplayCondition: new DistanceDisplayCondition(
+            REGION_MARKER_MIN_M,
+            Number.MAX_VALUE,
+          ),
         },
       });
       for (const zone of region.zones) {
@@ -188,12 +219,20 @@ export default function EarthView({ activeZoneId, onZoneEntered, onOpenAtlas, ch
           zone.id,
           viewer.entities.add({
             id: `zone:${zone.id}`,
-            polygon: { hierarchy: Cartesian3.fromDegreesArray(ring.slice(0, 8)), material: fill(false) },
+            polygon: {
+              hierarchy: Cartesian3.fromDegreesArray(ring.slice(0, 8)),
+              material: fill(false),
+            },
           }),
         );
         viewer.entities.add({
           id: `zone-edge:${zone.id}`,
-          polyline: { positions: Cartesian3.fromDegreesArray(ring), width: 2, material: amber, clampToGround: true },
+          polyline: {
+            positions: Cartesian3.fromDegreesArray(ring),
+            width: 2,
+            material: amber,
+            clampToGround: true,
+          },
         });
         viewer.entities.add({
           id: `zone-label:${zone.id}`,
@@ -237,9 +276,12 @@ export default function EarthView({ activeZoneId, onZoneEntered, onOpenAtlas, ch
       setTooltip(
         name
           ? {
-              x: event.endPosition.x,
+              x: Math.min(
+                event.endPosition.x + (mount.current?.offsetLeft ?? 0),
+                (mount.current?.parentElement?.clientWidth ?? Infinity) - 180,
+              ),
               y: event.endPosition.y,
-              text: hit?.zone ? `${name} · open the street & flood simulator` : `${name} · show simulation zones`,
+              text: hit?.zone ? name : `${name} · show study zones`,
             }
           : null,
       );
@@ -276,6 +318,8 @@ export default function EarthView({ activeZoneId, onZoneEntered, onOpenAtlas, ch
     return () => {
       disposed = true;
       spin();
+      stopImagery();
+      stopRenderError();
       handler.destroy();
       viewerRef.current = null;
       zoneEntities.current.clear();
@@ -299,11 +343,11 @@ export default function EarthView({ activeZoneId, onZoneEntered, onOpenAtlas, ch
     if (zone && atZone.current !== zone.id && previous !== zone.id) {
       stopOrbit();
       atZone.current = zone.id;
-      void flyTo(zoneFrame(zone), -50, 1.9);
+      void flyTo(zone.bbox, -50, 1.9);
     } else if (!zone && previous) {
       atZone.current = null;
       const region = REGIONS.find((r) => r.zones.some((z) => z.id === previous));
-      if (region) void flyTo(regionFrame(region), -66, 2.0);
+      if (region) void flyTo(regionBBox(region), -66, 2.0);
     }
     // flyTo/stopOrbit are stable in behaviour; re-running on their identity would refly.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -331,36 +375,66 @@ export default function EarthView({ activeZoneId, onZoneEntered, onOpenAtlas, ch
   const inZone = activeZoneId !== null;
   return (
     <div className={`earth-shell ${inZone ? "zone-open" : ""}`}>
-      <a className="skip" href="#earth-zones">
-        Skip to zone list
-      </a>
+      {!inZone && (
+        <a
+          className="skip"
+          href="#earth-zones"
+          onClick={(event) => {
+            event.preventDefault();
+            document.getElementById("earth-zones")?.focus();
+          }}
+        >
+          Skip to zone list
+        </a>
+      )}
       <header className="mast">
         <div className="brand">
           <Icon name="atlas" size={34} />
           <b>EarthLab</b>
         </div>
         <span className="brand-divider" />
-        <h1 className="product-title">Earth</h1>
+        <h1 className="product-title">Earth overview</h1>
         <div className="header-end">
           <span className="study-location">
             <Icon name="pin" size={14} />
-            {REGIONS.length} study region · {REGIONS.reduce((n, r) => n + r.zones.length, 0)} zones
+            Texas Gulf Coast
           </span>
-          <span className="demo-status earth-imagery-status" title={photorealHelp(photoreal)}>
+          <span
+            className="demo-status earth-imagery-status"
+            title={
+              failed ? "Bundled USDA / USGS aerial reference" : photorealHelp(photoreal, imagery)
+            }
+          >
             <i className={`photoreal-${photoreal}`} />
-            {photoreal === "on" ? "Photoreal 3D" : photoreal === "loading" ? "Loading 3D tiles" : "Aerial imagery"}
+            {failed
+              ? "Aerial reference"
+              : photoreal === "on"
+                ? "Photoreal 3D"
+                : photoreal === "loading"
+                  ? "Loading 3D tiles"
+                  : (imagery?.label ?? "Basemap")}
           </span>
           <button onClick={onOpenAtlas}>
             <Icon name="layers" size={15} />
-            Houston scenario atlas
+            Houston atlas
           </button>
         </div>
       </header>
       <div className="earth-stage">
-        <div ref={mount} className="earth-cesium" aria-label="Interactive globe" role="application" />
+        <div
+          ref={mount}
+          className="earth-cesium"
+          hidden={failed}
+          aria-label="Interactive globe"
+          role="application"
+        />
         {failed && (
-          <div className="earth-failed" role="alert">
-            3D globe unavailable on this device. Pick a zone from the list to open the simulator.
+          <div className="earth-failed" role="status">
+            <span>
+              Houston aerial reference · USDA / USGS
+              <br />
+              3D view unavailable on this device
+            </span>
           </div>
         )}
         {tooltip && !inZone && (
@@ -369,19 +443,31 @@ export default function EarthView({ activeZoneId, onZoneEntered, onOpenAtlas, ch
           </div>
         )}
         {!inZone && (
-          <nav className="earth-zones" id="earth-zones" aria-label="Simulation zones">
+          <nav className="earth-zones" id="earth-zones" tabIndex={-1} aria-label="Study zones">
             {REGIONS.map((region) => (
               <section key={region.id}>
                 <div className="earth-zones-head">
-                  <span className="earth-eyebrow">Study region</span>
                   <h2>{region.name}</h2>
-                  <button className="earth-link" onClick={() => showRegion(region)}>
-                    Show zones on the map
-                  </button>
+                  <p className="earth-locator">
+                    Texas Gulf Coast{" "}
+                    <span>
+                      {region.anchor[1].toFixed(2)}° N · {Math.abs(region.anchor[0]).toFixed(2)}° W
+                    </span>
+                  </p>
                 </div>
-                <p className="earth-hint">Pick a zone to fly in and open the street &amp; flood simulator.</p>
+                <RegionInset region={region} highlighted={hovered} />
+                <div className="earth-index-head">
+                  <h3>
+                    Study zones <span>({region.zones.length})</span>
+                  </h3>
+                  {!failed && (
+                    <button className="earth-link" onClick={() => showRegion(region)}>
+                      Show on globe
+                    </button>
+                  )}
+                </div>
                 <ul>
-                  {region.zones.map((zone) => {
+                  {region.zones.map((zone, index) => {
                     const [x, y] = zoneSizeKm(zone);
                     return (
                       <li key={zone.id}>
@@ -393,18 +479,19 @@ export default function EarthView({ activeZoneId, onZoneEntered, onOpenAtlas, ch
                           onBlur={() => setHovered(null)}
                           onClick={() => void enterZone(zone)}
                           disabled={flying !== null}
-                          aria-describedby={`zone-sum-${zone.id}`}
+                          aria-label={`Open ${zone.name}`}
                         >
-                          <span className="earth-zone-name">{zone.name}</span>
-                          <span className="earth-zone-meta">
-                            {zone.area} · {x.toFixed(0)} × {y.toFixed(0)} km
+                          <span className="earth-zone-ref" aria-hidden="true">
+                            {String.fromCharCode(65 + index)}
                           </span>
-                          <span className="earth-zone-sum" id={`zone-sum-${zone.id}`}>
-                            {zone.summary}
+                          <span className="earth-zone-description">
+                            <span className="earth-zone-name">{zone.name}</span>
+                            <span className="earth-zone-meta">
+                              {flying === zone.id ? "Opening zone…" : zone.area} · {x.toFixed(0)} ×{" "}
+                              {y.toFixed(0)} km
+                            </span>
                           </span>
-                          <span className="earth-zone-go" aria-hidden="true">
-                            {flying === zone.id ? "Flying in…" : "Open simulator →"}
-                          </span>
+                          <Icon name="down" size={16} />
                         </button>
                       </li>
                     );
@@ -414,38 +501,45 @@ export default function EarthView({ activeZoneId, onZoneEntered, onOpenAtlas, ch
             ))}
           </nav>
         )}
-        <div className="earth-controls" aria-label="Globe navigation">
-          <button type="button" aria-label="Zoom in" onClick={() => zoom("in")}>
-            +
-          </button>
-          <button type="button" aria-label="Zoom out" onClick={() => zoom("out")}>
-            −
-          </button>
-          <span className="earth-rule" />
-          <button type="button" aria-label="Whole Earth" title="Whole Earth" onClick={goHome}>
-            ◯
-          </button>
-          {!inZone && (
-            <button
-              type="button"
-              aria-pressed={orbiting}
-              aria-label={orbiting ? "Pause orbit" : "Resume orbit"}
-              title={orbiting ? "Pause orbit" : "Resume orbit"}
-              onClick={toggleOrbit}
-            >
-              <Icon name={orbiting ? "pause" : "play"} size={14} />
+        {!failed && (
+          <div className="earth-controls" aria-label="Globe navigation">
+            <button type="button" aria-label="Zoom in" onClick={() => zoom("in")}>
+              +
             </button>
-          )}
-        </div>
+            <button type="button" aria-label="Zoom out" onClick={() => zoom("out")}>
+              −
+            </button>
+            {!inZone && (
+              <>
+                <span className="earth-rule" />
+                <button type="button" aria-label="Whole Earth" title="Whole Earth" onClick={goHome}>
+                  <Icon name="reset" size={16} />
+                </button>
+              </>
+            )}
+            {!inZone && (
+              <button
+                type="button"
+                aria-pressed={orbiting}
+                aria-label={orbiting ? "Pause orbit" : "Resume orbit"}
+                title={orbiting ? "Pause orbit" : "Resume orbit"}
+                onClick={toggleOrbit}
+              >
+                <Icon name={orbiting ? "pause" : "play"} size={14} />
+              </button>
+            )}
+          </div>
+        )}
         {children}
       </div>
     </div>
   );
 }
 
-function photorealHelp(state: Photoreal) {
+function photorealHelp(state: Photoreal, imagery: ImageryStatus | null) {
   if (state === "on") return "Google Photorealistic 3D Tiles (display only)";
-  if (state === "error") return "3D tiles failed to load; showing USGS aerial imagery";
+  if (state === "error")
+    return "Photoreal tiles unavailable · " + (imagery?.label ?? "standard basemap");
   if (state === "loading") return "Loading Google Photorealistic 3D Tiles";
-  return "USGS aerial imagery. Add VITE_GOOGLE_MAPS_TILES_KEY or VITE_CESIUM_ION_TOKEN to .env for photoreal 3D streets.";
+  return imagery?.warning ?? imagery?.credit ?? "Geographic display reference";
 }
