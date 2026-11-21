@@ -1,17 +1,15 @@
 # Proposal 002 · Infrastructure integration
 
-Status is pending lead approval.
+Approved by the EarthLab lead on 2026-11-21 for the graph workstream branch.
 
-- Add NetworkX 3.5 to the root dependency input and regenerate the Python lock
-  on the repository's target runtime. The graph currently loads this optional
-  dependency on demand and returns a 503 when it is missing.
+- Pin NetworkX 3.5 in the root Python requirements and lock. The graph
+  loads NetworkX on demand and returns a 503 if the environment is incomplete.
 - Approve two additive graph routes for UI consumers. POST
   /api/v1/network/preview takes NetworkCompareRequest and returns a GeoJSON
   FeatureCollection with before/after activity, bridge flags and access paths.
   GET /api/v1/network/strategy returns a fixed two-agency example with a
   payoff table, pure Nash equilibria and joint-payoff maxima.
-- Review the versioned example payloads and publish the regenerated OpenAPI
-  after the response shapes are approved. GET /network and POST
+- Publish the regenerated OpenAPI with the graph response shapes. GET /network and POST
   /network/compare now return success responses for their existing inputs.
   The comparison uses the frozen PlanComparison shape.
 - Coordinate map and inspector integration with the globe owner after approval.

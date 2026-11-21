@@ -1,8 +1,8 @@
 # Infrastructure and game theory handoff
 
 Branch `feat/graph-infra-game-theory`. No API keys or trained model required.
-Install the optional graph dependency into the API environment with
-`python -m pip install networkx==3.5`. Start the API using the repository
+Install the locked API environment, including NetworkX 3.5, with
+`python -m pip install -r requirements.lock`. Start the API using the repository
 setup guide, then run `python -m pytest apps/api/tests/test_network.py`.
 
 GET `/api/v1/network` loads the versioned Houston-area fixture. EarthLab
@@ -54,10 +54,9 @@ The two pure Nash equilibria protect only the clinic and yield a joint
 payoff of 6.5. Both coordinated optima protect different links and yield 7.
 The response lists all nine action profiles in agency order.
 
-The dependency lock, exported OpenAPI and frontend integration need lead
-and globe-owner review. See [proposal 002](../proposals/002-network-integration.md).
+The lead approved the dependency pin and OpenAPI export. Frontend
+integration remains with the globe owner. See [proposal 002](../proposals/002-network-integration.md).
 
 Local verification used Python 3.12.14 with the locked Python packages and
-NetworkX 3.5. All 64 API, ML and contract tests passed. The OpenAPI drift
-check reports the existing committed export needs regeneration. Verification
-on the repository's Python 3.13 target remains pending.
+NetworkX 3.5. All 64 API, ML and contract tests passed. The regenerated OpenAPI matches the running app in this environment.
+GitHub Actions runs the same drift check and tests on Python 3.13.
