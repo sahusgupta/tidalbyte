@@ -22,6 +22,8 @@ const X = (point: Point) => ((point[0] - BOUNDS[0]) / (BOUNDS[2] - BOUNDS[0])) *
 const Y = (point: Point) => ((BOUNDS[3] - point[1]) / (BOUNDS[3] - BOUNDS[1])) * 760;
 const path = (points: Point[]) => points.map((point) => `${X(point)},${Y(point)}`).join(" ");
 const dark = "#202c28";
+const boundStart = (start: number, size: number, extent: number, padding: number) =>
+  Math.max(Math.min(-padding, extent + padding - size), Math.min(Math.max(-padding, extent + padding - size), start));
 const overviewPoints = [...SEED_TRACK, ...HOUSTON_ROADS.flatMap((road) => road.points)];
 /** Fixed authored study extent; user edits never trigger automatic reframing. */
 export const HOUSTON_OVERVIEW_CENTER: Point = [
@@ -55,7 +57,8 @@ export function FlatMap(props: AtlasMapProps) {
 
   useEffect(() => {
     const target = BOOKMARKS[props.bookmark];
-    const scale = props.bookmark === "houston" ? 1.08 : props.bookmark === "downtown" ? 0.35 : 0.45;
+    const aspect = (svg.current?.clientWidth || 1000) / (svg.current?.clientHeight || 760);
+    const scale = props.bookmark === "houston" ? Math.min(1.8, Math.max(.88, .82 / aspect)) : props.bookmark === "downtown" ? 0.35 : 0.45;
     const point = props.bookmark === "houston" ? HOUSTON_OVERVIEW_CENTER : target.point;
     setView({
       x: X(point) - 500 * scale,
@@ -112,8 +115,8 @@ export function FlatMap(props: AtlasMapProps) {
         dy = (event.clientY - value.screen[1]) * value.scale[1];
       setView({
         ...value.view,
-        x: Math.max(-100, Math.min(1100 - value.view.width, value.view.x - dx)),
-        y: Math.max(-75, Math.min(835 - value.view.height, value.view.y - dy)),
+        x: boundStart(value.view.x - dx, value.view.width, 1000, 100),
+        y: boundStart(value.view.y - dy, value.view.height, 760, 75),
       });
       return;
     }
@@ -142,7 +145,7 @@ export function FlatMap(props: AtlasMapProps) {
   };
   const zoom = (factor: number) =>
     setView((current) => {
-      const width = Math.max(160, Math.min(1100, current.width * factor));
+      const width = Math.max(160, Math.min(1800, current.width * factor));
       const height = width * 0.76;
       return {
         x: current.x + (current.width - width) / 2,
@@ -171,8 +174,9 @@ export function FlatMap(props: AtlasMapProps) {
   const radiusPoint = pointAtRadius(center, radius);
   const pixelsPerKm =
     (scaleFactor * 1000) / (0.85 * 111.32 * Math.cos((props.floodCenter[1] * Math.PI) / 180));
+  const scalePixels = (svg.current?.clientWidth || 390) < 360 ? 52 : (svg.current?.clientWidth || 390) < 580 ? 80 : 100;
   const scaleKm = [0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50].reduce(
-    (best, value) => (value <= 100 / pixelsPerKm ? value : best),
+    (best, value) => (value <= scalePixels / pixelsPerKm ? value : best),
     0.1,
   );
   return (
@@ -207,14 +211,8 @@ export function FlatMap(props: AtlasMapProps) {
             event.preventDefault();
             setView((value) => ({
               ...value,
-              x: Math.max(
-                -100,
-                Math.min(1000 - value.width + 100, value.x + (direction[0] * value.width) / 1000),
-              ),
-              y: Math.max(
-                -75,
-                Math.min(760 - value.height + 75, value.y + (direction[1] * value.width) / 1000),
-              ),
+              x: boundStart(value.x + (direction[0] * value.width) / 1000, value.width, 1000, 100),
+              y: boundStart(value.y + (direction[1] * value.height) / 1000, value.height, 760, 75),
             }));
           }
           if (event.key === "+" || event.key === "=") zoom(0.8);
@@ -577,7 +575,7 @@ export function FlatMap(props: AtlasMapProps) {
         })}
       </svg>
       <div className="atlas-distance-scale" role="img" aria-label={`Approximate scale ${scaleKm} kilometers at view center`}>
-        <span className="atlas-scale-line" style={{ width: Math.min(120, Math.max(10, scaleKm * pixelsPerKm)) }} />
+        <span className="atlas-scale-line" style={{ width: Math.min(scalePixels, Math.max(10, scaleKm * pixelsPerKm)) }} />
         <span>{scaleKm} km</span>
       </div>
       <div className="atlas-zoom-pair atlas-flat-zoom" role="group" aria-label="2D map zoom">

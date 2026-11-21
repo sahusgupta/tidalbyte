@@ -91,7 +91,7 @@ const linePositions = (points: Point[], height = 65) => {
 };
 const label = (text: string, extra: object = {}) => ({
   text,
-  font: "500 12px Arial",
+  font: '500 12px "Source Sans 3", sans-serif',
   fillColor: c("#f5f0dc"),
   outlineColor: c("#101c16"),
   outlineWidth: 4,
@@ -104,9 +104,14 @@ const label = (text: string, extra: object = {}) => ({
 const framedTarget = (bookmark: BookmarkId, canvas: HTMLCanvasElement) => {
   const target = BOOKMARKS[bookmark];
   const aspect = Math.max(0.4, canvas.clientWidth / Math.max(1, canvas.clientHeight));
+  const portraitOverview = bookmark === "houston" && aspect < 1.2;
   return bookmark === "houston"
-    ? { point: HOUSTON_OVERVIEW_CENTER, range: Math.min(110000, target.range * Math.max(1, 0.82 / aspect)) }
-    : target;
+    ? {
+      point: [HOUSTON_OVERVIEW_CENTER[0], HOUSTON_OVERVIEW_CENTER[1] - (portraitOverview ? 0.025 : 0)] as Point,
+      range: Math.min(110000, target.range * Math.max(1, 0.76 / aspect)),
+      pitch: portraitOverview ? -82 : -66,
+    }
+    : { ...target, pitch: -66 };
 };
 
 export default function Globe(props: AtlasMapProps) {
@@ -211,7 +216,7 @@ export default function Globe(props: AtlasMapProps) {
     const initial = framedTarget(latest.current.bookmark, viewer.canvas);
     viewer.camera.lookAt(
       Cartesian3.fromDegrees(...initial.point),
-      new HeadingPitchRange(0, CesiumMath.toRadians(-66), initial.range),
+      new HeadingPitchRange(0, CesiumMath.toRadians(initial.pitch), initial.range),
     );
     viewer.camera.lookAtTransform(Matrix4.IDENTITY);
     const group = {
@@ -228,7 +233,7 @@ export default function Globe(props: AtlasMapProps) {
     // A bounded archive must never become Cesium's globally stretched base.
     const globalBase = ImageryLayer.fromProviderAsync(TileMapServiceImageryProvider.fromUrl(
       buildModuleUrl("Assets/Textures/NaturalEarthII"),
-      { credit: new Credit("Natural Earth II · public-domain cartography", true) },
+      { credit: new Credit("Natural Earth II", true) },
     ));
     viewer.imageryLayers.add(globalBase, 0);
 
@@ -265,11 +270,13 @@ export default function Globe(props: AtlasMapProps) {
       group.reference.entities.add({
         position: Cartesian3.fromDegrees(...place.point, 120),
         label: label(place.name, {
-          font: `500 ${place.size}px Arial`,
-          horizontalOrigin: place.name === "Buffalo Bayou" ? HorizontalOrigin.RIGHT : HorizontalOrigin.LEFT,
+          font: `500 ${place.size}px "Source Sans 3", sans-serif`,
+          horizontalOrigin: viewer.canvas.clientWidth < 480
+            ? (place.name === "Ship Channel" ? HorizontalOrigin.RIGHT : HorizontalOrigin.LEFT)
+            : (place.name === "Buffalo Bayou" ? HorizontalOrigin.RIGHT : HorizontalOrigin.LEFT),
           pixelOffset: new Cartesian2(
-            place.name === "Buffalo Bayou" ? -12 : 16,
-            place.name === "Ship Channel" ? 20 : -20,
+            viewer.canvas.clientWidth < 480 ? (place.name === "Ship Channel" ? -8 : 8) : (place.name === "Buffalo Bayou" ? -12 : 16),
+            viewer.canvas.clientWidth < 480 && place.name !== "Downtown Houston" ? 24 : (place.name === "Ship Channel" ? 20 : -20),
           ),
           distanceDisplayCondition: new DistanceDisplayCondition(
             0,
@@ -462,11 +469,12 @@ export default function Globe(props: AtlasMapProps) {
             [CesiumMath.toDegrees(a.longitude), CesiumMath.toDegrees(a.latitude)],
             [CesiumMath.toDegrees(b.longitude), CesiumMath.toDegrees(b.latitude)],
           );
+          const targetPixels = viewer.canvas.clientWidth < 360 ? 52 : viewer.canvas.clientWidth < 580 ? 80 : 100;
           const nice = [0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50].reduce(
-            (best, value) => (value <= km ? value : best),
+            (best, value) => (value <= km * targetPixels / 100 ? value : best),
             0.1,
           );
-          setScale({ km: nice, pixels: Math.max(10, Math.min(150, (nice / km) * 100)) });
+          setScale({ km: nice, pixels: Math.max(10, Math.min(targetPixels, (nice / km) * 100)) });
         }
       }),
     );
@@ -500,7 +508,7 @@ export default function Globe(props: AtlasMapProps) {
     const changed = lastCameraRequest.current !== null && lastCameraRequest.current !== request;
     lastCameraRequest.current = request;
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const offset = new HeadingPitchRange(0, CesiumMath.toRadians(tilted ? -66 : -90), target.range);
+    const offset = new HeadingPitchRange(0, CesiumMath.toRadians(tilted ? target.pitch : -90), target.range);
     viewer.camera.cancelFlight();
     if (changed && !reducedMotion) {
       viewer.camera.flyToBoundingSphere(
@@ -640,7 +648,7 @@ export default function Globe(props: AtlasMapProps) {
           label: label(`${index + 1}`, {
             show: props.tool === "track",
             pixelOffset: new Cartesian2(index % 2 ? 18 : -18, 20),
-            font: "500 12px Arial",
+            font: '500 12px "Source Sans 3", sans-serif',
           }),
         }),
       );
@@ -668,7 +676,7 @@ export default function Globe(props: AtlasMapProps) {
         label: label("Storm center", {
           show: props.tool === "track",
           pixelOffset: new Cartesian2(0, -27),
-          font: "500 12px Arial",
+          font: '500 12px "Source Sans 3", sans-serif',
         }),
       });
     } else {
@@ -702,7 +710,7 @@ export default function Globe(props: AtlasMapProps) {
         label: label("Extent center", {
           show: props.tool === "flood",
           pixelOffset: new Cartesian2(0, -27),
-          font: "500 12px Arial",
+          font: '500 12px "Source Sans 3", sans-serif',
         }),
       });
       source.entities.add({
@@ -718,7 +726,7 @@ export default function Globe(props: AtlasMapProps) {
         label: label("Resize", {
           show: props.tool === "flood",
           pixelOffset: new Cartesian2(0, -20),
-          font: "400 12px Arial",
+          font: '400 12px "Source Sans 3", sans-serif',
         }),
       });
     }
@@ -766,7 +774,7 @@ export default function Globe(props: AtlasMapProps) {
         position: Cartesian3.fromDegrees(...midpoint, 170),
         label: label(
           `${feature.properties.name} · ${prediction.predictedSeverity} ${prediction.severityUnit}\nSchematic boundary · ${prediction.dataMode === "offline_example" ? "Offline example" : "Conditional model"}`,
-          { font: "400 12px Arial", pixelOffset: new Cartesian2(0, 0) },
+          { font: '400 12px "Source Sans 3", sans-serif', pixelOffset: new Cartesian2(0, 0) },
         ),
       });
     }

@@ -208,7 +208,7 @@
 .atlas-flat-map .flat-handle { cursor: grab; touch-action: none; }
 .atlas-flat-map .flat-handle:focus { stroke: #fff7df; stroke-width: calc(4px / var(--atlas-map-scale-factor,1)); }
 .atlas-flat-map text {
-  font-family: Arial, sans-serif;
+  font-family: "Source Sans 3", sans-serif;
   font-size: calc(12px / var(--atlas-map-scale-factor,1));
   font-weight: 400;
   paint-order: stroke;
