@@ -28,7 +28,7 @@ const makeScenario = (version: number): Scenario => ({
   scenarioVersion: version,
 });
 
-export function App() {
+export function App({ onEarth }: { onEarth?: () => void } = {}) {
   const s = useAtlasStore();
   const hurricane = s.mode === "hurricane";
   const [layers, setLayers] = useState<Layers>({
@@ -183,10 +183,17 @@ export function App() {
         Skip to map
       </a>
       <header className="mast">
-        <div className="brand">
+        <button
+          type="button"
+          className="brand"
+          onClick={onEarth}
+          disabled={!onEarth}
+          title="Back to Earth"
+          aria-label="EarthLab: back to Earth"
+        >
           <Icon name="atlas" size={34} />
           <b>EarthLab</b>
-        </div>
+        </button>
         <span className="brand-divider" />
         <h1 className="product-title">Disaster Atlas</h1>
         <div className="header-end">
