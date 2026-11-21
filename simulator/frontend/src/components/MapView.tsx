@@ -11,6 +11,8 @@ import {
 import { PathStyleExtension } from '@deck.gl/extensions'
 import { AmbientLight, DirectionalLight, LightingEffect, type PickingInfo } from '@deck.gl/core'
 import { Map } from 'react-map-gl/maplibre'
+import { ScaleControl } from 'react-map-gl/maplibre'
+import { ChevronDown, Minus, Plus } from 'lucide-react'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { setWorkerUrl, type StyleSpecification } from 'maplibre-gl'
 
@@ -18,7 +20,7 @@ import { setWorkerUrl, type StyleSpecification } from 'maplibre-gl'
 // pre-bundling. The worker files are copied to /maplibre/ by the plugin in vite.config.ts.
 setWorkerUrl('/maplibre/maplibre-gl-worker.mjs')
 
-import { CUT_OFF, type Buildings, type LonLat, type Meta, type Roads, type SimResult } from '../lib/api'
+import { CUT_OFF, type Buildings, type LonLat, type Meta, type Roads, type SimResult, type ViewState } from '../lib/api'
 import { accessColor, buildingFloodColor, roadColor } from '../lib/colors'
 
 // Ground: USGS The National Map orthoimagery (public domain, no key; ~2 m/px over the US at z16).
@@ -26,21 +28,33 @@ import { accessColor, buildingFloodColor, roadColor } from '../lib/colors'
 const BASEMAP: StyleSpecification = {
   version: 8,
   sources: {
+    archive: {
+      type: 'image', url: '/map/houston-usgs.webp',
+      coordinates: [[-95.9, 30.200078125], [-94.7, 30.200078125], [-94.7, 29.249921875], [-95.9, 29.249921875]],
+    },
+    archiveDetail: {
+      type: 'image', url: '/map/houston-detail-usgs.webp',
+      coordinates: [[-95.570036869, 29.96], [-95.079963131, 29.96], [-95.079963131, 29.6], [-95.570036869, 29.6]],
+    },
     satellite: {
       type: 'raster',
       tiles: ['https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/tile/{z}/{y}/{x}'],
       tileSize: 256,
       maxzoom: 16,
+      minzoom: 16,
       attribution:
         'Imagery: <a href="https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer" target="_blank" rel="noopener">USDA / USGS The National Map</a>',
     },
   },
   layers: [
-    { id: 'ground', type: 'background', paint: { 'background-color': '#0b1016' } },
+    { id: 'ground', type: 'background', paint: { 'background-color': '#181a18' } },
+    { id: 'archive', type: 'raster', source: 'archive', paint: { 'raster-saturation': -0.65, 'raster-brightness-max': 0.55, 'raster-contrast': 0.1, 'raster-fade-duration': 0 } },
+    { id: 'archive-detail', type: 'raster', source: 'archiveDetail', paint: { 'raster-saturation': -0.65, 'raster-brightness-max': 0.55, 'raster-contrast': 0.1, 'raster-fade-duration': 0 } },
     {
       id: 'satellite',
       type: 'raster',
       source: 'satellite',
+      minzoom: 16,
       paint: { 'raster-saturation': -0.3, 'raster-brightness-max': 0.68, 'raster-contrast': 0.06, 'raster-fade-duration': 120 },
     },
   ],
@@ -118,6 +132,23 @@ function pointAlong(coords: LonLat[], cum: number[], f: number): LonLat {
 }
 
 export default function MapView({ meta, roads, buildings, result, buildingMode, showWater, storm, onPick }: Props) {
+  const [view, setView] = useState<ViewState>(meta.region.view)
+  const [viewOptions, setViewOptions] = useState(false)
+  const [imageryWarning, setImageryWarning] = useState(false)
+  const controlsRef = useRef<HTMLDivElement>(null)
+  const viewButton = useRef<HTMLButtonElement>(null)
+  useEffect(() => {
+    if (!viewOptions) return
+    const outside = (event: PointerEvent) => {
+      if (event.target instanceof Node && !controlsRef.current?.contains(event.target)) setViewOptions(false)
+    }
+    const escape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') { event.stopPropagation(); setViewOptions(false); viewButton.current?.focus() }
+    }
+    document.addEventListener('pointerdown', outside)
+    document.addEventListener('keydown', escape)
+    return () => { document.removeEventListener('pointerdown', outside); document.removeEventListener('keydown', escape) }
+  }, [viewOptions])
   const roadIdx = useMemo(() => Array.from({ length: roads.paths.length }, (_, i) => i), [roads])
   const bldIdx = useMemo(() => Array.from({ length: buildings.polys.length }, (_, i) => i), [buildings])
   const overlay = useDecodedImage(result?.overlay)
@@ -293,7 +324,7 @@ export default function MapView({ meta, roads, buildings, result, buildingMode, 
         getSize: (d: { kind: string }) => (d.kind === 'hood' ? 11 : 13),
         getColor: (d: { kind: string }) => (d.kind === 'hood' ? [203, 213, 225, 200] : [255, 255, 255, 255]),
         getPixelOffset: (d: { kind: string }) => (d.kind === 'hood' ? [0, 0] : [0, -34]),
-        fontFamily: 'Inter, ui-sans-serif, system-ui, sans-serif',
+        fontFamily: 'Source Sans 3 Variable, sans-serif',
         fontWeight: 600,
         characterSet: 'auto',
         background: true,
@@ -354,13 +385,13 @@ export default function MapView({ meta, roads, buildings, result, buildingMode, 
   const getTooltip = ({ layer, index }: PickingInfo) => {
     if (!layer || index < 0) return null
     const style = {
-      background: 'rgba(8,13,24,0.94)',
-      color: '#e2e8f0',
-      border: '1px solid rgba(148,163,184,0.25)',
-      borderRadius: '10px',
+      background: '#20221f',
+      color: '#d5cfbd',
+      border: '1px solid #4a4c45',
+      borderRadius: '2px',
       padding: '8px 10px',
       fontSize: '12px',
-      fontFamily: 'Inter, ui-sans-serif, system-ui',
+      fontFamily: 'Source Sans 3 Variable, sans-serif',
       lineHeight: '1.45',
       boxShadow: '0 10px 30px rgba(0,0,0,.4)',
     }
@@ -390,8 +421,9 @@ export default function MapView({ meta, roads, buildings, result, buildingMode, 
   }
 
   return (
-    <DeckGL
-      initialViewState={meta.region.view}
+    <><DeckGL
+      viewState={view}
+      onViewStateChange={({ viewState }) => setView(viewState as ViewState)}
       controller={{ inertia: 250 }}
       layers={[...baseLayers, ...routeLayers, ...ambulance, ...markerLayers]}
       effects={effects}
@@ -400,7 +432,20 @@ export default function MapView({ meta, roads, buildings, result, buildingMode, 
         if (info.coordinate) onPick([info.coordinate[0], info.coordinate[1]])
       }}
     >
-      <Map reuseMaps mapStyle={BASEMAP} attributionControl={{ compact: true }} />
+      <Map reuseMaps mapStyle={BASEMAP} onError={() => setImageryWarning(true)} attributionControl={{ compact: false, customAttribution: 'USDA / USGS · 2017–2021 aerial archive' }}>
+        <ScaleControl position="bottom-left" unit="metric" maxWidth={100} />
+      </Map>
     </DeckGL>
+    {imageryWarning && <p className="sim-imagery-warning" role="status">Some imagery could not load. Scenario geometry remains visible.</p>}
+    <div className="sim-map-controls" ref={controlsRef} role="group" aria-label="Map camera controls">
+      <button type="button" aria-label="Zoom in" onClick={() => setView((current) => ({ ...current, zoom: Math.min(19, current.zoom + 0.5) }))}><Plus size={18} /></button>
+      <button type="button" aria-label="Zoom out" onClick={() => setView((current) => ({ ...current, zoom: Math.max(1, current.zoom - 0.5) }))}><Minus size={18} /></button>
+      <button type="button" ref={viewButton} aria-label="Map view options" aria-expanded={viewOptions} aria-controls="map-view-options" onClick={() => setViewOptions((value) => !value)}>View <ChevronDown size={14} /></button>
+      {viewOptions && <div className="sim-view-options" id="map-view-options">
+        <button type="button" onClick={() => setView((current) => ({ ...current, bearing: 0 }))}>Face north</button>
+        <button type="button" aria-pressed={view.pitch === 0} onClick={() => setView((current) => ({ ...current, pitch: current.pitch === 0 ? meta.region.view.pitch : 0 }))}>{view.pitch === 0 ? 'Angled view' : 'Top-down view'}</button>
+        <button type="button" onClick={() => { setView(meta.region.view); setViewOptions(false) }}>Reset region view</button>
+      </div>}
+    </div></>
   )
 }

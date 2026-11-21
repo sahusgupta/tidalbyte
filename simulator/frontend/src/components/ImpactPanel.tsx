@@ -40,9 +40,9 @@ export default function ImpactPanel({ meta, result, vehicle, onVehicle, hospital
   const r = result?.route
   const vehLabel = meta.vehicles[vehicle]?.label.toLowerCase() ?? vehicle
   return (
-    <Panel className="w-[300px]">
+    <Panel>
       <header className="flex items-center justify-between border-b border-white/[0.06] px-3.5 py-2.5">
-        <h2 className="text-[13px] font-semibold tracking-tight text-white">Impact &amp; routing</h2>
+        <h2 id="impact-panel-title" className="text-[15px] font-semibold text-white">Impact &amp; routing</h2>
         <button
           type="button"
           onClick={onCollapse}
@@ -55,7 +55,7 @@ export default function ImpactPanel({ meta, result, vehicle, onVehicle, hospital
       </header>
       <div className="space-y-4 overflow-y-auto px-3.5 py-3">
         <section>
-          <SectionTitle icon={Waves}>Live impact</SectionTitle>
+          <SectionTitle icon={Waves}>Scenario impact</SectionTitle>
           <div className="grid grid-cols-2 gap-2">
             <Kpi
               icon={Waves}
@@ -106,7 +106,7 @@ export default function ImpactPanel({ meta, result, vehicle, onVehicle, hospital
         </section>
 
         <section>
-          <SectionTitle icon={Route}>Emergency route</SectionTitle>
+          <SectionTitle icon={Route}>Modeled route</SectionTitle>
           <div className="space-y-2">
             <p className="px-1 text-[12px] font-semibold text-cyan-200">From · Starting point</p>
             <Select icon={MapPin} label="Starting point" value={dest.id ?? 'custom'} onChange={onDest}>
@@ -236,7 +236,7 @@ function ModelCard({ meta, result }: { meta: Meta; result: SimResult | null }) {
   const f1 = m.classification.find((c) => c.threshold_m === 0.3)?.f1 ?? 0
   return (
     <section className="rounded-xl border border-white/[0.06] bg-white/[0.02]">
-      <button type="button" onClick={() => setOpen(!open)} className="flex w-full items-center justify-between px-3 py-2.5 text-left">
+      <button type="button" onClick={() => setOpen(!open)} aria-expanded={open} className="flex w-full items-center justify-between px-3 py-2.5 text-left">
         <span className="flex items-center gap-2 text-[12px] font-semibold text-slate-200">
           <Brain className="h-4 w-4 text-violet-300" />
           Inference engine

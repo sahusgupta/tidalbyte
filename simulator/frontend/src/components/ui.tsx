@@ -4,7 +4,7 @@ import type { LucideIcon } from 'lucide-react'
 export function Panel({ children, className = '' }: { children: ReactNode; className?: string }) {
   return (
     <aside
-      className={`pointer-events-auto flex flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0a1120]/80 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.7)] backdrop-blur-xl ${className}`}
+      className={`sim-panel ${className}`}
     >
       {children}
     </aside>
@@ -14,10 +14,10 @@ export function Panel({ children, className = '' }: { children: ReactNode; class
 export function SectionTitle({ icon: Icon, children, right }: { icon?: LucideIcon; children: ReactNode; right?: ReactNode }) {
   return (
     <div className="mb-2.5 flex items-center justify-between">
-      <h2 className="flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+      <h3 className="flex items-center gap-1.5 text-[13px] font-semibold text-slate-300">
         {Icon && <Icon className="h-3.5 w-3.5 text-slate-500" strokeWidth={2.2} />}
         {children}
-      </h2>
+      </h3>
       {right}
     </div>
   )
@@ -61,6 +61,7 @@ export function Slider({
       </div>
       <input
         type="range"
+        aria-label={label}
         className="god-slider"
         min={min}
         max={max}
@@ -91,6 +92,7 @@ export function Segmented<T extends string>({
           <button
             key={o.value}
             type="button"
+            aria-pressed={active}
             onClick={() => onChange(o.value)}
             className={`flex flex-col items-center gap-0.5 rounded-lg px-1.5 py-1.5 text-[11.5px] font-medium transition-colors ${
               active ? 'bg-white/[0.1] text-white shadow-inner' : 'text-slate-400 hover:bg-white/[0.04] hover:text-slate-200'

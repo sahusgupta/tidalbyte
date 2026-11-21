@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Droplets, LoaderCircle, PanelLeftOpen, PanelRightOpen } from 'lucide-react'
+import { Droplets, Layers3, LoaderCircle, PanelLeftOpen, PanelRightOpen, Play, Square } from 'lucide-react'
 import {
   api,
   chooseRegion,
@@ -52,8 +52,42 @@ export default function App() {
   const [result, setResult] = useState<SimResult | null>(null)
   const [playing, setPlaying] = useState<{ k: number; n: number; t: number } | null>(null)
   const playingRef = useRef(false)
-  const [leftOpen, setLeftOpen] = useState(true)
-  const [rightOpen, setRightOpen] = useState(true)
+  const [panel, setPanel] = useState<'storm' | 'impact' | 'layers' | null>(null)
+  const [compact, setCompact] = useState(() => window.matchMedia('(max-width: 760px)').matches)
+  const panelRef = useRef<HTMLDivElement>(null)
+  const returnFocus = useRef<HTMLElement | null>(null)
+  const openPanel = (next: 'storm' | 'impact' | 'layers') => {
+    returnFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    setPanel((current) => current === next ? null : next)
+  }
+  const closePanel = useCallback(() => {
+    setPanel(null)
+    requestAnimationFrame(() => {
+      const target = returnFocus.current
+      if (target?.isConnected && target !== document.body) target.focus()
+      else document.getElementById('show-impact')?.focus()
+    })
+  }, [])
+  useEffect(() => {
+    const media = window.matchMedia('(max-width: 760px)')
+    const update = () => setCompact(media.matches)
+    media.addEventListener('change', update)
+    return () => media.removeEventListener('change', update)
+  }, [])
+  useEffect(() => {
+    if (!panel) return
+    const timer = requestAnimationFrame(() => panelRef.current?.querySelector<HTMLElement>('button,select,input')?.focus())
+    const keydown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') { event.preventDefault(); closePanel(); return }
+      if (!compact || event.key !== 'Tab') return
+      const items = Array.from(panelRef.current?.querySelectorAll<HTMLElement>('button:not(:disabled),select,input,a[href],summary,[tabindex="0"]') ?? [])
+      const first = items[0], last = items.at(-1)
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus() }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus() }
+    }
+    document.addEventListener('keydown', keydown)
+    return () => { cancelAnimationFrame(timer); document.removeEventListener('keydown', keydown) }
+  }, [panel, compact, closePanel])
 
   // Pick the region: EarthLab's zone id, else a region overlapping its bbox, else ?region=, else the default.
   useEffect(() => {
@@ -100,7 +134,7 @@ export default function App() {
   useEffect(() => {
     if (!EMBEDDED) return
     if (data) window.parent.postMessage({ source: 'simulator', type: 'ready' }, '*')
-    else if (error) window.parent.postMessage({ source: 'simulator', type: 'status', message: 'Simulator API unreachable' }, '*')
+    else if (error) window.parent.postMessage({ source: 'simulator', type: 'status', message: error.includes('No simulation region has been built') ? 'No prepared simulator region is available' : 'Simulator API or region data could not load' }, '*')
   }, [data, error])
 
   // latest-wins request scheduler: at most one request in flight, newest queued
@@ -145,6 +179,7 @@ export default function App() {
 
   const play = useCallback(async () => {
     playingRef.current = true
+    setPlaying({ k: 0, n: PLAY_FRAMES, t: 0 })
     const params = routeParams()
     const forRegion = regionRef.current!
     for (let k = 1; k <= PLAY_FRAMES && playingRef.current; k++) {
@@ -190,152 +225,82 @@ export default function App() {
   const severity = Math.min(1, controls.rain / 170 + (controls.surge / 3) * 0.6) * 0.85
   const wind = Math.min(1, (controls.surge / 3) * 0.8 + (controls.rain / 200) * 0.35)
   const p = preset ? meta.presets[preset] : null
+  const redirected = EARTH_ZONE_ID ? EARTH_ZONE_ID !== meta.region.id : Boolean(EARTH_ZONE && !overlaps(EARTH_BBOX, meta.region.bbox))
 
+  const modal = compact && panel !== null
   return (
-    <div className="relative h-full w-full overflow-hidden bg-[#05080f]">
-      <MapView
-        key={meta.region.id}
-        meta={meta}
-        roads={roads}
-        buildings={buildings}
-        result={result}
-        buildingMode={buildingMode}
-        showWater={showWater}
-        storm={severity}
-        onPick={(lonlat) => {
-          stop()
-          setResult(null)
-          setDest({ lonlat })
-          setRightOpen(true)
-        }}
-      />
-      <RainOverlay rain={controls.rain} wind={wind} severity={severity} />
-
-      <div className="pointer-events-none absolute inset-0 flex justify-between gap-3 p-3">
-        <div className="flex max-h-full flex-col">
-          {leftOpen ? (
-            <ControlPanel
-              meta={meta}
-              controls={controls}
-              preset={preset}
-              onControls={onControls}
-              onPreset={onPreset}
-              playing={playing}
-              onPlay={play}
-              onStop={stop}
-              onCollapse={() => setLeftOpen(false)}
-              embedded={EMBEDDED}
-            />
-          ) : (
-            <Rail side="left" label="Storm controls" onClick={() => setLeftOpen(true)} />
-          )}
-        </div>
-
-        <div className="flex min-w-0 flex-1 flex-col items-center justify-between">
-          <div className="pointer-events-auto max-w-[460px] rounded-xl border border-white/[0.08] bg-[#0a1120]/80 px-3 py-1.5 text-center shadow-lg backdrop-blur-xl">
-            <div className="flex items-center justify-center gap-2 text-[12px] font-semibold text-white">
-              {playing && <span className="font-mono text-sky-300">T+{playing.t.toFixed(1)}h</span>}
-              {p ? p.label : 'Custom storm'}
-              <span className="font-normal text-slate-500">·</span>
-              <span className="font-normal text-slate-400">{meta.region.name}</span>
-            </div>
-            {!EMBEDDED && regions.filter((r) => r.built).length > 1 && (
-              <select
-                aria-label="Simulation region"
-                value={meta.region.id}
-                onChange={(e) => setRegion(e.target.value)}
-                className="mt-1 w-full rounded-md border border-white/10 bg-black/40 px-2 py-0.5 text-[11px] text-slate-200 outline-none focus:border-sky-400/60"
-              >
-                {regions
-                  .filter((r) => r.built)
-                  .map((r) => (
-                    <option key={r.id} value={r.id}>
-                      {r.name}
-                    </option>
-                  ))}
-              </select>
-            )}
-            <div className="mt-0.5 text-[11px] text-slate-400">
-              {p
-                ? p.blurb
-                : `${controls.rain.toFixed(0)} mm/h for ${controls.duration} h, +${controls.surge.toFixed(2)} m surge, ${Math.round(controls.clog * 100)}% drains clogged`}
-            </div>
-            {EARTH_ZONE && EARTH_ZONE_ID !== meta.region.id && !overlaps(EARTH_BBOX, meta.region.bbox) && (
-              <div className="mt-1 border-t border-white/[0.06] pt-1 text-[11px] text-amber-300">
-                “{EARTH_ZONE}” is outside this simulator&apos;s data · showing {meta.region.name.split(':')[0]}
-              </div>
-            )}
-          </div>
-          <Legend
-            buildingMode={buildingMode}
-            onBuildingMode={setBuildingMode}
-            showWater={showWater}
-            onShowWater={setShowWater}
+    <div className={`sim-shell ${panel ? 'has-panel' : ''} ${EMBEDDED ? 'is-embedded' : ''}`}>
+      <a className="sim-skip" href="#sim-map">Skip to map</a>
+      <header className="sim-header" inert={modal}>
+        {EMBEDDED ? <div className="sim-embed-title">{p ? p.label : 'Custom storm'}<span>Simulated scenario</span></div> : <div className="sim-brand"><Droplets size={25} aria-hidden="true" /><span>EarthLab</span><span className="sim-product">Houston simulator</span></div>}
+        <nav aria-label="Simulator panels">
+          <button type="button" aria-label="Storm controls" aria-expanded={panel === 'storm'} aria-controls="sim-panel" onClick={() => openPanel('storm')}><PanelLeftOpen size={18} aria-hidden="true" /><span>Storm controls</span></button>
+          <button type="button" id="show-impact" aria-label="Impact and routing" aria-expanded={panel === 'impact'} aria-controls="sim-panel" onClick={() => openPanel('impact')}><PanelRightOpen size={18} aria-hidden="true" /><span>Impact & routing</span></button>
+          <button type="button" aria-label="Map layers" aria-expanded={panel === 'layers'} aria-controls="sim-panel" onClick={() => openPanel('layers')}><Layers3 size={18} aria-hidden="true" /><span>Map layers</span></button>
+        </nav>
+      </header>
+      <main className="sim-stage">
+        <div id="sim-map" className="sim-map" tabIndex={-1} aria-label="Houston scenario map. Click to choose a starting point, or use the starting point selector in Impact and routing." inert={modal}>
+          <MapView key={meta.region.id} meta={meta} roads={roads} buildings={buildings} result={result} buildingMode={buildingMode} showWater={showWater} storm={severity}
+            onPick={(lonlat) => {
+              stop()
+              setResult(null)
+              setDest({ lonlat })
+              returnFocus.current = document.getElementById('show-impact')
+              setPanel('impact')
+            }}
           />
+          <RainOverlay rain={controls.rain} wind={wind} severity={severity} />
         </div>
-
-        <div className="flex max-h-full flex-col items-end">
-          {rightOpen ? (
-            <ImpactPanel
-              meta={meta}
-              result={result}
-              vehicle={vehicle}
-              onVehicle={setVehicle}
-              hospital={hospital}
-              onHospital={(id) => { stop(); setResult(null); setHospital(id) }}
-              dest={dest}
-              onDest={(id) => { if (id !== 'custom') { stop(); setResult(null); setDest({ id }) } }}
-              onCollapse={() => setRightOpen(false)}
-            />
-          ) : (
-            <Rail side="right" label="Impact" onClick={() => setRightOpen(true)} />
+        {(!EMBEDDED || redirected) && <div className="sim-summary" inert={modal}>
+          {!EMBEDDED && regions.filter((r) => r.built).length > 1 ? (
+            <select aria-label="Simulation region" value={meta.region.id} onChange={(event) => setRegion(event.target.value)}>
+              {regions.filter((r) => r.built).map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+            </select>
+          ) : !EMBEDDED && <h1>{meta.region.name}</h1>}
+          {!EMBEDDED && <p>{p ? p.label : 'Custom storm'} <span>· Simulated scenario</span></p>}
+          {redirected && (
+            <p className="sim-zone-note">No prepared dataset for “{EARTH_ZONE ?? EARTH_ZONE_ID}”. Showing {meta.region.name}.</p>
           )}
+        </div>}
+        {modal && <button type="button" className="sim-backdrop" tabIndex={-1} aria-label="Close simulator panel" onClick={closePanel} />}
+        {panel && <div ref={panelRef} id="sim-panel" className="sim-panel-host" role={compact ? 'dialog' : 'region'} aria-modal={compact || undefined} aria-labelledby={`${panel}-panel-title`}>
+          {panel === 'storm' && <ControlPanel meta={meta} controls={controls} preset={preset} onControls={onControls} onPreset={onPreset} playing={playing} onPlay={play} onStop={stop} onCollapse={closePanel} embedded={EMBEDDED} />}
+          {panel === 'impact' && <ImpactPanel meta={meta} result={result} vehicle={vehicle} onVehicle={setVehicle} hospital={hospital} onHospital={(id) => { stop(); setResult(null); setHospital(id) }} dest={dest} onDest={(id) => { if (id !== 'custom') { stop(); setResult(null); setDest({ id }) } }} onCollapse={closePanel} />}
+          {panel === 'layers' && <Legend buildingMode={buildingMode} onBuildingMode={setBuildingMode} showWater={showWater} onShowWater={setShowWater} onCollapse={closePanel} />}
+        </div>}
+        {error && <div className="sim-error" role="alert">{error}</div>}
+      </main>
+      <footer className="sim-transport" inert={modal}>
+        <button type="button" className="sim-play" onClick={playing ? stop : play} disabled={!playing && controls.rain === 0 && controls.surge === 0} aria-label={playing ? 'Stop storm playback' : 'Play storm hour by hour'}>
+          {playing ? <Square size={17} aria-hidden="true" /> : <Play size={17} aria-hidden="true" />}
+          <span>{playing ? 'Stop' : 'Play storm'}</span>
+        </button>
+        <div className="sim-time">
+          <div><strong>{playing ? `T+${playing.t.toFixed(1)} h` : `${controls.duration} h scenario`}</strong><span>{controls.rain.toFixed(0)} mm/h rain · +{controls.surge.toFixed(2)} m surge</span></div>
+          <progress aria-label="Storm playback progress" max={PLAY_FRAMES} value={playing?.k ?? (result ? PLAY_FRAMES : 0)} />
         </div>
-      </div>
-
-      {error && (
-        <div className="absolute bottom-20 left-1/2 -translate-x-1/2 rounded-lg border border-rose-500/40 bg-rose-950/90 px-3 py-2 text-[12px] text-rose-200">
-          {error}
-        </div>
-      )}
+        <p>Model scenario estimates<br /><span>Not operational navigation</span></p>
+      </footer>
     </div>
-  )
-}
-
-function Rail({ side, label, onClick }: { side: 'left' | 'right'; label: string; onClick: () => void }) {
-  const Icon = side === 'left' ? PanelLeftOpen : PanelRightOpen
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={`Open ${label}`}
-      className="pointer-events-auto flex items-center gap-2 rounded-xl border border-white/[0.08] bg-[#0a1120]/85 px-2.5 py-2 text-[12px] font-medium text-slate-200 shadow-lg backdrop-blur-xl hover:text-white"
-    >
-      <Icon className="h-4 w-4" />
-      {label}
-    </button>
   )
 }
 
 function Splash({ error, name }: { error?: string; name?: string }) {
+  const missingData = error?.includes('No simulation region has been built')
   return (
-    <div className="grid h-full place-items-center bg-[#05080f] text-slate-300">
-      <div className="flex flex-col items-center gap-3">
-        <div className="grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-sky-400 to-blue-600">
-          <Droplets className="h-6 w-6 text-white" />
-        </div>
-        <div className="text-[15px] font-semibold text-white">AquaGrid AI</div>
-        {error ? (
-          <div className="max-w-md text-center text-[12px] text-rose-300">
-            Could not reach the simulation API. Is the backend running on :8000?
-            <div className="mt-1 font-mono text-[11px] text-rose-400/80">{error}</div>
-          </div>
-        ) : (
-          <div className="flex items-center gap-2 text-[12px] text-slate-400">
-            <LoaderCircle className="h-4 w-4 animate-spin" /> Loading {name ?? 'city'} roads and buildings…
-          </div>
-        )}
+    <main className="sim-splash">
+      <div className="sim-splash-content">
+        <Droplets size={32} aria-hidden="true" />
+        <span>EarthLab · Houston simulator</span>
+        <h1>{error ? missingData ? 'No prepared Houston dataset' : 'Simulation service unavailable' : 'Opening the Houston scene'}</h1>
+        {error ? <>
+          <p>{missingData ? 'The API is connected, but no simulation region has been built. Prepare or supply a Houston dataset, then retry.' : 'The simulator could not load its API or region data. Check the local service, then retry.'}</p>
+          <button type="button" onClick={() => window.location.reload()}>Retry connection</button>
+          <details><summary>Connection details</summary><p>{error}</p></details>
+        </> : <p role="status"><LoaderCircle size={16} className="sim-spinner" aria-hidden="true" /> Loading {name ?? 'city'} roads and buildings…</p>}
       </div>
-    </div>
+      <p className="sim-splash-credit">USDA / USGS · 2017–2021 aerial archive · Display reference only</p>
+    </main>
   )
 }

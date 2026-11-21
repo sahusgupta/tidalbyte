@@ -1,0 +1,5 @@
+# Generated from pinned dependencies / existing repo display assets by Vite.
+public/maplibre/
+public/map/
+public/fonts/
+*.tsbuildinfo
