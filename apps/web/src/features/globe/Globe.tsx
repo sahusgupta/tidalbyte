@@ -43,6 +43,7 @@ export default function Globe(props: AtlasMapProps) {
   const latest = useRef(props);
   latest.current = props;
   const dragging = useRef<{ target: DragTarget; track: Point[]; center: Point; radius: number } | null>(null);
+  const suppressClickUntil = useRef(0);
   const [preview, setPreview] = useState<{ track?: Point[]; center?: Point; radius?: number } | null>(null);
   const [ready, setReady] = useState(false);
   const [flat, setFlat] = useState(false);
@@ -135,6 +136,7 @@ export default function Globe(props: AtlasMapProps) {
       const drag = dragging.current;
       if (!drag) return;
       dragging.current = null;
+      suppressClickUntil.current = performance.now() + 120;
       viewer.scene.screenSpaceCameraController.enableInputs = true;
       viewer.canvas.style.cursor = "";
       if (drag.target.kind === "track") latest.current.onTrackChange(drag.track);
@@ -142,6 +144,7 @@ export default function Globe(props: AtlasMapProps) {
       setPreview(null);
     };
     handler.setInputAction((event: { position: Cartesian2 }) => {
+      if (performance.now() < suppressClickUntil.current) return;
       const id = pick(event.position);
       const state = latest.current;
       let target: DragTarget | null = null;
@@ -173,6 +176,7 @@ export default function Globe(props: AtlasMapProps) {
     }, ScreenSpaceEventType.MOUSE_MOVE);
     handler.setInputAction(commitDrag, ScreenSpaceEventType.LEFT_UP);
     handler.setInputAction((event: { position: Cartesian2 }) => {
+      if (performance.now() < suppressClickUntil.current) return;
       const id = pick(event.position);
       const state = latest.current;
       if (id?.startsWith("track-handle:") || id?.startsWith("flood-")) return;
@@ -222,6 +226,13 @@ export default function Globe(props: AtlasMapProps) {
 
   useEffect(() => {
     const viewer = viewerRef.current;
+    if (!viewer || viewer.isDestroyed()) return;
+    viewer.useDefaultRenderLoop = !flat && !rendererUnavailable;
+    if (!flat && !rendererUnavailable) viewer.resize();
+  }, [flat, rendererUnavailable, ready]);
+
+  useEffect(() => {
+    const viewer = viewerRef.current;
     if (!viewer || !ready || flat) return;
     const target = BOOKMARKS[props.bookmark];
     viewer.camera.lookAt(Cartesian3.fromDegrees(...target.point), new HeadingPitchRange(0, CesiumMath.toRadians(tilted ? -66 : -90), target.range));
@@ -241,7 +252,7 @@ export default function Globe(props: AtlasMapProps) {
       source.entities.add({ id: `road-casing:${road.id}`, polyline: { positions: positions(road.points, 45), width: selected ? 9 : 6, material: c(colors.ink, 0.93) } });
       source.entities.add({ id: `road:${road.id}`, polyline: { positions: positions(road.points, 68), width: selected ? 5 : 3, material: closed || disconnected ? new PolylineDashMaterialProperty({ color: c(stroke), dashLength: 13 }) : c(stroke) } });
       const midpoint = road.points[Math.floor(road.points.length / 2)];
-      source.entities.add({ id: `road-label:${road.id}`, position: Cartesian3.fromDegrees(...midpoint, 130), label: label(`${closed ? "× " : ""}${road.name}`, { fillColor: c(stroke), font: `${selected ? 700 : 500} ${selected ? 12 : 10}px Arial`, pixelOffset: new Cartesian2(0, 16), distanceDisplayCondition: new DistanceDisplayCondition(0, selected ? 150000 : 34000) }) });
+      if (road.id === hoveredRoad) source.entities.add({ id: `road-label:${road.id}`, position: Cartesian3.fromDegrees(...midpoint, 130), label: label(`${closed ? "× " : ""}${road.name}`, { fillColor: c(stroke), font: "600 11px Arial", pixelOffset: new Cartesian2(0, 20) }) });
       for (const [index, point] of [road.points[0], road.points[road.points.length - 1]].entries()) {
         const key = point.join(","); if (seenNodes.has(key)) continue; seenNodes.add(key);
         source.entities.add({ id: `junction:${road.id}:${index}`, position: Cartesian3.fromDegrees(...point, 95), point: { pixelSize: 6, color: c("#f1ead6"), outlineColor: c(colors.ink), outlineWidth: 2, disableDepthTestDistance: Number.POSITIVE_INFINITY } });
@@ -266,17 +277,17 @@ export default function Globe(props: AtlasMapProps) {
     if (props.mode === "hurricane") {
       source.entities.add({ id: "track-ribbon", polyline: { positions: positions(track, 130), width: 16, material: c("#d5aa69", 0.16) } });
       source.entities.add({ id: "active-track", polyline: { positions: positions(track, 160), width: 4, material: c("#f3c783") } });
-      track.forEach((point, index) => source.entities.add({ id: `track-handle:${index}`, position: Cartesian3.fromDegrees(...point, 190), point: { pixelSize: 13, color: c("#233c41"), outlineColor: c("#f5d6a0"), outlineWidth: 3, disableDepthTestDistance: Number.POSITIVE_INFINITY }, label: label(`W${index + 1}`, { pixelOffset: new Cartesian2(0, -22), font: "700 10px Arial" }) }));
+      track.forEach((point, index) => source.entities.add({ id: `track-handle:${index}`, position: Cartesian3.fromDegrees(...point, 190), point: { pixelSize: props.tool === "track" ? 13 : 8, color: c("#233c41"), outlineColor: c("#f5d6a0"), outlineWidth: 2, disableDepthTestDistance: Number.POSITIVE_INFINITY }, label: label(`W${index + 1}`, { show: props.tool === "track", pixelOffset: new Cartesian2(index % 2 ? 18 : -18, 20), font: "700 10px Arial" }) }));
       source.entities.add({ id: "storm-area", position: Cartesian3.fromDegrees(...props.stormPosition, 80), ellipse: { semiMajorAxis: 6000, semiMinorAxis: 6000, material: c("#dca55f", 0.16), outline: true, outlineColor: c("#edbc7a", 0.75), height: 80 } });
-      source.entities.add({ id: "storm-marker", position: Cartesian3.fromDegrees(...props.stormPosition, 240), point: { pixelSize: 23, color: c("#efc28a"), outlineColor: c("#263d41"), outlineWidth: 7, disableDepthTestDistance: Number.POSITIVE_INFINITY }, label: label("HYPOTHETICAL STORM", { pixelOffset: new Cartesian2(0, -32), font: "700 10px Arial" }) });
+      source.entities.add({ id: "storm-marker", position: Cartesian3.fromDegrees(...props.stormPosition, 240), billboard: { image: "/map/storm-eye.svg", width: 47, height: 47, disableDepthTestDistance: Number.POSITIVE_INFINITY }, label: label("HYPOTHETICAL STORM", { show: props.tool === "track", pixelOffset: new Cartesian2(0, -37), font: "700 10px Arial" }) });
     } else {
       const polygon = getFloodPolygon(center, radius);
       source.entities.add({ id: "flood-area", polygon: { hierarchy: new PolygonHierarchy(positions(polygon, 90)), material: c("#8ab9b7", 0.35), height: 90 } });
       source.entities.add({ id: "flood-perimeter", polyline: { positions: positions([...polygon, polygon[0]], 115), width: 2, material: new PolylineDashMaterialProperty({ color: c("#b9ddda"), dashLength: 12 }) } });
-      source.entities.add({ id: "flood-center", position: Cartesian3.fromDegrees(...center, 200), point: { pixelSize: 16, color: c("#b9ddda"), outlineColor: c("#253d40"), outlineWidth: 4, disableDepthTestDistance: Number.POSITIVE_INFINITY }, label: label("ILLUSTRATIVE EXTENT", { pixelOffset: new Cartesian2(0, -27), font: "700 10px Arial" }) });
-      source.entities.add({ id: "flood-radius", position: Cartesian3.fromDegrees(...pointAtRadius(center, radius), 180), point: { pixelSize: 12, color: c("#f5efd8"), outlineColor: c("#3e6567"), outlineWidth: 3, disableDepthTestDistance: Number.POSITIVE_INFINITY }, label: label("Resize", { pixelOffset: new Cartesian2(0, -20), font: "500 10px Arial" }) });
+      source.entities.add({ id: "flood-center", position: Cartesian3.fromDegrees(...center, 200), point: { pixelSize: 16, color: c("#b9ddda"), outlineColor: c("#253d40"), outlineWidth: 4, disableDepthTestDistance: Number.POSITIVE_INFINITY }, label: label("ILLUSTRATIVE EXTENT", { show: props.tool === "flood", pixelOffset: new Cartesian2(0, -27), font: "700 10px Arial" }) });
+      source.entities.add({ id: "flood-radius", position: Cartesian3.fromDegrees(...pointAtRadius(center, radius), 180), point: { pixelSize: 12, color: c("#f5efd8"), outlineColor: c("#3e6567"), outlineWidth: 3, disableDepthTestDistance: Number.POSITIVE_INFINITY }, label: label("Resize", { show: props.tool === "flood", pixelOffset: new Cartesian2(0, -20), font: "500 10px Arial" }) });
     }
-  }, [props.track, props.stormPosition, props.floodCenter, props.floodRadiusKm, props.currentFloodRadiusKm, props.mode, props.comparison, props.baselineTrack, props.baselineFloodCenter, props.baselineFloodRadiusKm, props.showFlood, preview, ready]);
+  }, [props.track, props.stormPosition, props.floodCenter, props.floodRadiusKm, props.currentFloodRadiusKm, props.mode, props.tool, props.comparison, props.baselineTrack, props.baselineFloodCenter, props.baselineFloodRadiusKm, props.showFlood, preview, ready]);
 
   useEffect(() => {
     const source = sources.current?.counties;

@@ -14,6 +14,7 @@ export function FlatMap(props: AtlasMapProps) {
   const svg = useRef<SVGSVGElement>(null);
   const [view, setView] = useState({ x: 0, y: 0, width: 1000, height: 760 });
   const [local, setLocal] = useState<{ track: Point[]; center: Point; radius: number } | null>(null);
+  const [hoveredRoad, setHoveredRoad] = useState<string | null>(null);
   const drag = useRef<{ target: DragTarget | { kind: "pan" }; start: Point; screen: Point; scale: Point; view: typeof view; track: Point[]; center: Point; radius: number; moved: boolean } | null>(null);
   const track = local?.track ?? props.track;
   const center = local?.center ?? props.floodCenter;
@@ -87,36 +88,36 @@ export function FlatMap(props: AtlasMapProps) {
       <image className="flat-aerial" href="/map/houston-usgs.webp" x={X([-95.9, 0])} y={Y([0, 30.200078125])} width={1.2 / .85 * 1000} height={.95015625 / .6 * 760} preserveAspectRatio="none" />
       <image className="flat-aerial" href="/map/houston-detail-usgs.webp" x={X([-95.570036869, 0])} y={Y([0, 29.96])} width={.490073738 / .85 * 1000} height={.36 / .6 * 760} preserveAspectRatio="none" />
       {props.showRoads !== false && props.roads.map((road) => {
-        const selected = props.selectedRoadId === road.id;
+        const selected = props.selectedRoadId === road.id || hoveredRoad === road.id;
         const closed = props.closedRoadIds.includes(road.id);
         const disconnected = props.disconnectedRoadIds?.includes(road.id);
         const color = selected ? "#f7ce83" : closed ? "#ef8b74" : disconnected ? "#bf9fce" : "#d3d4bd";
         const middle = road.points[Math.floor(road.points.length / 2)];
         return <g key={road.id}>
-          <polyline points={path(road.points)} fill="none" stroke={dark} strokeWidth={selected ? 9 : 6} vectorEffect="non-scaling-stroke" />
-          <polyline className="flat-road" role="button" tabIndex={0} aria-label={`${road.name}. ${closed ? "Hypothetical closure." : "Flood exposure unknown."} Select to inspect.`} points={path(road.points)} fill="none" stroke={color} strokeWidth={selected ? 5 : 3} strokeDasharray={closed || disconnected ? "8 6" : undefined} vectorEffect="non-scaling-stroke" onPointerDown={(event) => event.stopPropagation()} onClick={(event) => { event.stopPropagation(); if (props.tool === "track" || props.tool === "flood") props.onMapPoint(eventPoint(event)); else props.onRoadSelect(road.id); }} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); props.onRoadSelect(road.id); } }}><title>{road.name} · flood exposure unknown</title></polyline>
-          {(selected || view.width < 650) && <text x={X(middle)} y={Y(middle) + 17} textAnchor="middle" fontSize="11" style={{ fill: color }}>{closed ? "× " : ""}{road.name}</text>}
-          {[road.points[0], road.points[road.points.length - 1]].map((point, index) => <circle key={index} cx={X(point)} cy={Y(point)} r="3" fill="#e9e6d0" stroke={dark} strokeWidth="1.5" />)}
+          <polyline points={path(road.points)} fill="none" stroke={dark} strokeWidth={selected ? 9 : 6} vectorEffect="non-scaling-stroke" pointerEvents="none" />
+          <polyline className="flat-road" role="button" tabIndex={0} aria-label={`${road.name}. ${closed ? "Hypothetical closure." : "Flood exposure unknown."} Select to inspect.`} points={path(road.points)} fill="none" stroke={color} strokeWidth={selected ? 5 : 3} strokeDasharray={closed || disconnected ? "8 6" : undefined} vectorEffect="non-scaling-stroke" onPointerEnter={() => setHoveredRoad(road.id)} onPointerLeave={() => setHoveredRoad(null)} onFocus={() => setHoveredRoad(road.id)} onBlur={() => setHoveredRoad(null)} onPointerDown={(event) => event.stopPropagation()} onClick={(event) => { event.stopPropagation(); if (props.tool === "track" || props.tool === "flood") props.onMapPoint(eventPoint(event)); else props.onRoadSelect(road.id); }} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); props.onRoadSelect(road.id); } }}><title>{road.name} · flood exposure unknown</title></polyline>
+          {hoveredRoad === road.id && <text x={X(middle)} y={Y(middle) + 17} textAnchor="middle" fontSize="11" style={{ fill: color }}>{closed ? "× " : ""}{road.name}</text>}
+          {[road.points[0], road.points[road.points.length - 1]].map((point, index) => <circle key={index} cx={X(point)} cy={Y(point)} r="3" fill="#e9e6d0" stroke={dark} strokeWidth="1.5" pointerEvents="none" />)}
         </g>;
       })}
       <text x={X([-95.3698, 29.7604])} y={Y([-95.3698, 29.7604]) - 20} fontSize="16" fontWeight="700" textAnchor="middle">DOWNTOWN HOUSTON</text>
       <text x={X([-95.446, 29.777])} y={Y([-95.446, 29.777])} fontSize="12" textAnchor="middle">BUFFALO BAYOU</text>
       <text x={X([-95.185, 29.735])} y={Y([-95.185, 29.735])} fontSize="12" textAnchor="middle">SHIP CHANNEL</text>
       {props.showFlood !== false && <>
-        {props.comparison && props.mode === "hurricane" && props.baselineTrack && <polyline points={path(props.baselineTrack)} fill="none" stroke="#f5f0df" strokeWidth="3" strokeDasharray="12 9" vectorEffect="non-scaling-stroke" />}
-        {props.comparison && props.mode === "flood" && props.baselineFloodCenter && props.baselineFloodRadiusKm && <polygon points={path(getFloodPolygon(props.baselineFloodCenter, props.baselineFloodRadiusKm))} fill="none" stroke="#f5f0df" strokeWidth="3" strokeDasharray="12 9" vectorEffect="non-scaling-stroke" />}
+        {props.comparison && props.mode === "hurricane" && props.baselineTrack && <polyline points={path(props.baselineTrack)} fill="none" stroke="#f5f0df" strokeWidth="3" strokeDasharray="12 9" vectorEffect="non-scaling-stroke" pointerEvents="none" />}
+        {props.comparison && props.mode === "flood" && props.baselineFloodCenter && props.baselineFloodRadiusKm && <polygon points={path(getFloodPolygon(props.baselineFloodCenter, props.baselineFloodRadiusKm))} fill="none" stroke="#f5f0df" strokeWidth="3" strokeDasharray="12 9" vectorEffect="non-scaling-stroke" pointerEvents="none" />}
         {props.mode === "hurricane" ? <>
-          <polyline points={path(track)} fill="none" stroke="#e2b475" strokeOpacity=".18" strokeWidth="16" vectorEffect="non-scaling-stroke" />
-          <polyline points={path(track)} fill="none" stroke="#f2c487" strokeWidth="4" vectorEffect="non-scaling-stroke" />
-          <ellipse cx={X(props.stormPosition)} cy={Y(props.stormPosition)} rx={X(pointAtRadius(props.stormPosition, 6)) - X(props.stormPosition)} ry={6 / 111.32 / .6 * 760} fill="#e6ae65" fillOpacity=".17" stroke="#efc58d" strokeOpacity=".7" />
-          {track.map((point, index) => <g key={index}><circle className="flat-handle" role="button" tabIndex={0} aria-label={`Waypoint ${index + 1}. Drag or use arrow keys to reposition.`} cx={X(point)} cy={Y(point)} r="7" fill="#213b40" stroke="#f4ce92" strokeWidth="3" onPointerDown={(event) => { if (props.tool === "track") begin(event, { kind: "track", index }); }} onKeyDown={(event) => { if (props.tool === "track" && event.key.startsWith("Arrow")) { event.preventDefault(); event.stopPropagation(); nudgeTrack(index, event.key); } }} /><text x={X(point)} y={Y(point) - 16} fontSize="11" textAnchor="middle">W{index + 1}</text></g>)}
-          <circle cx={X(props.stormPosition)} cy={Y(props.stormPosition)} r="12" fill="#efc28a" stroke={dark} strokeWidth="5" />
-          <text x={X(props.stormPosition)} y={Y(props.stormPosition) - 26} textAnchor="middle" fontSize="11" fontWeight="700">HYPOTHETICAL STORM</text>
+          <polyline points={path(track)} fill="none" stroke="#e2b475" strokeOpacity=".18" strokeWidth="16" vectorEffect="non-scaling-stroke" pointerEvents="none" />
+          <polyline points={path(track)} fill="none" stroke="#f2c487" strokeWidth="4" vectorEffect="non-scaling-stroke" pointerEvents="none" />
+          <ellipse cx={X(props.stormPosition)} cy={Y(props.stormPosition)} rx={X(pointAtRadius(props.stormPosition, 6)) - X(props.stormPosition)} ry={6 / 111.32 / .6 * 760} fill="#e6ae65" fillOpacity=".17" stroke="#efc58d" strokeOpacity=".7" pointerEvents="none" />
+          {track.map((point, index) => <g key={index}><circle className="flat-handle" role="button" tabIndex={0} aria-label={`Waypoint ${index + 1}. Drag or use arrow keys to reposition.`} cx={X(point)} cy={Y(point)} r="7" fill="#213b40" stroke="#f4ce92" strokeWidth="3" onPointerDown={(event) => { if (props.tool === "track") begin(event, { kind: "track", index }); }} onKeyDown={(event) => { if (props.tool === "track" && event.key.startsWith("Arrow")) { event.preventDefault(); event.stopPropagation(); nudgeTrack(index, event.key); } }} />{props.tool === "track" && <text x={X(point) + (index % 2 ? 14 : -14)} y={Y(point) + 20} fontSize="11" textAnchor="middle">W{index + 1}</text>}</g>)}
+          <image href="/map/storm-eye.svg" x={X(props.stormPosition) - 20} y={Y(props.stormPosition) - 20} width="40" height="40" pointerEvents="none" />
+          {props.tool === "track" && <text x={X(props.stormPosition)} y={Y(props.stormPosition) - 30} textAnchor="middle" fontSize="11" fontWeight="700">HYPOTHETICAL STORM</text>}
         </> : <>
-          <polygon points={path(footprint)} fill="#9ecbc9" fillOpacity=".3" stroke="#c0deda" strokeWidth="2" strokeDasharray="9 6" vectorEffect="non-scaling-stroke" />
+          <polygon points={path(footprint)} fill="#9ecbc9" fillOpacity=".3" stroke="#c0deda" strokeWidth="2" strokeDasharray="9 6" vectorEffect="non-scaling-stroke" pointerEvents="none" />
           <circle className="flat-handle" role="button" tabIndex={0} aria-label="Illustrative flood center. Drag or use arrow keys to move." cx={X(center)} cy={Y(center)} r="8" fill="#b9ddda" stroke={dark} strokeWidth="4" onPointerDown={(event) => { if (props.tool === "flood") begin(event, { kind: "center" }); }} onKeyDown={(event) => { const delta = ({ ArrowLeft: [-.005, 0], ArrowRight: [.005, 0], ArrowUp: [0, .005], ArrowDown: [0, -.005] } as Record<string, Point>)[event.key]; if (props.tool === "flood" && delta) { event.preventDefault(); event.stopPropagation(); props.onFloodChange(clampPoint([center[0] + delta[0], center[1] + delta[1]]), props.floodRadiusKm); } }} />
           <circle className="flat-handle" role="slider" tabIndex={0} aria-label="Illustrative footprint maximum radius in kilometers" aria-valuemin={FLOOD_RADIUS_LIMITS.min} aria-valuemax={FLOOD_RADIUS_LIMITS.max} aria-valuenow={props.floodRadiusKm} cx={X(radiusPoint)} cy={Y(radiusPoint)} r="6" fill="#f4e9ce" stroke="#487276" strokeWidth="3" onPointerDown={(event) => { if (props.tool === "flood") begin(event, { kind: "radius" }); }} onKeyDown={(event) => { if (props.tool === "flood" && event.key.startsWith("Arrow")) { event.preventDefault(); event.stopPropagation(); props.onFloodChange(center, Math.max(FLOOD_RADIUS_LIMITS.min, Math.min(FLOOD_RADIUS_LIMITS.max, props.floodRadiusKm + (event.key === "ArrowRight" || event.key === "ArrowUp" ? .5 : -.5)))); } }} />
-          <text x={X(center)} y={Y(center) - 24} fontSize="11" textAnchor="middle" fontWeight="700">ILLUSTRATIVE EXTENT</text>
+          {props.tool === "flood" && <text x={X(center)} y={Y(center) - 24} fontSize="11" textAnchor="middle" fontWeight="700">ILLUSTRATIVE EXTENT</text>}
         </>}
       </>}
       {(props.countyPredictions ?? []).map((prediction) => {
