@@ -140,7 +140,7 @@ def test_malformed_json_and_unknown_routes_are_enveloped(client):
     ],
 )
 def test_unavailable_workstreams_return_503_without_fake_results(client, method, path):
-    assert_envelope(client.request(method, path), status=503)
+    assert_envelope(client.request(method, path, json={"text": "Computed illustrative plan summary."}), status=503)
 
 
 def test_cors_is_an_allowlist(client):

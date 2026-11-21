@@ -12,10 +12,7 @@ import { sameScenario } from "../../services/validation";
 import { startAudioRecording, type RecordingSession } from "./recording";
 import "./command-bar.css";
 
-export type {
-  ApprovedCommand,
-  AssistantCapabilities,
-} from "../../services/assistant";
+export type { ApprovedCommand, AssistantCapabilities } from "../../services/assistant";
 export interface CommandBarProps {
   scenario: Scenario;
   getCurrentScenario: () => Scenario;
@@ -24,21 +21,16 @@ export interface CommandBarProps {
   fetcher?: typeof fetch;
   baseUrl?: string;
 }
-type Phase =
-  | "idle"
-  | "interpreting"
-  | "permission"
-  | "recording"
-  | "transcribing"
-  | "applying";
+type Phase = "idle" | "interpreting" | "permission" | "recording" | "transcribing" | "applying";
 type Review = {
   proposal: CommandProposal;
   snapshot: Scenario;
   command: ApprovedCommand;
   example: boolean;
+  planningEdge: string | null;
 };
 
-function describe(command: ApprovedCommand): string {
+function describe(command: ApprovedCommand, planningEdge: string | null): string {
   switch (command.action) {
     case "SELECT_REGION":
       return "Focus the Houston study region";
@@ -50,6 +42,19 @@ function describe(command: ApprovedCommand): string {
       return `${command.args.visible ? "Show" : "Hide"} the ${command.args.overlayId} layer`;
     case "EXPLAIN_RESULT":
       return "Open the current result’s evidence and limitations";
+    case "COMPARE_INTERVENTION":
+      switch (command.args.intent) {
+        case "compare":
+          return "Compare the planning strategies using current assumptions";
+        case "prioritize_hospitals":
+          return "Set clinic priority to 10 and cap shelter priority at 3 for both agencies";
+        case "assume_blocked":
+          return `Mark planning link ${planningEdge} as assumed blocked`;
+        case "explain":
+          return "Open Nash bargaining’s computed explanation";
+        case "resources":
+          return `Set the joint budget to ${command.args.totalBudget} units and crew limit to ${command.args.crewCapacity}`;
+      }
   }
 }
 
@@ -72,14 +77,7 @@ function Glyph({ kind }: { kind: "command" | "microphone" | "send" | "stop" }) {
       ) : kind === "send" ? (
         <path d="m5 12 14 0m-5-5 5 5-5 5" />
       ) : kind === "stop" ? (
-        <rect
-          x="6"
-          y="6"
-          width="12"
-          height="12"
-          fill="currentColor"
-          stroke="none"
-        />
+        <rect x="6" y="6" width="12" height="12" fill="currentColor" stroke="none" />
       ) : (
         <>
           <path d="M4 8h5m-5 8h5M15 4v5m0 6v5" />
@@ -120,29 +118,32 @@ export function CommandBar(props: CommandBarProps) {
   }, []);
 
   useEffect(() => {
-    if (review && !sameScenario(review.snapshot, props.scenario)) {
+    if (
+      review &&
+      (!sameScenario(review.snapshot, props.scenario) ||
+        (review.command.action === "COMPARE_INTERVENTION" &&
+          review.command.args.intent === "assume_blocked" &&
+          review.planningEdge !== (props.capabilities.selectedPlanningEdge ?? null)))
+    ) {
       setReview(null);
       setNotice(
-        "Scenario changed. Ask for a new proposal; nothing has been applied.",
+        "Scenario or selected planning link changed. Ask for a new proposal; nothing has been applied.",
       );
     }
-  }, [props.scenario, review]);
+  }, [props.scenario, props.capabilities.selectedPlanningEdge, review]);
 
   const showFailure = (error: unknown) => {
     if (error instanceof ServiceError && error.code === "cancelled") return;
     const message =
-      error instanceof Error
-        ? error.message
-        : "The optional command service is unavailable.";
-    setNotice(
-      `${message} No command was applied. Use the manual map controls.`,
-    );
+      error instanceof Error ? error.message : "The optional command service is unavailable.";
+    setNotice(`${message} No command was applied. Use the manual map controls.`);
   };
 
   const propose = async (
     value: string,
     snapshot = structuredClone(latest.current.getCurrentScenario()),
   ) => {
+    const planningEdge = latest.current.capabilities.selectedPlanningEdge ?? null;
     const token = ++sequence.current;
     request.current?.abort();
     const controller = new AbortController();
@@ -152,10 +153,7 @@ export function CommandBar(props: CommandBarProps) {
     setNotice("Requesting a backend command proposal…");
     try {
       if (!sameScenario(snapshot, latest.current.getCurrentScenario()))
-        throw new ServiceError(
-          "stale",
-          "The scenario changed while recording.",
-        );
+        throw new ServiceError("stale", "The scenario changed while recording.");
       const result = await interpretText(value, snapshot, {
         fetcher: latest.current.fetcher,
         baseUrl: latest.current.baseUrl,
@@ -175,23 +173,19 @@ export function CommandBar(props: CommandBarProps) {
         snapshot,
         latest.current.getCurrentScenario(),
         latest.current.capabilities,
+        planningEdge,
       );
       if (applied.current.has(command.commandId))
-        throw new ServiceError(
-          "unsupported",
-          "This proposal was already sent to the controls.",
-        );
+        throw new ServiceError("unsupported", "This proposal was already sent to the controls.");
       setReview({
         proposal,
         snapshot,
         command,
         example: result.mode === "offline_example",
+        planningEdge,
       });
       setNotice(
-        [
-          ...result.warnings,
-          "Review the proposed action. Nothing has been applied.",
-        ].join(" "),
+        [...result.warnings, "Review the proposed action. Nothing has been applied."].join(" "),
       );
     } catch (error) {
       if (mounted.current && sequence.current === token) showFailure(error);
@@ -208,18 +202,15 @@ export function CommandBar(props: CommandBarProps) {
         review.snapshot,
         latest.current.getCurrentScenario(),
         latest.current.capabilities,
+        review.planningEdge,
       );
       if (applied.current.has(command.commandId))
-        throw new ServiceError(
-          "unsupported",
-          "This proposal was already sent to the controls.",
-        );
+        throw new ServiceError("unsupported", "This proposal was already sent to the controls.");
       applied.current.add(command.commandId);
       setReview(null);
       setPhase("applying");
       await latest.current.onCommand(command);
-      if (mounted.current)
-        setNotice("Confirmed command sent to the map controls.");
+      if (mounted.current) setNotice("Confirmed command sent to the map controls.");
     } catch (error) {
       if (mounted.current) showFailure(error);
     } finally {
@@ -301,9 +292,7 @@ export function CommandBar(props: CommandBarProps) {
       }
       recording.current = session;
       setPhase("recording");
-      setNotice(
-        "Recording · up to 20 seconds. Stop to transcribe, or cancel to discard.",
-      );
+      setNotice("Recording · up to 20 seconds. Stop to transcribe, or cancel to discard.");
     } catch (error) {
       if (mounted.current && sequence.current === token) {
         showFailure(error);
@@ -317,10 +306,7 @@ export function CommandBar(props: CommandBarProps) {
     if (phase === "idle" && input.trim()) void propose(input);
   };
   return (
-    <section
-      className="atlas-command-bar"
-      aria-label="Typed and voice map commands"
-    >
+    <section className="atlas-command-bar" aria-label="Typed and voice map commands">
       <form className="atlas-command-form" onSubmit={submit}>
         <span className="atlas-command-mark">
           <Glyph kind="command" />
@@ -337,29 +323,25 @@ export function CommandBar(props: CommandBarProps) {
           }}
           maxLength={2000}
           disabled={phase !== "idle"}
-          placeholder="Ask… e.g. Show the county overlay"
+          placeholder={
+            props.capabilities.canPlan
+              ? "Ask… e.g. Compare plans"
+              : "Ask… e.g. Show the county overlay"
+          }
           autoComplete="off"
         />
         <button
           type="button"
-          className={
-            phase === "recording"
-              ? "atlas-microphone recording"
-              : "atlas-microphone"
-          }
+          className={phase === "recording" ? "atlas-microphone recording" : "atlas-microphone"}
           aria-label={
-            phase === "recording"
-              ? "Stop recording and transcribe"
-              : "Record a voice request"
+            phase === "recording" ? "Stop recording and transcribe" : "Record a voice request"
           }
           title={
             supportsRecording
               ? "Optional voice request · 20 seconds maximum"
               : "Microphone recording is unavailable in this browser"
           }
-          disabled={
-            !supportsRecording || (phase !== "idle" && phase !== "recording")
-          }
+          disabled={!supportsRecording || (phase !== "idle" && phase !== "recording")}
           onClick={() => {
             if (phase === "recording") {
               setPhase("transcribing");
@@ -379,11 +361,7 @@ export function CommandBar(props: CommandBarProps) {
           <span>Propose</span>
         </button>
         {phase !== "idle" && phase !== "applying" && (
-          <button
-            type="button"
-            className="atlas-command-cancel"
-            onClick={cancel}
-          >
+          <button type="button" className="atlas-command-cancel" onClick={cancel}>
             Cancel
           </button>
         )}
@@ -392,16 +370,12 @@ export function CommandBar(props: CommandBarProps) {
         <div className="atlas-command-review">
           <div>
             <span>
-              {review.example ? "Offline example proposal" : "Backend proposal"}{" "}
-              · scenario v{review.proposal.scenarioVersion}
+              {review.example ? "Offline example proposal" : "Backend proposal"} · scenario v
+              {review.proposal.scenarioVersion}
             </span>
-            <strong>{describe(review.command)}</strong>
+            <strong>{describe(review.command, review.planningEdge)}</strong>
           </div>
-          <button
-            type="button"
-            onClick={() => void confirm()}
-            disabled={phase !== "idle"}
-          >
+          <button type="button" onClick={() => void confirm()} disabled={phase !== "idle"}>
             Confirm
           </button>
           <button
