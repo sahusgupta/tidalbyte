@@ -6,6 +6,7 @@ module computes plans; it neither estimates flood depth nor directs real crews.
 
 import json
 import math
+from copy import deepcopy
 from dataclasses import dataclass
 from fractions import Fraction
 from itertools import product
@@ -107,6 +108,22 @@ class AllocationEngine:
 
     def __init__(self, graph, request):
         validate_contract("AllocationRequest", request)
+        # JSON Schema accepts integral JSON numbers such as 10.0. Normalize a
+        # private copy so all game arithmetic remains rational and input is intact.
+        request = deepcopy(request)
+        for key in (
+            "scenarioVersion",
+            "crewCapacity",
+            "totalBudget",
+            "equipmentCapacity",
+            "horizonHours",
+            "bargainingWeight",
+            "effectPercent",
+        ):
+            request[key] = int(request[key])
+        for agency in request["agencies"].values():
+            for key in ("budget", "crewCapacity", "clinicWeight", "shelterWeight"):
+                agency[key] = int(agency[key])
         if (
             set(graph.edges) != set(WORK)
             or set(graph.facilities) != set(FACILITIES)
@@ -148,6 +165,7 @@ class AllocationEngine:
             )
         self.candidates = self._candidates()
         self._access_cache = {}
+        self._scenario_cache = {}
 
     def _candidates(self):
         features = {
@@ -189,33 +207,53 @@ class AllocationEngine:
                 )
         return candidates
 
+    def scenario_solution(self, mask, blocked, impaired):
+        """Cache shortest costs and service paths for one declared realization."""
+        key = (mask, tuple(sorted(blocked)), tuple(sorted(impaired)))
+        if key in self._scenario_cache:
+            return self._scenario_cache[key]
+        selected = {
+            edge for index, edge in enumerate(self.edges) if mask & (1 << index)
+        }
+        network = self.graph.graph.copy()
+        for edge in self.edges:
+            a, b = self.graph.edges[edge]
+            base = Fraction(str(network.edges[a, b]["weight"]))
+            effect = self.effect if edge in selected else Fraction(0)
+            if edge in blocked:
+                if effect == 0:
+                    network.remove_edge(a, b)
+                    continue
+                weight = base / effect
+            elif edge in impaired:
+                weight = base * (3 - 2 * effect)
+            else:
+                weight = base
+            network.edges[a, b]["weight"] = weight
+        costs, nodes = self.graph.nx.single_source_dijkstra(
+            network, self.graph.origin, weight="weight"
+        )
+        paths = {
+            facility: (
+                [
+                    network.edges[a, b]["id"]
+                    for a, b in zip(nodes[facility], nodes[facility][1:])
+                ]
+                if facility in nodes
+                else []
+            )
+            for facility in FACILITIES
+        }
+        self._scenario_cache[key] = costs, paths
+        return costs, paths
+
     def access(self, mask):
         """Expected intact-cost/current-cost access, capped at one, per facility."""
         if mask in self._access_cache:
             return self._access_cache[mask]
-        selected = {
-            edge for index, edge in enumerate(self.edges) if mask & (1 << index)
-        }
         access = [Fraction(0), Fraction(0)]
         for probability, blocked, impaired in self.scenarios:
-            network = self.graph.graph.copy()
-            for edge in self.edges:
-                a, b = self.graph.edges[edge]
-                base = Fraction(str(network.edges[a, b]["weight"]))
-                effect = self.effect if edge in selected else Fraction(0)
-                if edge in blocked:
-                    if effect == 0:
-                        network.remove_edge(a, b)
-                        continue
-                    weight = base / effect
-                elif edge in impaired:
-                    weight = base * (3 - 2 * effect)
-                else:
-                    weight = base
-                network.edges[a, b]["weight"] = weight
-            costs = self.graph.nx.single_source_dijkstra_path_length(
-                network, self.graph.origin, weight="weight"
-            )
+            costs, _ = self.scenario_solution(mask, blocked, impaired)
             for index, facility in enumerate(FACILITIES):
                 if facility in costs:
                     access[index] += probability * min(
@@ -225,6 +263,28 @@ class AllocationEngine:
         result = tuple(access)
         self._access_cache[mask] = result
         return result
+
+    def frames(self, profile):
+        selected = profile.health.actions + profile.shelter.actions
+        hours = sorted({0, *(self.candidates[index]["hours"] for index in selected)})
+        frames = []
+        for hour in hours:
+            mask = sum(
+                1 << (index % len(self.edges))
+                for index in selected
+                if self.candidates[index]["hours"] <= hour
+            )
+            _, paths = self.scenario_solution(mask, self.blocked, self.impaired)
+            frames.append(
+                {
+                    "hour": hour,
+                    "access": dict(zip(FACILITIES, map(_number, self.access(mask)))),
+                    "serviceEdges": {
+                        facility: list(paths[facility]) for facility in FACILITIES
+                    },
+                }
+            )
+        return frames
 
     def portfolios(self, agency):
         settings = self.request["agencies"][agency]
@@ -337,6 +397,7 @@ class AllocationEngine:
             "Untreated impaired links cost three times their fixture travel cost; untreated blocked links are removed from the modeled graph.",
             "Action effect is hypothetical: blocked links get base cost / effect; impaired links get base cost × (3 − 2 × effect). At zero effect nothing is restored. 100% is not flood-proofing.",
             "One action class per phase, with one option for each agency on each of five links. At most one agency may fund an action on a physical link; duplicate funding is infeasible.",
+            "Candidate costs/times are teaching inputs: shelter costs two budget units more per link; mitigation is two units and two hours below response. Each action reserves one crew and one equipment unit.",
             "All work is parallel; crews and equipment are reserved throughout. Completion time is the maximum selected action time, not a real restoration schedule.",
             "Access per facility is min(1, intact shortest travel cost / scenario shortest travel cost), or zero if unreachable; mitigation averages over its three declared scenarios.",
             f"Weighted access normalizes the fixture facility service weights (clinic {self.graph.facilities['clinic']}, shelter {self.graph.facilities['shelter']}) to a score from zero to one; no population is counted.",
@@ -345,6 +406,8 @@ class AllocationEngine:
             "Coordinated planning maximizes the sum of agency utilities. Bargaining requires positive gains for both and maximizes the weighted Nash product relative to independent utilities.",
             f"Health bargaining exponent is {self.request['bargainingWeight']}/10; shelter exponent is {10 - self.request['bargainingWeight']}/10. All methods share candidates and resource constraints.",
             "Timestamp identifies the fixed assumption-set revision, not live conditions or the time of an observed flood.",
+            "Playback frames apply actions at their assumed completion hours. Mitigation frame access is the mixture mean; service-edge paths describe only the single declared blocked/impaired realization, not the mean.",
+            "The payoff matrix is a bounded subset of actual feasible profiles, including compared outcomes. Equilibrium and optimality checks use the full enumerated action set.",
         ]
         return {
             "regionId": REGION_ID,
@@ -457,6 +520,7 @@ class AllocationEngine:
                     "access": dict(zip(FACILITIES, map(_number, profile.access))),
                     "weightedAccess": _number(weighted),
                     "interventions": interventions,
+                    "frames": self.frames(profile),
                     "jointUtility": _number(sum(profile.utilities)),
                     "gains": dict(
                         zip(

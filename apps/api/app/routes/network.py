@@ -119,9 +119,12 @@ def network_strategy(request: Request, regionId: str = Query(default=REGION_ID))
     return network_response(request, graph, graph.strategy())
 
 
-def allocation_response(request, graph, data):
+def allocation_response(request, graph, data, *, mode="exploratory_what_if"):
     result = envelope(request, data, warnings=[ALLOCATION_LIMITATIONS[0]])
     result["meta"]["sourceIds"] = [graph.fixture["sourceId"], ASSUMPTION_SET]
+    result["meta"]["mode"] = mode
+    if mode == "exploratory_what_if":
+        result["meta"]["warnings"] = [ALLOCATION_LIMITATIONS[0]]
     return result
 
 
@@ -173,7 +176,7 @@ allocation_body["description"] = (
 )
 def allocation_demo(request: Request):
     graph = get_network()
-    return allocation_response(request, graph, demo_request())
+    return allocation_response(request, graph, demo_request(), mode="offline_example")
 
 
 @router.post(

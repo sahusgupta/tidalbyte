@@ -10,6 +10,7 @@
     "Untreated impaired links cost three times their fixture travel cost; untreated blocked links are removed from the modeled graph.",
     "Action effect is hypothetical: blocked links get base cost / effect; impaired links get base cost \u00d7 (3 \u2212 2 \u00d7 effect). At zero effect nothing is restored. 100% is not flood-proofing.",
     "One action class per phase, with one option for each agency on each of five links. At most one agency may fund an action on a physical link; duplicate funding is infeasible.",
+    "Candidate costs/times are teaching inputs: shelter costs two budget units more per link; mitigation is two units and two hours below response. Each action reserves one crew and one equipment unit.",
     "All work is parallel; crews and equipment are reserved throughout. Completion time is the maximum selected action time, not a real restoration schedule.",
     "Access per facility is min(1, intact shortest travel cost / scenario shortest travel cost), or zero if unreachable; mitigation averages over its three declared scenarios.",
     "Weighted access normalizes the fixture facility service weights (clinic 9, shelter 3) to a score from zero to one; no population is counted.",
@@ -17,7 +18,9 @@
     "Independent best responses start at no work, health then shelter. Ties prefer lower spend, crews, equipment, completion time, then stable action order. Verification tests every feasible unilateral deviation under the same shared caps.",
     "Coordinated planning maximizes the sum of agency utilities. Bargaining requires positive gains for both and maximizes the weighted Nash product relative to independent utilities.",
     "Health bargaining exponent is 5/10; shelter exponent is 5/10. All methods share candidates and resource constraints.",
-    "Timestamp identifies the fixed assumption-set revision, not live conditions or the time of an observed flood."
+    "Timestamp identifies the fixed assumption-set revision, not live conditions or the time of an observed flood.",
+    "Playback frames apply actions at their assumed completion hours. Mitigation frame access is the mixture mean; service-edge paths describe only the single declared blocked/impaired realization, not the mean.",
+    "The payoff matrix is a bounded subset of actual feasible profiles, including compared outcomes. Equilibrium and optimality checks use the full enumerated action set."
   ],
   "scenarioVersion": 1,
   "graphVersion": "houston-illustrative-network-v1",
@@ -200,6 +203,19 @@
       },
       "weightedAccess": 0.0,
       "interventions": [],
+      "frames": [
+        {
+          "hour": 0,
+          "access": {
+            "clinic": 0.0,
+            "shelter": 0.0
+          },
+          "serviceEdges": {
+            "clinic": [],
+            "shelter": []
+          }
+        }
+      ],
       "jointUtility": 0.0,
       "gains": {
         "health": 0.0,
@@ -252,6 +268,44 @@
           }
         }
       ],
+      "frames": [
+        {
+          "hour": 0,
+          "access": {
+            "clinic": 0.0,
+            "shelter": 0.0
+          },
+          "serviceEdges": {
+            "clinic": [],
+            "shelter": []
+          }
+        },
+        {
+          "hour": 8,
+          "access": {
+            "clinic": 0.0,
+            "shelter": 0.0
+          },
+          "serviceEdges": {
+            "clinic": [],
+            "shelter": []
+          }
+        },
+        {
+          "hour": 10,
+          "access": {
+            "clinic": 1.0,
+            "shelter": 0.0
+          },
+          "serviceEdges": {
+            "clinic": [
+              "main-link",
+              "north-link"
+            ],
+            "shelter": []
+          }
+        }
+      ],
       "jointUtility": 7.0,
       "gains": {
         "health": 8.2,
@@ -301,6 +355,44 @@
           "accessWithout": {
             "clinic": 0.0,
             "shelter": 0.0
+          }
+        }
+      ],
+      "frames": [
+        {
+          "hour": 0,
+          "access": {
+            "clinic": 0.0,
+            "shelter": 0.0
+          },
+          "serviceEdges": {
+            "clinic": [],
+            "shelter": []
+          }
+        },
+        {
+          "hour": 6,
+          "access": {
+            "clinic": 0.0,
+            "shelter": 0.0
+          },
+          "serviceEdges": {
+            "clinic": [],
+            "shelter": []
+          }
+        },
+        {
+          "hour": 8,
+          "access": {
+            "clinic": 0.0,
+            "shelter": 1.0
+          },
+          "serviceEdges": {
+            "clinic": [],
+            "shelter": [
+              "main-link",
+              "south-link"
+            ]
           }
         }
       ],

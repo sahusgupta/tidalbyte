@@ -26,7 +26,9 @@ def payload(response, contract="AllocationResult"):
     result = response.json()
     validate_contract("Envelope", result)
     validate_contract(contract, result["data"])
-    assert result["meta"]["mode"] == "offline_example"
+    assert result["meta"]["mode"] == (
+        "offline_example" if contract == "AllocationRequest" else "exploratory_what_if"
+    )
     assert set(result["meta"]["sourceIds"]) == {
         "project:houston-illustrative-network-v1",
         "project:houston-allocation-assumptions-v1",
@@ -289,9 +291,93 @@ def test_no_equilibrium_is_not_labeled_verified():
 def test_json_integral_numbers_are_supported_without_internal_error(
     client, allocation_request
 ):
-    allocation_request["effectPercent"] = 50.0
+    integer_request = deepcopy(allocation_request)
+    for key in (
+        "scenarioVersion",
+        "crewCapacity",
+        "totalBudget",
+        "equipmentCapacity",
+        "horizonHours",
+        "bargainingWeight",
+        "effectPercent",
+    ):
+        allocation_request[key] = float(allocation_request[key])
+    for agency in allocation_request["agencies"].values():
+        for key in ("budget", "crewCapacity", "clinicWeight", "shelterWeight"):
+            agency[key] = float(agency[key])
     result = payload(client.post(COMPARE, json=allocation_request))
+    assert result == payload(client.post(COMPARE, json=integer_request))
     assert all(strategy["nashProduct"] >= 0 for strategy in result["strategies"])
+
+
+@pytest.mark.parametrize("phase", ["mitigation", "response"])
+def test_frames_recompute_access_and_actual_declared_service_paths(
+    allocation_request, phase
+):
+    request = {**allocation_request, "phase": phase}
+    engine = AllocationEngine(load_network(), request)
+    result = engine.solve()
+    candidates = {
+        candidate["actionId"]: candidate for candidate in result["candidates"]
+    }
+    for strategy in result["strategies"]:
+        actions = [
+            candidates[action["actionId"]] for action in strategy["interventions"]
+        ]
+        assert [frame["hour"] for frame in strategy["frames"]] == sorted(
+            {0, *(action["hours"] for action in actions)}
+        )
+        assert strategy["frames"][0]["access"] == result["baselineAccess"]
+        assert strategy["frames"][-1]["access"] == strategy["access"]
+        for frame in strategy["frames"]:
+            completed = [
+                action for action in actions if action["hours"] <= frame["hour"]
+            ]
+            mask = sum(
+                1 << engine.edges.index(action["assetId"]) for action in completed
+            )
+            assert frame["access"] == pytest.approx(
+                dict(zip(("clinic", "shelter"), map(float, engine.access(mask)))),
+                abs=1e-9,
+            )
+            for facility, edge_ids in frame["serviceEdges"].items():
+                if not edge_ids:
+                    continue
+                node = engine.graph.origin
+                for edge in edge_ids:
+                    assert edge not in request["blockedEdgeIds"] or edge in {
+                        action["assetId"] for action in completed
+                    }
+                    a, b = engine.graph.edges[edge]
+                    assert node in (a, b)
+                    node = b if node == a else a
+                assert node == facility
+    assert result["strategies"][1]["frames"][-1]["serviceEdges"] == {
+        "clinic": ["main-link", "north-link"],
+        "shelter": [],
+    }
+    assert result["strategies"][2]["frames"][-1]["serviceEdges"] == {
+        "clinic": [],
+        "shelter": ["main-link", "south-link"],
+    }
+    if phase == "mitigation":
+        assert (
+            result["strategies"][2]["frames"][1]["access"]["shelter"]
+            > result["baselineAccess"]["shelter"]
+        )
+        assert result["strategies"][2]["frames"][1]["serviceEdges"]["shelter"] == []
+
+
+def test_live_compute_envelope_does_not_claim_canned_offline_output(
+    client, allocation_request
+):
+    response = client.post(COMPARE, json=allocation_request)
+    assert response.status_code == 200
+    assert response.json()["meta"]["mode"] == "exploratory_what_if"
+    assert all(
+        "OFFLINE EXAMPLE" not in warning
+        for warning in response.json()["meta"]["warnings"]
+    )
 
 
 def test_selected_action_explanations_recompute_access_without_it(allocation_request):
