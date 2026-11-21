@@ -1,243 +1,244 @@
-import { useEffect, useRef, useSyncExternalStore, type ReactNode } from "react";
+import { useLayoutEffect, useRef, type ReactNode } from "react";
 import { HOUSTON_BOOKMARKS, type BookmarkId, type EditorTool } from "../atlas/domain";
 import { Icon } from "./Icon";
 
-const compactQuery = window.matchMedia("(max-width: 800px)");
-const subscribeToWidth = (listener: () => void) => {
-  compactQuery.addEventListener("change", listener);
-  return () => compactQuery.removeEventListener("change", listener);
-};
-export function useCompactAtlas() {
-  return useSyncExternalStore(subscribeToWidth, () => compactQuery.matches);
-}
+export type StudyPage =
+  | "scenario"
+  | "inspector"
+  | "county"
+  | "compare"
+  | "layers"
+  | "sources"
+  | "ask"
+  | "study";
 
-export function AtlasHeader({
-  onEarth,
-  onSources,
-  onAsk,
-  asking,
-}: {
-  onEarth?: () => void;
-  onSources: () => void;
-  onAsk: () => void;
-  asking: boolean;
-}) {
+const titles: Record<StudyPage, string> = {
+  scenario: "Scenario settings",
+  inspector: "Road inspector",
+  county: "County evidence",
+  compare: "Compare scenarios",
+  layers: "Map layers",
+  sources: "Sources & assumptions",
+  ask: "Ask the atlas",
+  study: "Study menu",
+};
+
+type OpenPage = (page: StudyPage) => void;
+export function AtlasHeader({ hurricane, onOpen }: { hurricane: boolean; onOpen: OpenPage }) {
   return (
-    <header className="atlas-masthead">
-      <div className="atlas-imprint" aria-label="EarthLab">
-        <Icon name="atlas" size={32} />
-        <span>EarthLab</span>
+    <header className="field-mast">
+      <div className="field-imprint">
+        <span className="field-brand">
+          <Icon name="field" size={26} />
+          <b>
+            Earth<span>Lab</span>
+          </b>
+        </span>
+        <h1>Houston field unit</h1>
       </div>
-      <h1>
-        <span className="atlas-full-title">Houston Disaster Atlas</span>
-        <span className="atlas-short-title">Houston atlas</span>
-      </h1>
-      <nav aria-label="Atlas navigation">
-        {onEarth && (
-          <button type="button" onClick={onEarth} aria-label="Open Earth view">
-            <Icon name="globe" />
-            Earth
-          </button>
-        )}
-        <button type="button" onClick={onSources}>
-          <Icon name="book" />
-          Sources
+      <button
+        className="field-scenario"
+        onClick={() => onOpen("scenario")}
+        aria-haspopup="dialog"
+        aria-label={`Scenario settings: ${hurricane ? "Gulf approach" : "Bayou footprint"}`}
+      >
+        <Icon name={hurricane ? "hurricane" : "flood"} size={18} />
+        <span className="field-scenario-caption">Scenario</span>
+        <strong>{hurricane ? "Gulf approach" : "Bayou footprint"}</strong>
+        <Icon name="down" size={13} />
+      </button>
+      <nav className="field-nav" aria-label="Study controls">
+        <button className="wide-action" onClick={() => onOpen("compare")} aria-haspopup="dialog">
+          <Icon name="compare" size={17} />
+          Compare
+        </button>
+        <button className="wide-action" onClick={() => onOpen("layers")} aria-haspopup="dialog">
+          <Icon name="layers" size={17} />
+          Layers
         </button>
         <button
-          type="button"
-          className="atlas-ask-trigger"
-          aria-label="Ask the atlas"
-          aria-expanded={asking}
-          onClick={onAsk}
+          className="field-more"
+          aria-label="Open study menu"
+          aria-haspopup="dialog"
+          title="Study menu"
+          onClick={() => onOpen("study")}
         >
-          <Icon name="ask" />
-          Ask<span className="ask-long"> the atlas</span>
+          <Icon name="more" size={21} />
         </button>
       </nav>
     </header>
   );
 }
 
-export type NotebookPage = "scenario" | "inspector" | "compare";
-const pages = [
-  { id: "scenario", label: "Scenario", icon: "hurricane" },
-  { id: "inspector", label: "Inspector", icon: "road" },
-  { id: "compare", label: "Compare", icon: "compare" },
+const tools = [
+  { id: "inspect", label: "Inspect roads", icon: "cursor" },
+  { id: "track", label: "Edit storm track", icon: "hurricane" },
+  { id: "flood", label: "Edit flood footprint", icon: "flood" },
+  { id: "closure", label: "Close roads", icon: "closure" },
+  { id: "measure", label: "Measure distance", icon: "measure" },
 ] as const;
 
-export function NotebookTabs({
-  page,
-  onSelect,
-  dock = false,
-}: {
-  page: NotebookPage | null;
-  onSelect: (page: NotebookPage) => void;
-  dock?: boolean;
-}) {
-  return (
-    <nav
-      className={dock ? "notebook-dock" : "notebook-index"}
-      aria-label={dock ? "Open notebook page" : "Notebook pages"}
-    >
-      {pages.map((item) => (
-        <button
-          key={item.id}
-          type="button"
-          aria-pressed={page === item.id}
-          onClick={() => onSelect(item.id)}
-        >
-          {dock && <Icon name={item.icon} size={20} />}
-          {item.label}
-        </button>
-      ))}
-    </nav>
-  );
-}
-
-export function Notebook({
-  compact,
-  open,
-  page,
-  onSelect,
-  onDismiss,
-  children,
-}: {
-  compact: boolean;
-  open: boolean;
-  page: NotebookPage;
-  onSelect: (page: NotebookPage) => void;
-  onDismiss: () => void;
-  children: ReactNode;
-}) {
-  const dialog = useRef<HTMLDialogElement>(null);
-  const scroll = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const sheet = dialog.current;
-    if (compact && open && sheet && !sheet.open) sheet.showModal();
-    else if (sheet?.open && !open) sheet.close();
-  }, [open, compact]);
-  useEffect(() => {
-    if (scroll.current) scroll.current.scrollTop = 0;
-  }, [page, open]);
-  const body = (
-    <>
-      <div className="notebook-binding">
-        <NotebookTabs page={page} onSelect={onSelect} />
-        {compact && (
-          <button className="notebook-dismiss" aria-label="Close notebook" onClick={onDismiss}>
-            <Icon name="close" />
-          </button>
-        )}
-      </div>
-      <div className="notebook-scroll" ref={scroll}>
-        {children}
-      </div>
-    </>
-  );
-  if (!compact)
-    return (
-      <aside className="desk-notebook" aria-label="Scenario notebook">
-        {body}
-      </aside>
-    );
-  return (
-    <dialog
-      ref={dialog}
-      className="notebook-sheet"
-      aria-label="Scenario notebook"
-      onCancel={(e) => {
-        e.preventDefault();
-        onDismiss();
-      }}
-      onClick={(e) => {
-        if (e.target === dialog.current) onDismiss();
-      }}
-    >
-      <div className="notebook-sheet-inner">{body}</div>
-    </dialog>
-  );
-}
-
 export function AtlasTools({
-  bookmark,
-  onBookmark,
   tool,
   onTool,
-  hurricane,
+  bookmark,
+  onBookmark,
 }: {
-  bookmark: BookmarkId;
-  onBookmark: (id: BookmarkId) => void;
   tool: EditorTool;
-  onTool: (id: EditorTool) => void;
-  hurricane: boolean;
+  onTool: (tool: EditorTool) => void;
+  bookmark: BookmarkId;
+  onBookmark: (bookmark: BookmarkId) => void;
 }) {
-  const choices = [
-    { id: "inspect", label: "Inspect", icon: "cursor" },
-    {
-      id: hurricane ? "track" : "flood",
-      label: hurricane ? "Edit track" : "Edit footprint",
-      icon: "edit",
-    },
-    { id: "closure", label: "Close roads", icon: "closure" },
-  ] as const;
-  const active = choices.find((choice) => choice.id === tool) ?? choices[0];
   return (
-    <div className="atlas-sheet-bar">
-      <div className="map-location">
-        <Icon name="pin" size={20} />
-        <label className="location-select">
-          <select
-            aria-label="Camera bookmark"
-            value={bookmark}
-            onChange={(e) => onBookmark(e.target.value as BookmarkId)}
-          >
-            {Object.entries(HOUSTON_BOOKMARKS).map(([id, entry]) => (
-              <option key={id} value={id}>
-                {entry.label}
-              </option>
-            ))}
-          </select>
-          <Icon name="down" size={14} />
-        </label>
-        {bookmark !== "houston" && (
-          <button
-            className="view-reset"
-            onClick={() => onBookmark("houston")}
-            aria-label="Reset view to Greater Houston"
-            title="Reset to Greater Houston"
-          >
-            <Icon name="reset" size={16} />
-          </button>
-        )}
-      </div>
-      <div className="map-tool-buttons" role="group" aria-label="Map tools">
-        {choices.map((choice) => (
-          <button
-            key={choice.id}
-            type="button"
-            aria-pressed={tool === choice.id}
-            onClick={() => onTool(choice.id)}
-          >
-            <Icon name={choice.icon} size={16} />
-            {choice.label}
-          </button>
-        ))}
-      </div>
-      <label className="map-tool-select">
-        <Icon name={active.icon} size={16} />
+    <>
+      <label className="field-location">
+        <Icon name="pin" size={16} />
         <select
-          aria-label="Map tool"
-          value={tool}
-          onChange={(e) => onTool(e.target.value as EditorTool)}
+          value={bookmark}
+          aria-label="Camera bookmark"
+          onChange={(e) => onBookmark(e.target.value as BookmarkId)}
         >
-          {choices.map((choice) => (
-            <option key={choice.id} value={choice.id}>
-              {choice.label}
+          {Object.entries(HOUSTON_BOOKMARKS).map(([id, target]) => (
+            <option key={id} value={id}>
+              {target.label}
             </option>
           ))}
         </select>
         <Icon name="down" size={12} />
       </label>
-    </div>
+      <label className="field-tool-picker">
+        <Icon name={tools.find((item) => item.id === tool)!.icon} size={16} />
+        <select
+          aria-label="Map tool"
+          value={tool}
+          onChange={(e) => onTool(e.target.value as EditorTool)}
+        >
+          {tools.map((item) => (
+            <option key={item.id} value={item.id}>
+              {item.label}
+            </option>
+          ))}
+        </select>
+        <Icon name="down" size={12} />
+      </label>
+      <nav className="field-tools" aria-label="Map editing tools">
+        {tools.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            aria-label={item.label}
+            aria-pressed={tool === item.id}
+            onClick={() => onTool(item.id)}
+          >
+            <Icon name={item.icon} size={20} />
+            <span className="tool-tip" aria-hidden="true">
+              {item.label}
+            </span>
+          </button>
+        ))}
+      </nav>
+    </>
+  );
+}
+
+export function StudyDialog({
+  page,
+  onBack,
+  onClose,
+  children,
+}: {
+  page: StudyPage;
+  onBack?: () => void;
+  onClose: () => void;
+  children: ReactNode;
+}) {
+  const ref = useRef<HTMLDialogElement>(null);
+  const heading = useRef<HTMLHeadingElement>(null);
+  const body = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const node = ref.current;
+    node?.showModal();
+    return () => node?.close();
+  }, []);
+  useLayoutEffect(() => {
+    if (body.current) body.current.scrollTop = 0;
+    if (page === "ask") document.getElementById("atlas-command-input")?.focus();
+    else heading.current?.focus({ preventScroll: true });
+  }, [page]);
+  return (
+    <dialog
+      ref={ref}
+      className={`study-dialog page-${page}`}
+      aria-labelledby="study-dialog-title"
+      onCancel={(e) => {
+        e.preventDefault();
+        onClose();
+      }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="study-dialog-inner">
+        <header className="dialog-binding">
+          {onBack && (
+            <button className="dialog-back" aria-label="Back to previous panel" onClick={onBack}>
+              <Icon name="arrow" size={16} />
+            </button>
+          )}
+          <h2 id="study-dialog-title" tabIndex={-1} ref={heading}>
+            {titles[page]}
+          </h2>
+          <button type="button" onClick={onClose} aria-label={`Close ${titles[page]}`}>
+            <Icon name="close" />
+          </button>
+        </header>
+        <div className="study-dialog-body" ref={body}>
+          {children}
+        </div>
+      </div>
+    </dialog>
+  );
+}
+
+export function StudyMenu({
+  onOpen,
+  onEarth,
+  onExport,
+}: {
+  onOpen: OpenPage;
+  onEarth?: () => void;
+  onExport: () => void;
+}) {
+  const destinations = [
+    { page: "scenario", label: "Scenario settings", icon: "hurricane" },
+    { page: "inspector", label: "Inspect a road", icon: "road" },
+    { page: "compare", label: "Compare scenarios", icon: "compare" },
+    { page: "layers", label: "Map layers & legend", icon: "layers" },
+    { page: "ask", label: "Ask the atlas", icon: "ask" },
+    { page: "sources", label: "Sources & assumptions", icon: "book" },
+  ] as const;
+  return (
+    <nav className="study-index" aria-label="Study menu">
+      {destinations.map((item) => (
+        <button key={item.page} onClick={() => onOpen(item.page)}>
+          <Icon name={item.icon} />
+          <span>{item.label}</span>
+          <Icon name="arrow" size={14} />
+        </button>
+      ))}
+      <button onClick={onExport}>
+        <Icon name="export" />
+        <span>
+          Export study <small>GeoJSON</small>
+        </span>
+      </button>
+      {onEarth && (
+        <button onClick={onEarth}>
+          <Icon name="globe" />
+          <span>Open Earth view</span>
+          <Icon name="arrow" size={14} />
+        </button>
+      )}
+    </nav>
   );
 }

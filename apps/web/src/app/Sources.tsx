@@ -1,46 +1,14 @@
-import { useEffect, useRef } from "react";
-import { Icon } from "./Icon";
-
-export function Sources({ onClose }: { onClose: () => void }) {
-  const dialog = useRef<HTMLDialogElement>(null);
-  useEffect(() => {
-    const el = dialog.current;
-    el?.showModal();
-    return () => el?.close();
-  }, []);
+export function Sources() {
   return (
-    <dialog
-      className="sources-dialog"
-      ref={dialog}
-      onCancel={(event) => {
-        event.preventDefault();
-        onClose();
-      }}
-      aria-labelledby="sources-title"
-    >
-      <div className="dialog-head">
-        <div>
-          <h2 id="sources-title">Sources & assumptions</h2>
-        </div>
-        <button
-          className="icon-button"
-          aria-label="Close sources"
-          onClick={onClose}
-        >
-          <Icon name="close" />
-        </button>
-      </div>
-      <p className="sources-intro">
-        What the map shows, and where each layer comes from
-      </p>
+    <div className="source-sheet">
       <dl className="sources-index">
         <div>
           <dt>
             Basemap <span>Geographic reference</span>
           </dt>
           <dd>
-            The atlas uses local USGS aerial imagery. Imagery provides
-            orientation only. See the map credits for the active provider.
+            The atlas uses local USGS aerial imagery. Imagery provides orientation only. See the map
+            credits for the active provider.
           </dd>
         </div>
         <div>
@@ -48,9 +16,8 @@ export function Sources({ onClose }: { onClose: () => void }) {
             Roads <span>Curated example</span>
           </dt>
           <dd>
-            EarthLab's independently drawn sample represents a small set of
-            Houston corridors. Positions and connections are approximate. Actual
-            road conditions are unknown.
+            EarthLab's independently drawn sample represents a small set of Houston corridors.
+            Positions and connections are approximate. Actual road conditions are unknown.
           </dd>
         </div>
         <div>
@@ -58,9 +25,8 @@ export function Sources({ onClose }: { onClose: () => void }) {
             Hurricane <span>Hypothetical</span>
           </dt>
           <dd>
-            Waypoints define the trajectory. The moving circle uses a fixed 6 km
-            inspection radius. Rainfall and intensity are annotations. Duration
-            controls the time scale.
+            Waypoints define the trajectory. The moving circle uses a fixed 6 km inspection radius.
+            Rainfall and intensity are annotations. Duration controls the time scale.
           </dd>
         </div>
         <div>
@@ -68,9 +34,9 @@ export function Sources({ onClose }: { onClose: () => void }) {
             Flood <span>Illustrative</span>
           </dt>
           <dd>
-            The circular footprint grows from 35% of its final radius to 100%
-            across the timeline. Intersections describe the geometry of this
-            sketch. No depth or road passability is estimated.
+            The circular footprint grows from 35% of its final radius to 100% across the timeline.
+            Intersections describe the geometry of this sketch. No depth or road passability is
+            estimated.
           </dd>
         </div>
         <div>
@@ -78,9 +44,9 @@ export function Sources({ onClose }: { onClose: () => void }) {
             Connectivity <span>Hypothetical</span>
           </dt>
           <dd>
-            Sample closures remove links from the alternative graph.
-            Reachability is measured from a single reference node. Backend
-            comparisons, when available, use the backend's own edge IDs.
+            Sample closures remove links from the alternative graph. Reachability is measured from a
+            single reference node. Backend comparisons, when available, use the backend's own edge
+            IDs.
           </dd>
         </div>
         <div>
@@ -88,13 +54,12 @@ export function Sources({ onClose }: { onClose: () => void }) {
             County severity <span>Warning context</span>
           </dt>
           <dd>
-            Only the separate supported county scenario is sent for evaluation.
-            Offline values are fixed fixture indices. Trained results apply to
-            positive-outage hours associated with warnings. The editor does not
-            infer road damage from county outputs.
+            Only the separate supported county scenario is sent for evaluation. Offline values are
+            fixed fixture indices. Trained results apply to positive-outage hours associated with
+            warnings. The editor does not infer road damage from county outputs.
           </dd>
         </div>
       </dl>
-    </dialog>
+    </div>
   );
 }

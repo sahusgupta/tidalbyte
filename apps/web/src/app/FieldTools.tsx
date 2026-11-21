@@ -83,12 +83,14 @@ export const timeLabel = (hours: number) => {
 };
 
 export function Timeline({
+  caption,
   progress,
   playing,
   duration,
   onScrub,
   onPlay,
 }: {
+  caption: string;
   progress: number;
   playing: boolean;
   duration: number;
@@ -107,7 +109,7 @@ export function Timeline({
         <Icon name={playing ? "pause" : "play"} size={18} />
       </button>
       <div className="time-read">
-        <span className="time-caption">Scenario time</span>
+        <span className="time-caption">{caption}</span>
         <output>T+{timeLabel(progress * duration)}</output>
       </div>
       <div className="time-axis">
