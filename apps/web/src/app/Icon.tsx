@@ -1,4 +1,11 @@
 const paths = {
+  globe: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M3 12h18M12 3c5 5 5 13 0 18-5-5-5-13 0-18Z" />
+    </>
+  ),
+  ask: <path d="M4 4.5h16v12H10l-6 4v-16ZM8 9h8m-8 3.5h5" />,
   atlas: (
     <>
       <path d="m2 16 5-9 4 6 4-9 7 12-5 3-5-3-5 3z" />
@@ -78,13 +85,7 @@ const paths = {
     </>
   ),
 } as const;
-export function Icon({
-  name,
-  size = 18,
-}: {
-  name: keyof typeof paths;
-  size?: number;
-}) {
+export function Icon({ name, size = 18 }: { name: keyof typeof paths; size?: number }) {
   return (
     <svg
       aria-hidden="true"

@@ -4,7 +4,6 @@ import { offlineEvaluation, offlineScenario, type Scenario } from "@earthlab/con
 import {
   BASELINE,
   HOUSTON_ROADS,
-  HOUSTON_BOOKMARKS,
   analyzeRoadNetwork,
   deriveAtlas,
   type BookmarkId,
@@ -20,9 +19,17 @@ import { ScenarioRail, type Layers } from "./ScenarioRail";
 import { Icon } from "./Icon";
 import { Timeline } from "./FieldTools";
 import { Sources } from "./Sources";
+import {
+  AtlasHeader,
+  AtlasTools,
+  Notebook,
+  NotebookTabs,
+  useCompactAtlas,
+  type NotebookPage,
+} from "./AtlasChrome";
 
 const Globe = lazy(() => import("../features/globe/Globe"));
-const fallbackText = "ILLUSTRATIVE FLOOD EXTENT — NOT A FLOOD FORECAST";
+const floodLabel = "Illustrative flood extent · not a flood forecast";
 const makeScenario = (version: number): Scenario => ({
   ...offlineScenario,
   scenarioVersion: version,
@@ -39,14 +46,39 @@ export function App({ onEarth }: { onEarth?: () => void } = {}) {
   const [sources, setSources] = useState(false);
   const [legend, setLegend] = useState(false);
   const [countyOpen, setCountyOpen] = useState(false);
-  const [drawer, setDrawer] = useState<"editor" | "evidence" | null>(null);
+  const [bookPage, setBookPage] = useState<NotebookPage>("scenario");
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [asking, setAsking] = useState(false);
   const [mapNotice, setMapNotice] = useState("");
-  const editorPane = useRef<HTMLDivElement>(null);
-  const evidencePane = useRef<HTMLElement>(null);
+  const compact = useCompactAtlas();
+  const askTrigger = useRef<HTMLElement | null>(null);
+  const legendPanel = useRef<HTMLDivElement>(null);
+  const displayedPage = s.comparison ? "compare" : bookPage;
+  const openPage = (page: NotebookPage) => {
+    s.setComparison(page === "compare");
+    setBookPage(page === "compare" ? "scenario" : page);
+    setLegend(false);
+    setSheetOpen(compact);
+  };
   useEffect(() => {
-    if (drawer === "editor") editorPane.current?.scrollTo(0, 0);
-    else if (drawer === "evidence") evidencePane.current?.scrollTo(0, 0);
-  }, [drawer, countyOpen, s.comparison]);
+    if (!compact) setSheetOpen(false);
+  }, [compact]);
+  useEffect(() => {
+    if (!legend) return;
+    const outside = (event: PointerEvent) => {
+      if (event.target instanceof Node && !legendPanel.current?.contains(event.target))
+        setLegend(false);
+    };
+    document.addEventListener("pointerdown", outside);
+    return () => document.removeEventListener("pointerdown", outside);
+  }, [legend]);
+  useEffect(() => {
+    if (asking) document.getElementById("atlas-command-input")?.focus();
+  }, [asking]);
+  function closeAsk() {
+    setAsking(false);
+    askTrigger.current?.focus();
+  }
   // Keep static road entities in place while the storm moves.
   const network = useMemo(() => analyzeRoadNetwork(s.closedRoadIds), [s.closedRoadIds]);
   const current = useMemo(
@@ -77,8 +109,7 @@ export function App({ onEarth }: { onEarth?: () => void } = {}) {
     if (id === "outages") {
       setCountyOpen(value);
       if (value) {
-        setDrawer("evidence");
-        s.setComparison(false);
+        openPage("inspector");
       }
     }
   }
@@ -95,10 +126,17 @@ export function App({ onEarth }: { onEarth?: () => void } = {}) {
   }, [s.playing]);
   useEffect(() => {
     const listener = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !sources) {
+      if (sources || sheetOpen) return;
+      if (e.key === "Escape") {
+        if (asking) {
+          closeAsk();
+          return;
+        }
+        if (legend) {
+          setLegend(false);
+          return;
+        }
         useAtlasStore.getState().setTool("inspect");
-        setDrawer(null);
-        setLegend(false);
         return;
       }
       if (
@@ -106,7 +144,7 @@ export function App({ onEarth }: { onEarth?: () => void } = {}) {
         e.ctrlKey ||
         e.altKey ||
         e.metaKey ||
-        sources ||
+        asking ||
         (e.target instanceof HTMLElement &&
           (e.target.isContentEditable ||
             ["INPUT", "SELECT", "TEXTAREA", "BUTTON"].includes(e.target.tagName)))
@@ -127,7 +165,7 @@ export function App({ onEarth }: { onEarth?: () => void } = {}) {
     };
     window.addEventListener("keydown", listener);
     return () => window.removeEventListener("keydown", listener);
-  }, [sources]);
+  }, [sources, asking, sheetOpen, legend]);
   function selectTool(tool: EditorTool) {
     s.setPlaying(false);
     s.setTool(tool);
@@ -149,111 +187,90 @@ export function App({ onEarth }: { onEarth?: () => void } = {}) {
     setCountyOpen(false);
     if (s.tool === "closure") s.toggleClosure(id);
     else {
-      s.setComparison(false);
-      setDrawer("evidence");
+      openPage("inspector");
     }
   }
-  function compare(value: boolean) {
-    s.setComparison(value);
-    setCountyOpen(false);
-    setDrawer("evidence");
-  }
-  const tools: {
-    id: EditorTool;
-    label: string;
-    icon: "cursor" | "edit" | "closure";
-  }[] = [
-    { id: "inspect", label: "Inspect", icon: "cursor" },
-    {
-      id: hurricane ? "track" : "flood",
-      label: hurricane ? "Edit track" : "Edit footprint",
-      icon: "edit",
-    },
-    { id: "closure", label: "Close roads", icon: "closure" },
-  ];
-  const instructions: Record<EditorTool, string> = {
-    inspect: "Select a road to inspect it.",
-    closure: "Select a sample road to toggle a closure.",
-    track: "Click to add a waypoint. Drag a numbered handle to move it.",
-    flood: "Click to place the footprint. Drag its edge to resize.",
+  const instructions: Partial<Record<EditorTool, string>> = {
+    closure: "Select a sample road to add or remove a closure",
+    track: "Add a waypoint on the map or drag one to move it",
+    flood: "Place the center on the map or drag the edge to resize",
   };
+  const hint = mapNotice || instructions[s.tool];
+  const book = (
+    <Notebook
+      compact={compact}
+      open={sheetOpen}
+      page={displayedPage}
+      onSelect={openPage}
+      onDismiss={() => setSheetOpen(false)}
+    >
+      <div hidden={displayedPage !== "scenario"}>
+        <ScenarioRail
+          layers={layers}
+          onLayer={layer}
+          inspectMode={() => {
+            setCountyOpen(false);
+            setMapNotice("");
+            s.setComparison(false);
+            setBookPage("scenario");
+          }}
+        />
+      </div>
+      {displayedPage === "inspector" &&
+        (countyOpen ? (
+          <div className="notebook county-page">
+            <CountyEvidence evaluation={evaluation} serviceStatus={countyStatus} />
+            <button className="closure-button" onClick={() => setCountyOpen(false)}>
+              Return to road inspector
+            </button>
+          </div>
+        ) : (
+          <RoadInspector current={current} onSources={() => setSources(true)} />
+        ))}
+      {displayedPage === "compare" && (
+        <Comparison current={current} evaluation={evaluation} serviceStatus={countyStatus}>
+          <NetworkComparison />
+        </Comparison>
+      )}
+    </Notebook>
+  );
   return (
-    <div className={`atlas-shell ${hurricane ? "storm-mode" : "flood-mode"} ${legend ? "legend-open" : ""}`}>
-      <a className="skip" href="#atlas-map" onClick={(event) => {
-        event.preventDefault();
-        setDrawer(null);
-        document.getElementById("atlas-map")?.focus();
-      }}>
+    <div className={`atlas-shell ${hurricane ? "storm-mode" : "flood-mode"}`}>
+      <a
+        className="skip"
+        href="#atlas-map"
+        onClick={(event) => {
+          event.preventDefault();
+          setSheetOpen(false);
+          document.getElementById("atlas-map")?.focus();
+        }}
+      >
         Skip to map
       </a>
-      <header className="mast">
-        <div className="brand">
-          <Icon name="atlas" size={34} />
-          <b>EarthLab</b>
-        </div>
-        <span className="brand-divider" />
-        <h1 className="product-title">Disaster Atlas</h1>
-        <div className="header-end">
-          {onEarth && <button className="earth-link" onClick={onEarth} aria-label="Open Earth view">
-            <svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.65"><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3c5 5 5 13 0 18-5-5-5-13 0-18Z" /></svg>
-            Earth
-          </button>}
-          <span className="study-location">
-            <Icon name="pin" size={14} />
-            Houston, TX
-          </span>
-          <span className="demo-status">
-            <i />
-            Offline demo
-          </span>
-          <button onClick={() => setSources(true)}>
-            <Icon name="book" size={15} />
-            Sources
-          </button>
-        </div>
-      </header>
-      <div className="mobile-switch">
-        <button
-          onClick={() => setDrawer(drawer === "editor" ? null : "editor")}
-          aria-expanded={drawer === "editor"}
-        >
-          <Icon name="layers" />
-          Scenario editor
-        </button>
-        <button
-          onClick={() => {
-            s.setComparison(false);
-            setCountyOpen(false);
-            setDrawer(drawer === "evidence" ? null : "evidence");
-          }}
-          aria-expanded={drawer === "evidence"}
-        >
-          <Icon name="road" />
-          Road inspector
-        </button>
-      </div>
-      <main className="workbench">
-        {drawer && <button type="button" className="drawer-backdrop" aria-label="Close open panel" tabIndex={-1} onClick={() => setDrawer(null)} />}
-        <div ref={editorPane} className={`rail-slot ${drawer === "editor" ? "drawer-open" : ""}`}>
-          <button
-            className="drawer-close"
-            onClick={() => setDrawer(null)}
-            aria-label="Close editor"
-          >
-            <Icon name="close" />
-          </button>
-          <ScenarioRail
-            layers={layers}
-            onLayer={layer}
-            inspectMode={() => {
-              setCountyOpen(false);
-              setMapNotice("");
-              setDrawer(null);
-              s.setComparison(false);
-            }}
+      <AtlasHeader
+        onEarth={onEarth}
+        onSources={() => setSources(true)}
+        asking={asking}
+        onAsk={() => {
+          if (asking) closeAsk();
+          else {
+            askTrigger.current =
+              document.activeElement instanceof HTMLElement ? document.activeElement : null;
+            setLegend(false);
+            setAsking(true);
+          }
+        }}
+      />
+      <main className="atlas-spread">
+        {book}
+        <div className="map-sheet">
+          <AtlasTools
+            bookmark={s.bookmark}
+            onBookmark={s.flyTo}
+            tool={s.tool}
+            onTool={selectTool}
+            hurricane={hurricane}
           />
-        </div>
-        <div className="center-stack">
           <section
             className="map-frame"
             id="atlas-map"
@@ -289,101 +306,67 @@ export function App({ onEarth }: { onEarth?: () => void } = {}) {
                 onMapPoint={mapPoint}
               />
             </Suspense>
-            <div className="map-top">
-              <div className="map-title">
-                <div className="map-eyebrow">
-                  <span /> Texas Gulf Coast
-                </div>
-                <label>
-                  <select
-                    aria-label="Camera bookmark"
-                    value={s.bookmark}
-                    onChange={(e) => s.flyTo(e.target.value as BookmarkId)}
-                  >
-                    {Object.entries(HOUSTON_BOOKMARKS).map(([id, { label: name }]) => (
-                      <option key={id} value={id}>
-                        {name}
-                      </option>
-                    ))}
-                  </select>
-                  <Icon name="down" size={15} />
-                </label>
-                <button
-                  className="view-reset"
-                  title="Reset view to Greater Houston (H)"
-                  aria-label="Reset view to Greater Houston"
-                  onClick={() => s.flyTo("houston")}
-                >
-                  <Icon name="reset" size={14} />
-                </button>
+            {hint && (
+              <div className="atlas-map-hint" role="status">
+                {hint}
               </div>
-              <div className="map-toolbar" role="group" aria-label="Map tools">
-                {tools.map((t) => (
-                  <button
-                    key={t.id}
-                    aria-label={t.label}
-                    aria-pressed={s.tool === t.id}
-                    onClick={() => selectTool(t.id)}
-                    title={t.label}
-                  >
-                    <Icon name={t.icon} size={16} />
-                    <span>{t.label}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="map-bottom">
-              <div className="hazard-stamp">
-                <i />
-                {hurricane ? "Hypothetical storm track" : fallbackText}
-              </div>
-              <div className="legend-container">
-                <button aria-expanded={legend} onClick={() => setLegend(!legend)}>
-                  <Icon name="layers" size={14} />
-                  Legend
-                  <Icon name="down" size={12} />
-                </button>
-                {legend && (
-                  <div className="legend-body">
-                    <span>
+            )}
+          </section>
+          <div className="plate-notes">
+            <span className="scenario-caption">
+              <i className="waypoint-key" aria-hidden="true" />
+              {hurricane ? "Hypothetical storm track" : floodLabel}
+            </span>
+            <div className="map-key" ref={legendPanel}>
+              <button
+                type="button"
+                aria-expanded={legend}
+                aria-controls="atlas-legend"
+                onClick={() => setLegend(!legend)}
+              >
+                <Icon name="layers" size={16} />
+                Legend
+                <Icon name="down" size={12} />
+              </button>
+              {legend && (
+                <div id="atlas-legend" className="map-key-panel">
+                  <h3>Map legend</h3>
+                  <ul>
+                    <li>
                       <i className="line-key hazard" />
-                      {hurricane ? "Manual track · 6 km inspection radius" : fallbackText}
-                    </span>
-                    <span>
+                      {hurricane ? "Drawn track and 6 km inspection radius" : floodLabel}
+                    </li>
+                    <li>
                       <i className="line-key road" />
-                      Curated road · unknown condition
-                    </span>
-                    <span>
+                      Sample road · condition unknown
+                    </li>
+                    <li>
                       <i className="line-key closure" />
-                      Hypothetical closure
-                    </span>
-                    <span>
+                      Assumed closure
+                    </li>
+                    <li>
                       <i className="line-key isolated" />
                       Disconnected sample link
-                    </span>
+                    </li>
                     {s.comparison && (
-                      <span>
+                      <li>
                         <i className="line-key base" />
-                        Seed geometry · baseline
-                      </span>
+                        Original scenario geometry
+                      </li>
                     )}
                     {layers.outages && (
-                      <span>
+                      <li>
                         <i className="line-key county" />
                         Schematic county ·{" "}
                         {evaluation.modelMetadata.dataMode === "offline_example"
-                          ? "example index"
+                          ? "offline example index"
                           : "conditional model"}
-                      </span>
+                      </li>
                     )}
-                  </div>
-                )}
-              </div>
+                  </ul>
+                </div>
+              )}
             </div>
-          </section>
-          <div className="tool-hint" role="status">
-            <Icon name={s.tool === "inspect" ? "cursor" : "edit"} size={13} />
-            {mapNotice || instructions[s.tool]}
           </div>
           <Timeline
             progress={s.progress}
@@ -398,88 +381,45 @@ export function App({ onEarth }: { onEarth?: () => void } = {}) {
               s.setPlaying(!s.playing);
             }}
           />
-          <button
-            className="comparison-strip"
-            onClick={() => compare(!s.comparison)}
-            aria-expanded={s.comparison}
-          >
-            <span>
-              <Icon name="compare" size={16} />
-              Baseline vs alternative
-            </span>
-            <span className="compare-count">
-              Connected components{" "}
-              <b>
-                {base.network.connectedComponents} → {current.network.connectedComponents}
-              </b>
-            </span>
-            <span aria-hidden="true">↗</span>
-          </button>
         </div>
-        <aside
-          ref={evidencePane}
-          className={`inspector-slot ${drawer === "evidence" ? "drawer-open" : ""}`}
-          aria-label="Evidence"
-        >
-          <button
-            className="drawer-close"
-            aria-label="Close inspector"
-            onClick={() => setDrawer(null)}
-          >
-            <Icon name="close" />
-          </button>
-          <div className="evidence-tabs">
-            <button aria-pressed={!s.comparison} onClick={() => compare(false)}>
-              Inspector
-            </button>
-            <button aria-pressed={s.comparison} onClick={() => compare(true)}>
-              Comparison
+      </main>
+      {compact && <NotebookTabs page={sheetOpen ? displayedPage : null} onSelect={openPage} dock />}
+      {asking && (
+        <section role="dialog" aria-labelledby="atlas-ask-title" className="atlas-ask-panel">
+          <div className="ask-heading">
+            <h2 id="atlas-ask-title">Ask the atlas</h2>
+            <button aria-label="Close Ask the atlas" onClick={closeAsk}>
+              <Icon name="close" />
             </button>
           </div>
-          {s.comparison ? (
-            <Comparison current={current} evaluation={evaluation} serviceStatus={countyStatus}>
-              <NetworkComparison />
-            </Comparison>
-          ) : countyOpen ? (
-            <div className="notebook">
-              <CountyEvidence evaluation={evaluation} serviceStatus={countyStatus} />
-              <button className="closure-button" onClick={() => setCountyOpen(false)}>
-                Return to road inspector
-              </button>
-            </div>
-          ) : (
-            <RoadInspector current={current} onSources={() => setSources(true)} />
-          )}
-        </aside>
-      </main>
-      <footer className="command-base">
-        <CommandBar
-          scenario={scenario}
-          getCurrentScenario={() => makeScenario(useAtlasStore.getState().version)}
-          capabilities={{
-            presetEventIds: [],
-            overlayIds: ["roads", "hazard", "outages"],
-            canRunAnalysis: true,
-            canExplain: false,
-          }}
-          onCommand={async (cmd) => {
-            switch (cmd.action) {
-              case "SELECT_REGION":
-                useAtlasStore.getState().flyTo("houston");
-                return;
-              case "RUN_ANALYSIS":
-                await evaluationQuery.refetch();
-                layer("outages", true);
-                return;
-              case "TOGGLE_OVERLAY":
-                layer(cmd.args.overlayId as keyof Layers, cmd.args.visible);
-                return;
-              default:
-                throw new Error("This command is unavailable in the atlas.");
-            }
-          }}
-        />
-      </footer>
+          <CommandBar
+            scenario={scenario}
+            getCurrentScenario={() => makeScenario(useAtlasStore.getState().version)}
+            capabilities={{
+              presetEventIds: [],
+              overlayIds: ["roads", "hazard", "outages"],
+              canRunAnalysis: true,
+              canExplain: false,
+            }}
+            onCommand={async (cmd) => {
+              switch (cmd.action) {
+                case "SELECT_REGION":
+                  useAtlasStore.getState().flyTo("houston");
+                  return;
+                case "RUN_ANALYSIS":
+                  await evaluationQuery.refetch();
+                  layer("outages", true);
+                  return;
+                case "TOGGLE_OVERLAY":
+                  layer(cmd.args.overlayId as keyof Layers, cmd.args.visible);
+                  return;
+                default:
+                  throw new Error("This command is unavailable in the atlas.");
+              }
+            }}
+          />
+        </section>
+      )}
       {sources && <Sources onClose={() => setSources(false)} />}
     </div>
   );
