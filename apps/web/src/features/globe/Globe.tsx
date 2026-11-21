@@ -5,25 +5,27 @@ import {
   Cartesian3,
   Cartographic,
   Color,
-  Credit,
   CustomDataSource,
   DistanceDisplayCondition,
   Entity,
   HeadingPitchRange,
-  ImageryLayer,
   LabelStyle,
   Math as CesiumMath,
   Matrix4,
   PolygonHierarchy,
   PolylineDashMaterialProperty,
-  Rectangle,
   ScreenSpaceEventHandler,
   ScreenSpaceEventType,
-  SingleTileImageryProvider,
   Viewer,
 } from "cesium";
 import { offlineCounties, type Prediction } from "@earthlab/contracts";
-import { installZoomDetail, sharpenRendering, type ImageryStatus } from "../earth/imagery";
+import {
+  HOUSTON_ARCHIVE_LAYERS,
+  createHoustonArchiveLayer,
+  installZoomDetail,
+  sharpenRendering,
+  type ImageryStatus,
+} from "../earth/imagery";
 import type { AtlasMode, BookmarkId, EditorTool, Point, RoadSegment } from "../../atlas/domain";
 import { FLOOD_RADIUS_LIMITS, getFloodPolygon } from "../../atlas/domain";
 import { FlatMap } from "./FlatMap";
@@ -90,10 +92,6 @@ const label = (text: string, extra: object = {}) => ({
   disableDepthTestDistance: Number.POSITIVE_INFINITY,
   ...extra,
 });
-const sourceCredit = new Credit(
-  '<a href="https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer" target="_blank" rel="noopener">USDA / USGS The National Map</a> · archival aerial reference',
-  true,
-);
 
 export default function Globe(props: AtlasMapProps) {
   const mount = useRef<HTMLDivElement>(null);
@@ -187,17 +185,8 @@ export default function Globe(props: AtlasMapProps) {
       void viewer.dataSources.add(source);
     });
 
-    const addAerial = (url: string, bounds: [number, number, number, number]) => {
-      const layer = ImageryLayer.fromProviderAsync(
-        SingleTileImageryProvider.fromUrl(url, {
-          rectangle: Rectangle.fromDegrees(...bounds),
-          credit: sourceCredit,
-        }),
-      );
-      layer.saturation = 0.48;
-      layer.brightness = 0.79;
-      layer.contrast = 1.13;
-      layer.gamma = 1.12;
+    for (const archive of HOUSTON_ARCHIVE_LAYERS) {
+      const layer = createHoustonArchiveLayer(archive);
       removers.push(
         layer.errorEvent.addEventListener(() => {
           if (!disposed)
@@ -205,9 +194,7 @@ export default function Globe(props: AtlasMapProps) {
         }),
       );
       viewer.imageryLayers.add(layer);
-    };
-    addAerial("/map/houston-usgs.webp", [-95.9, 29.249921875, -94.7, 30.200078125]);
-    addAerial("/map/houston-detail-usgs.webp", [-95.570036869, 29.6, -95.079963131, 29.96]);
+    }
     // Opening stays local. Transparent coarse parents preserve the sharper
     // archive until a close zoom actually loads higher-resolution detail.
     const imageryUrl = import.meta.env.VITE_ATLAS_IMAGERY_URL?.trim();

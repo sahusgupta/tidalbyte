@@ -8,6 +8,7 @@ import {
   Ion,
   Math as CesiumMath,
   Rectangle,
+  SingleTileImageryProvider,
   TileMapServiceImageryProvider,
   UrlTemplateImageryProvider,
   buildModuleUrl,
@@ -20,11 +21,41 @@ export const USGS_IMAGERY_URL =
   "https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/tile/{z}/{y}/{x}";
 export const USGS_MAX_LEVEL = 16;
 export const HOUSTON_IMAGERY_BOUNDS = [-95.9, 29.24, -94.7, 30.2] as const;
+type Bounds = readonly [number, number, number, number];
+export const HOUSTON_ARCHIVE_LAYERS: readonly { url: string; bounds: Bounds }[] = [
+  { url: "/map/houston-usgs.webp", bounds: [-95.9, 29.249921875, -94.7, 30.200078125] },
+  { url: "/map/houston-detail-usgs.webp", bounds: [-95.570036869, 29.6, -95.079963131, 29.96] },
+];
 const usgsCredit = () =>
   new Credit(
     '<a href="https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer" target="_blank" rel="noopener">Imagery: USDA / USGS The National Map</a>',
     true,
   );
+
+/** Shared georeferencing/tone for the atlas and regional Earth fallback. */
+export function createHoustonArchiveLayer(
+  archive: (typeof HOUSTON_ARCHIVE_LAYERS)[number],
+): ImageryLayer {
+  const layer = ImageryLayer.fromProviderAsync(
+    SingleTileImageryProvider.fromUrl(archive.url, {
+      rectangle: Rectangle.fromDegrees(...archive.bounds),
+      credit: new Credit("USDA / USGS The National Map · 2017–2021 aerial archive", true),
+    }),
+  );
+  Object.assign(layer, { saturation: 0.48, brightness: 0.79, contrast: 1.13, gamma: 1.12 });
+  return layer;
+}
+
+function cameraFocus(viewer: Viewer): [number, number] {
+  const world = viewer.camera.pickEllipsoid(
+    new Cartesian2(viewer.canvas.clientWidth / 2, viewer.canvas.clientHeight / 2),
+    viewer.scene.globe.ellipsoid,
+  );
+  const point = world ? Cartographic.fromCartesian(world) : viewer.camera.positionCartographic;
+  return [CesiumMath.toDegrees(point.longitude), CesiumMath.toDegrees(point.latitude)];
+}
+const within = (point: readonly [number, number], bounds: Bounds) =>
+  point[0] >= bounds[0] && point[0] <= bounds[2] && point[1] >= bounds[1] && point[1] <= bounds[3];
 
 /** Low-level factory retained for callers that explicitly manage layer loading themselves. */
 export function usgsImageryLayer(bounds?: readonly [number, number, number, number]): ImageryLayer {
@@ -60,6 +91,7 @@ interface DetailOptions {
   onStatus: (status: ImageryStatus) => void;
   localLabel: string;
   localCredit: string;
+  getLocalStatus?: () => ImageryStatus;
   url?: string;
   detailCredit?: string;
 }
@@ -89,11 +121,12 @@ export function installZoomDetail(viewer: Viewer, options: DetailOptions): () =>
       options.onStatus(status);
     }
   };
-  const local = (): ImageryStatus => ({
-    kind: "local",
-    label: options.localLabel,
-    credit: options.localCredit,
-  });
+  const local = (): ImageryStatus =>
+    options.getLocalStatus?.() ?? {
+      kind: "local",
+      label: options.localLabel,
+      credit: options.localCredit,
+    };
   const removeLayer = () => {
     if (layer && !viewer.isDestroyed() && viewer.imageryLayers.contains(layer)) {
       viewer.imageryLayers.remove(layer, true);
@@ -120,22 +153,18 @@ export function installZoomDetail(viewer: Viewer, options: DetailOptions): () =>
   const eligible = () => {
     const height = viewer.camera.positionCartographic.height;
     if (height > options.activateBelowHeight) return false;
-    const world = viewer.camera.pickEllipsoid(
-      new Cartesian2(viewer.canvas.clientWidth / 2, viewer.canvas.clientHeight / 2),
-      viewer.scene.globe.ellipsoid,
-    );
-    const point = world ? Cartographic.fromCartesian(world) : viewer.camera.positionCartographic;
-    const lon = CesiumMath.toDegrees(point.longitude),
-      lat = CesiumMath.toDegrees(point.latitude);
-    return (
-      lon >= options.bounds[0] &&
-      lon <= options.bounds[2] &&
-      lat >= options.bounds[1] &&
-      lat <= options.bounds[3]
-    );
+    return within(cameraFocus(viewer), options.bounds);
   };
   const update = () => {
-    if (disposed || failed || viewer.isDestroyed()) return;
+    if (disposed || viewer.isDestroyed()) return;
+    if (failed) {
+      report({
+        ...local(),
+        kind: "fallback",
+        warning: "Remote detail unavailable; using the bundled reference.",
+      });
+      return;
+    }
     if (!eligible()) {
       if (layer) layer.show = false;
       report(local());
@@ -155,10 +184,11 @@ export function installZoomDetail(viewer: Viewer, options: DetailOptions): () =>
         if (disposed || failed) return undefined;
         if (!loading && !detailReady) {
           loading = true;
+          const reference = local();
           report({
-            ...local(),
+            ...reference,
             kind: "loading",
-            label: options.localLabel + " · loading detail",
+            label: reference.label + " · loading detail",
           });
           timeout = window.setTimeout(fail, 8000);
         }
@@ -236,6 +266,36 @@ export function installEarthImagery(
         warning: "Bundled Natural Earth imagery is unavailable.",
       });
   });
+  const archives: { layer: ImageryLayer; bounds: Bounds; failed: boolean }[] = [];
+  const archiveRemovers: (() => void)[] = [];
+  const removeArchiveUpdate = viewer.scene.preRender.addEventListener(() => {
+    if (disposed || viewer.isDestroyed()) return;
+    const wanted =
+      viewer.camera.positionCartographic.height < 350_000 &&
+      within(cameraFocus(viewer), HOUSTON_IMAGERY_BOUNDS);
+    if (wanted && archives.length === 0) {
+      for (const archive of HOUSTON_ARCHIVE_LAYERS) {
+        const item = {
+          layer: createHoustonArchiveLayer(archive),
+          bounds: archive.bounds,
+          failed: false,
+        };
+        archiveRemovers.push(
+          item.layer.errorEvent.addEventListener(() => {
+            item.failed = true;
+            item.layer.show = false;
+          }),
+        );
+        // Keep these above Natural Earth and below any optional detail layer.
+        viewer.imageryLayers.add(
+          item.layer,
+          viewer.imageryLayers.indexOf(base) + 1 + archives.length,
+        );
+        archives.push(item);
+      }
+    }
+    for (const archive of archives) archive.layer.show = wanted && !archive.failed;
+  });
   const stopDetail = installZoomDetail(viewer, {
     bounds: HOUSTON_IMAGERY_BOUNDS,
     activateBelowHeight: 200_000,
@@ -243,10 +303,38 @@ export function installEarthImagery(
     onStatus,
     localLabel: "Natural Earth II",
     localCredit: "Natural Earth II · public-domain cartography",
+    getLocalStatus: () => {
+      const point = cameraFocus(viewer);
+      const showingArchive = archives.some(
+        (archive) =>
+          archive.layer.ready &&
+          archive.layer.show &&
+          !archive.failed &&
+          within(point, archive.bounds),
+      );
+      return showingArchive
+        ? {
+            kind: "local",
+            label: "Bundled Houston aerial archive",
+            credit:
+              "USDA / USGS The National Map · 2017–2021 archive; Natural Earth II outside Houston",
+          }
+        : {
+            kind: "local",
+            label: "Natural Earth II",
+            credit: "Natural Earth II · public-domain cartography",
+          };
+    },
   });
   return () => {
     disposed = true;
     stopDetail();
+    removeArchiveUpdate();
+    archiveRemovers.forEach((remove) => remove());
+    for (const archive of archives) {
+      if (!viewer.isDestroyed() && viewer.imageryLayers.contains(archive.layer))
+        viewer.imageryLayers.remove(archive.layer, true);
+    }
     localFailure();
     if (!viewer.isDestroyed() && viewer.imageryLayers.contains(base))
       viewer.imageryLayers.remove(base, true);
