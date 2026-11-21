@@ -35,6 +35,33 @@
         "title": "ApiError",
         "type": "object"
       },
+      "ConnectivityMetrics": {
+        "additionalProperties": false,
+        "properties": {
+          "connectedComponents": {
+            "minimum": 0.0,
+            "title": "Connectedcomponents",
+            "type": "integer"
+          },
+          "reachableFacilities": {
+            "minimum": 0.0,
+            "title": "Reachablefacilities",
+            "type": "integer"
+          },
+          "weightedAccessScore": {
+            "minimum": 0.0,
+            "title": "Weightedaccessscore",
+            "type": "number"
+          }
+        },
+        "required": [
+          "reachableFacilities",
+          "connectedComponents",
+          "weightedAccessScore"
+        ],
+        "title": "ConnectivityMetrics",
+        "type": "object"
+      },
       "CountyFip": {
         "pattern": "^[0-9]{5}$",
         "title": "CountyFip",
@@ -276,6 +303,46 @@
         "title": "Note",
         "type": "string"
       },
+      "PlanComparison": {
+        "additionalProperties": false,
+        "properties": {
+          "baseline": {
+            "$ref": "#/components/schemas/ConnectivityMetrics"
+          },
+          "graphSource": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Graphsource",
+            "type": "string"
+          },
+          "limitations": {
+            "items": {
+              "$ref": "#/components/schemas/Limitation"
+            },
+            "maxItems": 30,
+            "minItems": 1,
+            "title": "Limitations",
+            "type": "array"
+          },
+          "mode": {
+            "const": "hypothetical_connectivity",
+            "title": "Mode",
+            "type": "string"
+          },
+          "proposal": {
+            "$ref": "#/components/schemas/ConnectivityMetrics"
+          }
+        },
+        "required": [
+          "baseline",
+          "proposal",
+          "limitations",
+          "graphSource",
+          "mode"
+        ],
+        "title": "PlanComparison",
+        "type": "object"
+      },
       "Prediction": {
         "additionalProperties": false,
         "properties": {
@@ -426,6 +493,41 @@
           "error"
         ],
         "title": "ResponseEnvelope[ModelMetadata]",
+        "type": "object"
+      },
+      "ResponseEnvelope_PlanComparison_": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PlanComparison"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ApiError"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        },
+        "required": [
+          "data",
+          "meta",
+          "error"
+        ],
+        "title": "ResponseEnvelope[PlanComparison]",
         "type": "object"
       },
       "ResponseEnvelope_dict_": {
@@ -1137,6 +1239,16 @@
           }
         ],
         "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseEnvelope_dict_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
           "404": {
             "content": {
               "application/json": {
@@ -1170,7 +1282,7 @@
         },
         "summary": "Network",
         "tags": [
-          "unavailable integrations"
+          "illustrative network"
         ]
       }
     },
@@ -1272,10 +1384,20 @@
               }
             }
           },
-          "description": "Reserved v1 input shape. This bootstrap returns 503 before processing any provider request.",
+          "description": "Assumed disruptions and up to three distinct intervention assets.",
           "required": true
         },
         "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseEnvelope_PlanComparison_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
           "404": {
             "content": {
               "application/json": {
@@ -1309,7 +1431,219 @@
         },
         "summary": "Compare Network",
         "tags": [
-          "unavailable integrations"
+          "illustrative network"
+        ]
+      }
+    },
+    "/api/v1/network/preview": {
+      "post": {
+        "operationId": "preview_network_api_v1_network_preview_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "disabledEdgeIds": {
+                    "items": {
+                      "maxLength": 200,
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "maxItems": 100,
+                    "minItems": 0,
+                    "type": "array"
+                  },
+                  "disabledNodeIds": {
+                    "items": {
+                      "maxLength": 200,
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "maxItems": 100,
+                    "minItems": 0,
+                    "type": "array"
+                  },
+                  "interventions": {
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "action": {
+                          "enum": [
+                            "protect",
+                            "disable",
+                            "inspect"
+                          ]
+                        },
+                        "budgetUnits": {
+                          "minimum": 0.0,
+                          "type": "number"
+                        },
+                        "graphEdgeIds": {
+                          "items": {
+                            "maxLength": 200,
+                            "minLength": 1,
+                            "type": "string"
+                          },
+                          "maxItems": 3,
+                          "minItems": 0,
+                          "type": "array"
+                        },
+                        "graphNodeIds": {
+                          "items": {
+                            "maxLength": 200,
+                            "minLength": 1,
+                            "type": "string"
+                          },
+                          "maxItems": 3,
+                          "minItems": 0,
+                          "type": "array"
+                        },
+                        "id": {
+                          "maxLength": 200,
+                          "minLength": 1,
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "graphEdgeIds",
+                        "graphNodeIds",
+                        "action"
+                      ],
+                      "title": "Intervention",
+                      "type": "object"
+                    },
+                    "maxItems": 3,
+                    "minItems": 0,
+                    "type": "array"
+                  },
+                  "regionId": {
+                    "const": "houston-gulf-coast"
+                  }
+                },
+                "required": [
+                  "regionId",
+                  "disabledNodeIds",
+                  "disabledEdgeIds",
+                  "interventions"
+                ],
+                "title": "NetworkCompareRequest",
+                "type": "object"
+              }
+            }
+          },
+          "description": "Assumed disruptions and up to three distinct intervention assets.",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseEnvelope_dict_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseEnvelope_dict_"
+                }
+              }
+            },
+            "description": "Unknown region, event or route"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseEnvelope_dict_"
+                }
+              }
+            },
+            "description": "Invalid or unsupported input"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseEnvelope_dict_"
+                }
+              }
+            },
+            "description": "Workstream dependency unavailable"
+          }
+        },
+        "summary": "Preview Network",
+        "tags": [
+          "illustrative network"
+        ]
+      }
+    },
+    "/api/v1/network/strategy": {
+      "get": {
+        "operationId": "network_strategy_api_v1_network_strategy_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "regionId",
+            "required": false,
+            "schema": {
+              "default": "houston-gulf-coast",
+              "title": "Regionid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseEnvelope_dict_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseEnvelope_dict_"
+                }
+              }
+            },
+            "description": "Unknown region, event or route"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseEnvelope_dict_"
+                }
+              }
+            },
+            "description": "Invalid or unsupported input"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseEnvelope_dict_"
+                }
+              }
+            },
+            "description": "Workstream dependency unavailable"
+          }
+        },
+        "summary": "Network Strategy",
+        "tags": [
+          "illustrative network"
         ]
       }
     },
