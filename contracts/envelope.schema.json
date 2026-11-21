@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/earthlab/envelope.v1.schema.json",
+  "title": "ResponseEnvelope",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data",
+        "meta",
+        "error"
+      ],
+      "properties": {
+        "data": {},
+        "meta": {
+          "$ref": "api.schema.json#/$defs/ResponseMeta"
+        },
+        "error": {
+          "type": "null"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data",
+        "meta",
+        "error"
+      ],
+      "properties": {
+        "data": {
+          "type": "null"
+        },
+        "meta": {
+          "$ref": "api.schema.json#/$defs/ResponseMeta"
+        },
+        "error": {
+          "$ref": "api.schema.json#/$defs/ApiError"
+        }
+      }
+    }
+  ]
+}

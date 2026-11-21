@@ -143,7 +143,7 @@ export default function Globe({ predictions }: { predictions: Prediction[] }) {
     if (!viewer || !ready) return;
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const destination = scene === "houston"
-      ? Cartesian3.fromDegrees(-95.45, 29.65, 245_000)
+      ? Cartesian3.fromDegrees(-95.5, 29.525, 340_000)
       : Cartesian3.fromDegrees(-96, 25, 19_000_000);
     viewer.camera.flyTo({ destination, duration: reduced ? 0 : 2.2,
       orientation: { heading: 0, pitch: -CesiumMath.PI_OVER_TWO, roll: 0 } });

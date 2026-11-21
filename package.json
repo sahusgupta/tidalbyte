@@ -1,0 +1,25 @@
+{
+  "name": "earthlab",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@10.12.1",
+  "engines": { "node": ">=22.12.0 <23", "pnpm": "10.12.1" },
+  "scripts": {
+    "dev": "concurrently --kill-others-on-fail --names web,api \"pnpm --filter web dev\" \"pnpm dev:api\"",
+    "dev:api": "node scripts/python.mjs -m uvicorn app.main:app --app-dir apps/api --reload --host 127.0.0.1 --port 8000",
+    "typecheck": "pnpm --filter @earthlab/contracts typecheck && pnpm --filter web typecheck",
+    "test": "pnpm test:web && pnpm test:python",
+    "test:web": "pnpm --filter web test",
+    "test:python": "node scripts/python.mjs -m pytest apps/api/tests ml/tests packages/contracts/tests",
+    "build": "pnpm --filter web build",
+    "contracts:generate": "node scripts/generate-contracts.mjs && node scripts/python.mjs scripts/generate_contracts.py",
+    "contracts:check": "node scripts/generate-contracts.mjs --check && node scripts/python.mjs scripts/generate_contracts.py --check",
+    "openapi:generate": "node scripts/python.mjs scripts/export_openapi.py",
+    "openapi:check": "node scripts/python.mjs scripts/export_openapi.py --check"
+  },
+  "devDependencies": {
+    "concurrently": "9.2.1",
+    "json-schema-to-typescript": "15.0.4",
+    "typescript": "5.9.3"
+  }
+}

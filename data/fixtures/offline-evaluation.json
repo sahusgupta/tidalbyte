@@ -1,0 +1,87 @@
+{
+  "scenario": {
+    "id": "houston-history-01",
+    "regionId": "houston-gulf-coast",
+    "presetEventId": "example-warning-001",
+    "scenarioVersion": 1,
+    "selection": {
+      "countyFips": [
+        "48201",
+        "48157",
+        "48039"
+      ],
+      "warningTypes": [
+        "example-warning"
+      ],
+      "eventTimeUtc": "2024-01-01T00:00:00Z"
+    },
+    "modelMode": "historical_context"
+  },
+  "predictions": [
+    {
+      "countyFips": "48201",
+      "predictedSeverity": 2,
+      "severityUnit": "fixture index (0-3)",
+      "modelVersion": "offline-fixture-v1",
+      "dataMode": "offline_example",
+      "scope": "selected_positive_outage_warning_hours",
+      "notes": [
+        "OFFLINE EXAMPLE: arbitrary demonstration index, not an observation or prediction."
+      ],
+      "sourceIds": [
+        "project:offline-fixture-v1"
+      ]
+    },
+    {
+      "countyFips": "48157",
+      "predictedSeverity": 1,
+      "severityUnit": "fixture index (0-3)",
+      "modelVersion": "offline-fixture-v1",
+      "dataMode": "offline_example",
+      "scope": "selected_positive_outage_warning_hours",
+      "notes": [
+        "OFFLINE EXAMPLE: arbitrary demonstration index, not an observation or prediction."
+      ],
+      "sourceIds": [
+        "project:offline-fixture-v1"
+      ]
+    },
+    {
+      "countyFips": "48039",
+      "predictedSeverity": 3,
+      "severityUnit": "fixture index (0-3)",
+      "modelVersion": "offline-fixture-v1",
+      "dataMode": "offline_example",
+      "scope": "selected_positive_outage_warning_hours",
+      "notes": [
+        "OFFLINE EXAMPLE: arbitrary demonstration index, not an observation or prediction."
+      ],
+      "sourceIds": [
+        "project:offline-fixture-v1"
+      ]
+    }
+  ],
+  "modelMetadata": {
+    "modelVersion": "offline-fixture-v1",
+    "dataMode": "offline_example",
+    "status": "not_trained",
+    "target": "Illustrative severity index",
+    "severityUnit": "fixture index (0-3)",
+    "scope": "selected_positive_outage_warning_hours",
+    "featureSchema": [],
+    "trainingDatasetIds": [],
+    "evaluation": null,
+    "limitations": [
+      "OFFLINE EXAMPLE: project-generated values; no trained model or measured outage data.",
+      "Schematic county polygons are display placeholders, not official boundaries.",
+      "Severity-only scope is conditional on selected positive-outage warning hours.",
+      "No forecast, asset failure estimate, or operational safety guidance."
+    ]
+  },
+  "disclaimers": [
+    "OFFLINE EXAMPLE: project-generated values; no trained model or measured outage data.",
+    "Schematic county polygons are display placeholders, not official boundaries.",
+    "Severity-only scope is conditional on selected positive-outage warning hours.",
+    "No forecast, asset failure estimate, or operational safety guidance."
+  ]
+}

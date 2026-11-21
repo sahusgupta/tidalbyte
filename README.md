@@ -1,40 +1,103 @@
-# EarthLab | Shared Claude + Codex Hackathon Launch Kit
+# EarthLab
 
-**One repo. One specification. Multiple machines.**
+A desktop-first Earth console for exploring Houston-region weather/outage context.
+This repository currently contains the **prompt 00 lead bootstrap only**: a
+keyless Cesium globe, schematic county overlays, a deterministic offline fixture,
+a validated FastAPI skeleton, frozen shared contracts and CI. No trained model,
+verified historical warning case, infrastructure analysis or AI/voice integration
+is implemented yet. All displayed severity values say **OFFLINE EXAMPLE**.
 
-EarthLab is a desktop-first browser-based 3D disaster-impact planning prototype. A user navigates Earth, selects a supported historical weather-warning scenario in the Houston region, visualizes a **trained model's conditional county-level outage-severity estimate**, explores an illustrative infrastructure-connectivity network, and compares bounded mitigation/inspection strategies. Gemini interprets requests and produces evidence-linked explanations; ElevenLabs transcribes voice requests and optionally narrates the report.
+## Run locally
 
-## Five-minute launch
-1. Create a **private GitHub repository**, commit this entire folder at the repository root. Do not commit credentials or large raw datasets.
-2. Every teammate clones the **same repository URL** on their own laptop. All agents read `AGENTS.md`, `CLAUDE.md`, and `docs/00-START-HERE.md` before touching code.
-3. Lead runs `prompts/00-LEAD.md` **first** on `main` (bootstrap contracts/scaffold/CI). Commit and push. Teammates pull before starting.
-4. Each teammate creates a feature branch according to `docs/05-TEAM-PROTOCOL.md`, runs one ownership-specific prompt (`prompts/01`–`05`), and opens a PR. Lead merges in dependency order.
-5. UI engineer installs/uses `$interface-craft` and follows `docs/04-DESIGN.md`. All other contributors must preserve its visual system.
-6. Lead maintains `STATUS.md` and `DECISIONS.md` in `main`. **AI sessions cannot automatically know about changes on other machines:** they must `git fetch` and read tracked docs at start, before integrations, and after merges.
-7. Configure `.env` from `.env.example`; obtain Cesium/Google 3D tile permissions and Gemini/ElevenLabs keys. Run the deterministic offline demo even if these APIs aren't ready.
+Use Node **22.16.0**, pnpm **10.12.1**, and Python **3.13**. Git is the team
+synchronization boundary. Pull before starting and read `AGENTS.md`, `STATUS.md`,
+`DECISIONS.md` and your assignment in `prompts/`.
 
-## Kit map
-- `AGENTS.md` = authoritative agent instructions for Codex and other tools.
-- `CLAUDE.md` = Claude-specific boot instructions, same authority as AGENTS.
-- `docs/00-START-HERE.md` = project contract / acceptance checks.
-- `docs/01-PRODUCT.md` = scope, behavior, safety and copy.
-- `docs/02-SYSTEM.md` = end-to-end architecture and data flow.
-- `docs/03-ML-DATA.md` = concrete training task, leakage controls, metrics, provenance.
-- `docs/04-DESIGN.md` = `$interface-craft`-driven EarthLab art direction.
-- `docs/05-TEAM-PROTOCOL.md` = Git, branches, worktrees, handoff rules.
-- `docs/06-API-CONTRACTS.md` = shared schemas and endpoints.
-- `docs/07-DEMO-QA.md` = demo narrative, failure modes, quality gates.
-- `docs/08-SOURCES.md` = public-source/data links and licenses to review.
-- `prompts/` = paste-ready independent Claude/Codex workstream assignments.
-- `contracts/` = machine-readable examples for initial scaffold.
-- `STATUS.md` + `DECISIONS.md` = shared coordination state. Update via Git.
+```sh
+git pull --ff-only
+corepack enable
+corepack prepare pnpm@10.12.1 --activate
+pnpm install --frozen-lockfile
+python -m venv .venv
+```
 
-## Exactly what to do now
-- Lead: assign roles, verify API keys, create repo, run lead prompt.
-- Frontend: globe and overlays with canned data, then real API.
-- ML/data: download subset, inspect schema, train valid baseline and model, export metrics; never invent model accuracy.
-- Infrastructure: network topology and bounded, clearly illustrative interventions; do not assert individual asset failures.
-- Voice/AI: Gemini proposed operations + ElevenLabs transcription/speech, gated by validation.
-- Integration/testing: own CI, merging, fallback demos, and presentation.
+Install Python dependencies using the matching platform command:
 
-**Hackathon discipline:** No global multi-hazard physics, no unvalidated road-flood forecasts, no certified safety recommendations, and no claims that Google map imagery is training data. Keep the product playable with mocks and without external keys.
+```powershell
+# Windows PowerShell
+.\.venv\Scripts\python.exe -m pip install -r requirements.lock
+```
+
+```sh
+# macOS / Linux
+.venv/bin/python -m pip install -r requirements.lock
+```
+
+Then start both services from the repository root:
+
+```sh
+pnpm dev
+```
+
+Open [the console](http://127.0.0.1:5173/) and [API docs](http://127.0.0.1:8000/docs).
+`pnpm dev` selects the repository's `.venv` automatically. Web only:
+`pnpm --filter web dev`; API only: `pnpm dev:api`.
+No `.env` or provider credentials are required for this scaffold. To change local
+configuration, copy `.env.example` to `.env`; Vite reads root frontend variables.
+For API environment overrides, export variables in the launching shell (the API
+also accepts the documented Uvicorn `--env-file .env` option if python-dotenv is
+installed separately). Server secrets must never use the `VITE_` prefix.
+
+## Try the bootstrap
+
+1. See Earth rotate; pause orbit or drag the globe. Reduced-motion preferences
+   disable the initial orbit and camera animation.
+2. Select **Fly to Houston** or press **H** outside form fields.
+3. Pin Harris, Fort Bend or Brazoria from the county list or schematic map shapes.
+4. Choose **Run example**. The API validates the request and returns fixed indices.
+5. With only the web server running, choose **Run example** again: local fallback
+   remains available, explicitly labeled as offline.
+
+The polygons are original schematic rectangles, not official county boundaries.
+The arbitrary event timestamp and severity indices do not describe observed
+weather or outages. See `data/fixtures/README.md` for provenance and limitations.
+
+## Verify
+
+```sh
+pnpm typecheck
+pnpm test
+pnpm build
+pnpm contracts:check
+pnpm openapi:check
+python scripts/validate_kit.py
+```
+
+`pnpm test` runs web tests and Python API/contract/ML-guard tests using `.venv`.
+For the original direct Python command, activate `.venv` first, then run
+`python -m pytest apps/api/tests ml/tests`. The API docs are generated from the
+runnable skeleton; schema drift is checked in CI. Regenerate after approved
+contract edits with `pnpm contracts:generate` and `pnpm openapi:generate`.
+
+```sh
+python ml/train.py --config ml/config.yaml
+```
+
+Training deliberately exits **2** until the ML owner implements and validates a
+real pipeline with verified data. It writes no fabricated model or metrics.
+
+## Team handoff
+
+- Lead: root configuration, `packages/contracts`, schemas, CI and integration.
+- Frontend: `apps/web/**`; implement the frontend prompt after pulling bootstrap.
+- ML/data: `ml/**`, provenance and prediction/model service paths.
+- Infrastructure: network routes/service and independently sourced graph fixture.
+- AI/voice: interpretation/voice routes and provider services.
+
+Only prompt 00 has been executed. Future feature prompts remain separate tasks.
+Read `docs/05-TEAM-PROTOCOL.md` before branching; use isolated worktrees on a shared
+machine. Shared wire changes require a proposal and lead approval. All UI work
+must read and apply the installed `$interface-craft` skill and `docs/04-DESIGN.md`.
+
+See `contracts/README.md`, `docs/09-SETUP-DEPLOY.md`, `STATUS.md` and
+`docs/handoffs/bootstrap-lead.md` for exact integration state and remaining work.

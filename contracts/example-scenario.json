@@ -5,7 +5,9 @@
   "scenarioVersion": 1,
   "selection": {
     "countyFips": [
-      "48201"
+      "48201",
+      "48157",
+      "48039"
     ],
     "warningTypes": [
       "example-warning"

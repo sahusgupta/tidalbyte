@@ -1,0 +1,623 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [],
+  "properties": {
+    "scenario": {
+      "$ref": "#/$defs/Scenario"
+    },
+    "commandProposal": {
+      "$ref": "#/$defs/CommandProposal"
+    },
+    "featureSpec": {
+      "$ref": "#/$defs/FeatureSpec"
+    },
+    "evaluationMetrics": {
+      "$ref": "#/$defs/EvaluationMetrics"
+    },
+    "modelMetadata": {
+      "$ref": "#/$defs/ModelMetadata"
+    },
+    "prediction": {
+      "$ref": "#/$defs/Prediction"
+    },
+    "evaluation": {
+      "$ref": "#/$defs/Evaluation"
+    },
+    "responseMeta": {
+      "$ref": "#/$defs/ResponseMeta"
+    },
+    "apiError": {
+      "$ref": "#/$defs/ApiError"
+    },
+    "intervention": {
+      "$ref": "#/$defs/Intervention"
+    },
+    "connectivityMetrics": {
+      "$ref": "#/$defs/ConnectivityMetrics"
+    },
+    "planComparison": {
+      "$ref": "#/$defs/PlanComparison"
+    },
+    "networkCompareRequest": {
+      "$ref": "#/$defs/NetworkCompareRequest"
+    },
+    "interpretRequest": {
+      "$ref": "#/$defs/InterpretRequest"
+    },
+    "interpretation": {
+      "$ref": "#/$defs/Interpretation"
+    },
+    "voiceSpeakRequest": {
+      "$ref": "#/$defs/VoiceSpeakRequest"
+    }
+  },
+  "title": "EarthLabContracts",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/earthlab/api.v1.schema.json",
+  "$defs": {
+    "Scenario": {
+      "$ref": "scenario.schema.json"
+    },
+    "CommandProposal": {
+      "$ref": "command.schema.json"
+    },
+    "FeatureSpec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "unit",
+        "min",
+        "max"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "min": {
+          "type": "number"
+        },
+        "max": {
+          "type": "number"
+        }
+      },
+      "title": "FeatureSpec"
+    },
+    "EvaluationMetrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "splitPolicy",
+        "baselineName",
+        "baselineMae",
+        "modelMae",
+        "targetUnit",
+        "trainEventCount",
+        "testEventCount"
+      ],
+      "properties": {
+        "splitPolicy": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "baselineName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "baselineMae": {
+          "type": "number",
+          "minimum": 0
+        },
+        "modelMae": {
+          "type": "number",
+          "minimum": 0
+        },
+        "targetUnit": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "trainEventCount": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "testEventCount": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "title": "EvaluationMetrics"
+    },
+    "ModelMetadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "modelVersion",
+        "dataMode",
+        "status",
+        "target",
+        "severityUnit",
+        "scope",
+        "featureSchema",
+        "trainingDatasetIds",
+        "evaluation",
+        "limitations"
+      ],
+      "properties": {
+        "modelVersion": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "dataMode": {
+          "enum": [
+            "trained_conditional",
+            "offline_example"
+          ]
+        },
+        "status": {
+          "enum": [
+            "not_trained",
+            "trained"
+          ]
+        },
+        "target": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "severityUnit": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "scope": {
+          "const": "selected_positive_outage_warning_hours"
+        },
+        "featureSchema": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/FeatureSpec"
+          },
+          "minItems": 0,
+          "maxItems": 16
+        },
+        "trainingDatasetIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "minItems": 0,
+          "maxItems": 100
+        },
+        "evaluation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EvaluationMetrics"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "minItems": 1,
+          "maxItems": 30
+        }
+      },
+      "title": "ModelMetadata"
+    },
+    "Prediction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "countyFips",
+        "predictedSeverity",
+        "severityUnit",
+        "modelVersion",
+        "dataMode",
+        "scope",
+        "notes",
+        "sourceIds"
+      ],
+      "properties": {
+        "countyFips": {
+          "type": "string",
+          "pattern": "^[0-9]{5}$"
+        },
+        "predictedSeverity": {
+          "type": "number",
+          "minimum": 0
+        },
+        "severityUnit": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "modelVersion": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "dataMode": {
+          "enum": [
+            "trained_conditional",
+            "offline_example"
+          ]
+        },
+        "scope": {
+          "const": "selected_positive_outage_warning_hours"
+        },
+        "baselineSeverity": {
+          "type": "number",
+          "minimum": 0
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "minItems": 1,
+          "maxItems": 30
+        },
+        "sourceIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "minItems": 1,
+          "maxItems": 30
+        }
+      },
+      "title": "Prediction"
+    },
+    "Evaluation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scenario",
+        "predictions",
+        "modelMetadata",
+        "disclaimers"
+      ],
+      "properties": {
+        "scenario": {
+          "$ref": "#/$defs/Scenario"
+        },
+        "predictions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Prediction"
+          },
+          "minItems": 1,
+          "maxItems": 50
+        },
+        "modelMetadata": {
+          "$ref": "#/$defs/ModelMetadata"
+        },
+        "disclaimers": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "minItems": 1,
+          "maxItems": 30
+        }
+      },
+      "title": "Evaluation"
+    },
+    "ResponseMeta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "requestId",
+        "mode",
+        "sourceIds",
+        "warnings"
+      ],
+      "properties": {
+        "requestId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "mode": {
+          "enum": [
+            "historical_context",
+            "exploratory_what_if",
+            "offline_example"
+          ]
+        },
+        "sourceIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "minItems": 0,
+          "maxItems": 30
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "minItems": 0,
+          "maxItems": 30
+        }
+      },
+      "title": "ResponseMeta"
+    },
+    "ApiError": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "message"
+      ],
+      "properties": {
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "message": {
+          "type": "string",
+          "maxLength": 4000
+        },
+        "details": {
+          "type": "array",
+          "items": {}
+        }
+      },
+      "title": "ApiError"
+    },
+    "Intervention": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "graphEdgeIds",
+        "graphNodeIds",
+        "action"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "graphEdgeIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "minItems": 0,
+          "maxItems": 3
+        },
+        "graphNodeIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "minItems": 0,
+          "maxItems": 3
+        },
+        "action": {
+          "enum": [
+            "protect",
+            "disable",
+            "inspect"
+          ]
+        },
+        "budgetUnits": {
+          "type": "number",
+          "minimum": 0
+        }
+      },
+      "title": "Intervention"
+    },
+    "ConnectivityMetrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reachableFacilities",
+        "connectedComponents",
+        "weightedAccessScore"
+      ],
+      "properties": {
+        "reachableFacilities": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "connectedComponents": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "weightedAccessScore": {
+          "type": "number",
+          "minimum": 0
+        }
+      },
+      "title": "ConnectivityMetrics"
+    },
+    "PlanComparison": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "baseline",
+        "proposal",
+        "limitations",
+        "graphSource",
+        "mode"
+      ],
+      "properties": {
+        "baseline": {
+          "$ref": "#/$defs/ConnectivityMetrics"
+        },
+        "proposal": {
+          "$ref": "#/$defs/ConnectivityMetrics"
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "minItems": 1,
+          "maxItems": 30
+        },
+        "graphSource": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "mode": {
+          "const": "hypothetical_connectivity"
+        }
+      },
+      "title": "PlanComparison"
+    },
+    "NetworkCompareRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "regionId",
+        "disabledNodeIds",
+        "disabledEdgeIds",
+        "interventions"
+      ],
+      "properties": {
+        "regionId": {
+          "const": "houston-gulf-coast"
+        },
+        "disabledNodeIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "minItems": 0,
+          "maxItems": 100
+        },
+        "disabledEdgeIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "minItems": 0,
+          "maxItems": 100
+        },
+        "interventions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Intervention"
+          },
+          "minItems": 0,
+          "maxItems": 3
+        }
+      },
+      "title": "NetworkCompareRequest"
+    },
+    "InterpretRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "text",
+        "scenarioSummary"
+      ],
+      "properties": {
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "scenarioSummary": {
+          "$ref": "#/$defs/Scenario"
+        }
+      },
+      "title": "InterpretRequest"
+    },
+    "Interpretation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "proposal",
+        "clarifications"
+      ],
+      "properties": {
+        "proposal": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CommandProposal"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "clarifications": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "minItems": 0,
+          "maxItems": 10
+        }
+      },
+      "title": "Interpretation"
+    },
+    "VoiceSpeakRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "text"
+      ],
+      "properties": {
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        }
+      },
+      "title": "VoiceSpeakRequest"
+    }
+  }
+}

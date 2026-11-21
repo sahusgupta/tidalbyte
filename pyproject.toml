@@ -1,0 +1,10 @@
+[project]
+name = "earthlab"
+version = "0.1.0"
+description = "EarthLab offline-first disaster-impact planning prototype"
+requires-python = ">=3.13,<3.14"
+
+[tool.pytest.ini_options]
+testpaths = ["apps/api/tests", "ml/tests", "packages/contracts/tests"]
+pythonpath = ["apps/api", "packages/contracts/python"]
+addopts = "-ra"

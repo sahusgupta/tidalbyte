@@ -11,3 +11,17 @@
 - ADR-009: UI, model and API explicitly identify historical vs hypothetical vs mock outputs.
 
 Record any change as ADR-010+ with date, reason, effect on API, and lead approval.
+
+- ADR-010 (2026-11-21, lead approved): Freeze wire contracts v1.0.0 in the
+  initial lead bootstrap. JSON Schema remains canonical; deterministic generators
+  produce TS/Pydantic shapes and canonical validation enforces format/array
+  constraints at runtime. See `docs/proposals/001-bootstrap-contracts.md`.
+- ADR-011 (2026-11-21, lead approved): Bootstrap is offline-example only. Original
+  schematic Houston-area rectangles and arbitrary severity indices exercise the
+  data path without claiming a historical case or trained estimator. ML training
+  fails closed; graph/AI/voice endpoints return 503 pending their own workstreams.
+  No API keys are required for the initial application.
+- ADR-012 (2026-11-21, lead approved): Verification targets Node 22.16.0,
+  pnpm 10.12.1 and Python 3.13, with committed dependency locks. Bundle Natural
+  Earth II imagery and Cesium workers locally for provider-independent display.
+  Vercel configuration is a template only; no deployment is created by bootstrap.

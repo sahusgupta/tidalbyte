@@ -1,0 +1,124 @@
+{
+  "type": "FeatureCollection",
+  "name": "Houston schematic county examples",
+  "attribution": "EarthLab project-generated schematic geometry. Not official county boundaries.",
+  "sourceIds": [
+    "project:offline-fixture-v1"
+  ],
+  "features": [
+    {
+      "type": "Feature",
+      "id": "48201",
+      "properties": {
+        "countyFips": "48201",
+        "name": "Harris",
+        "sourceId": "project:offline-fixture-v1",
+        "geometryKind": "schematic",
+        "severityBucket": 2
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -95.9,
+              29.6
+            ],
+            [
+              -95.05,
+              29.6
+            ],
+            [
+              -95.05,
+              30.1
+            ],
+            [
+              -95.9,
+              30.1
+            ],
+            [
+              -95.9,
+              29.6
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "48157",
+      "properties": {
+        "countyFips": "48157",
+        "name": "Fort Bend",
+        "sourceId": "project:offline-fixture-v1",
+        "geometryKind": "schematic",
+        "severityBucket": 1
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -96.0,
+              29.2
+            ],
+            [
+              -95.5,
+              29.2
+            ],
+            [
+              -95.5,
+              29.6
+            ],
+            [
+              -96.0,
+              29.6
+            ],
+            [
+              -96.0,
+              29.2
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "48039",
+      "properties": {
+        "countyFips": "48039",
+        "name": "Brazoria",
+        "sourceId": "project:offline-fixture-v1",
+        "geometryKind": "schematic",
+        "severityBucket": 3
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -95.5,
+              28.95
+            ],
+            [
+              -95.0,
+              28.95
+            ],
+            [
+              -95.0,
+              29.6
+            ],
+            [
+              -95.5,
+              29.6
+            ],
+            [
+              -95.5,
+              28.95
+            ]
+          ]
+        ]
+      }
+    }
+  ]
+}

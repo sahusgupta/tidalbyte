@@ -1,0 +1,1606 @@
+{
+  "components": {
+    "schemas": {
+      "ApiError": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Code",
+            "type": "string"
+          },
+          "details": {
+            "anyOf": [
+              {
+                "items": {},
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Details"
+          },
+          "message": {
+            "maxLength": 4000,
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "ApiError",
+        "type": "object"
+      },
+      "CountyFip": {
+        "pattern": "^[0-9]{5}$",
+        "title": "CountyFip",
+        "type": "string"
+      },
+      "Disclaimer": {
+        "maxLength": 200,
+        "minLength": 1,
+        "title": "Disclaimer",
+        "type": "string"
+      },
+      "Evaluation": {
+        "additionalProperties": false,
+        "properties": {
+          "disclaimers": {
+            "items": {
+              "$ref": "#/components/schemas/Disclaimer"
+            },
+            "maxItems": 30,
+            "minItems": 1,
+            "title": "Disclaimers",
+            "type": "array"
+          },
+          "modelMetadata": {
+            "$ref": "#/components/schemas/ModelMetadata"
+          },
+          "predictions": {
+            "items": {
+              "$ref": "#/components/schemas/Prediction"
+            },
+            "maxItems": 50,
+            "minItems": 1,
+            "title": "Predictions",
+            "type": "array"
+          },
+          "scenario": {
+            "$ref": "#/components/schemas/Scenario-Output"
+          }
+        },
+        "required": [
+          "scenario",
+          "predictions",
+          "modelMetadata",
+          "disclaimers"
+        ],
+        "title": "Evaluation",
+        "type": "object"
+      },
+      "EvaluationMetrics": {
+        "additionalProperties": false,
+        "properties": {
+          "baselineMae": {
+            "minimum": 0.0,
+            "title": "Baselinemae",
+            "type": "number"
+          },
+          "baselineName": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Baselinename",
+            "type": "string"
+          },
+          "modelMae": {
+            "minimum": 0.0,
+            "title": "Modelmae",
+            "type": "number"
+          },
+          "splitPolicy": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Splitpolicy",
+            "type": "string"
+          },
+          "targetUnit": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Targetunit",
+            "type": "string"
+          },
+          "testEventCount": {
+            "minimum": 1.0,
+            "title": "Testeventcount",
+            "type": "integer"
+          },
+          "trainEventCount": {
+            "minimum": 1.0,
+            "title": "Traineventcount",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "splitPolicy",
+          "baselineName",
+          "baselineMae",
+          "modelMae",
+          "targetUnit",
+          "trainEventCount",
+          "testEventCount"
+        ],
+        "title": "EvaluationMetrics",
+        "type": "object"
+      },
+      "FeatureSpec": {
+        "additionalProperties": false,
+        "properties": {
+          "max": {
+            "title": "Max",
+            "type": "number"
+          },
+          "min": {
+            "title": "Min",
+            "type": "number"
+          },
+          "name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "unit": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Unit",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "unit",
+          "min",
+          "max"
+        ],
+        "title": "FeatureSpec",
+        "type": "object"
+      },
+      "Limitation": {
+        "maxLength": 200,
+        "minLength": 1,
+        "title": "Limitation",
+        "type": "string"
+      },
+      "ModelMetadata": {
+        "additionalProperties": false,
+        "properties": {
+          "dataMode": {
+            "enum": [
+              "trained_conditional",
+              "offline_example"
+            ],
+            "title": "Datamode",
+            "type": "string"
+          },
+          "evaluation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EvaluationMetrics"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "featureSchema": {
+            "items": {
+              "$ref": "#/components/schemas/FeatureSpec"
+            },
+            "maxItems": 16,
+            "minItems": 0,
+            "title": "Featureschema",
+            "type": "array"
+          },
+          "limitations": {
+            "items": {
+              "$ref": "#/components/schemas/Limitation"
+            },
+            "maxItems": 30,
+            "minItems": 1,
+            "title": "Limitations",
+            "type": "array"
+          },
+          "modelVersion": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Modelversion",
+            "type": "string"
+          },
+          "scope": {
+            "const": "selected_positive_outage_warning_hours",
+            "title": "Scope",
+            "type": "string"
+          },
+          "severityUnit": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Severityunit",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "not_trained",
+              "trained"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "target": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Target",
+            "type": "string"
+          },
+          "trainingDatasetIds": {
+            "items": {
+              "$ref": "#/components/schemas/TrainingDatasetId"
+            },
+            "maxItems": 100,
+            "minItems": 0,
+            "title": "Trainingdatasetids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "modelVersion",
+          "dataMode",
+          "status",
+          "target",
+          "severityUnit",
+          "scope",
+          "featureSchema",
+          "trainingDatasetIds",
+          "limitations"
+        ],
+        "title": "ModelMetadata",
+        "type": "object"
+      },
+      "Note": {
+        "maxLength": 200,
+        "minLength": 1,
+        "title": "Note",
+        "type": "string"
+      },
+      "Prediction": {
+        "additionalProperties": false,
+        "properties": {
+          "baselineSeverity": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Baselineseverity"
+          },
+          "countyFips": {
+            "pattern": "^[0-9]{5}$",
+            "title": "Countyfips",
+            "type": "string"
+          },
+          "dataMode": {
+            "enum": [
+              "trained_conditional",
+              "offline_example"
+            ],
+            "title": "Datamode",
+            "type": "string"
+          },
+          "modelVersion": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Modelversion",
+            "type": "string"
+          },
+          "notes": {
+            "items": {
+              "$ref": "#/components/schemas/Note"
+            },
+            "maxItems": 30,
+            "minItems": 1,
+            "title": "Notes",
+            "type": "array"
+          },
+          "predictedSeverity": {
+            "minimum": 0.0,
+            "title": "Predictedseverity",
+            "type": "number"
+          },
+          "scope": {
+            "const": "selected_positive_outage_warning_hours",
+            "title": "Scope",
+            "type": "string"
+          },
+          "severityUnit": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Severityunit",
+            "type": "string"
+          },
+          "sourceIds": {
+            "items": {
+              "$ref": "#/components/schemas/SourceId"
+            },
+            "maxItems": 30,
+            "minItems": 1,
+            "title": "Sourceids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "countyFips",
+          "predictedSeverity",
+          "severityUnit",
+          "modelVersion",
+          "dataMode",
+          "scope",
+          "notes",
+          "sourceIds"
+        ],
+        "title": "Prediction",
+        "type": "object"
+      },
+      "ResponseEnvelope_Evaluation_": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Evaluation"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ApiError"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        },
+        "required": [
+          "data",
+          "meta",
+          "error"
+        ],
+        "title": "ResponseEnvelope[Evaluation]",
+        "type": "object"
+      },
+      "ResponseEnvelope_ModelMetadata_": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ModelMetadata"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ApiError"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        },
+        "required": [
+          "data",
+          "meta",
+          "error"
+        ],
+        "title": "ResponseEnvelope[ModelMetadata]",
+        "type": "object"
+      },
+      "ResponseEnvelope_dict_": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ApiError"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        },
+        "required": [
+          "data",
+          "meta",
+          "error"
+        ],
+        "title": "ResponseEnvelope[dict]",
+        "type": "object"
+      },
+      "ResponseEnvelope_list_dict__": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ApiError"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        },
+        "required": [
+          "data",
+          "meta",
+          "error"
+        ],
+        "title": "ResponseEnvelope[list[dict]]",
+        "type": "object"
+      },
+      "ResponseMeta": {
+        "additionalProperties": false,
+        "properties": {
+          "mode": {
+            "enum": [
+              "historical_context",
+              "exploratory_what_if",
+              "offline_example"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "requestId": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Requestid",
+            "type": "string"
+          },
+          "sourceIds": {
+            "items": {
+              "$ref": "#/components/schemas/SourceId"
+            },
+            "maxItems": 30,
+            "minItems": 0,
+            "title": "Sourceids",
+            "type": "array"
+          },
+          "warnings": {
+            "items": {
+              "$ref": "#/components/schemas/Warning"
+            },
+            "maxItems": 30,
+            "minItems": 0,
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "requestId",
+          "mode",
+          "sourceIds",
+          "warnings"
+        ],
+        "title": "ResponseMeta",
+        "type": "object"
+      },
+      "Scenario-Input": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Id",
+            "type": "string"
+          },
+          "modelMode": {
+            "enum": [
+              "historical_context",
+              "exploratory_what_if"
+            ],
+            "title": "Modelmode",
+            "type": "string"
+          },
+          "perturbations": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "number"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Perturbations"
+          },
+          "presetEventId": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Preseteventid",
+            "type": "string"
+          },
+          "regionId": {
+            "const": "houston-gulf-coast",
+            "title": "Regionid",
+            "type": "string"
+          },
+          "scenarioVersion": {
+            "minimum": 1.0,
+            "title": "Scenarioversion",
+            "type": "integer"
+          },
+          "selection": {
+            "$ref": "#/components/schemas/Selection",
+            "title": "ScenarioSelection"
+          }
+        },
+        "required": [
+          "id",
+          "regionId",
+          "presetEventId",
+          "scenarioVersion",
+          "selection",
+          "modelMode"
+        ],
+        "title": "Scenario",
+        "type": "object"
+      },
+      "Scenario-Output": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Id",
+            "type": "string"
+          },
+          "modelMode": {
+            "enum": [
+              "historical_context",
+              "exploratory_what_if"
+            ],
+            "title": "Modelmode",
+            "type": "string"
+          },
+          "perturbations": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "number"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Perturbations"
+          },
+          "presetEventId": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Preseteventid",
+            "type": "string"
+          },
+          "regionId": {
+            "const": "houston-gulf-coast",
+            "title": "Regionid",
+            "type": "string"
+          },
+          "scenarioVersion": {
+            "minimum": 1.0,
+            "title": "Scenarioversion",
+            "type": "integer"
+          },
+          "selection": {
+            "$ref": "#/components/schemas/Selection",
+            "title": "ScenarioSelection"
+          }
+        },
+        "required": [
+          "id",
+          "regionId",
+          "presetEventId",
+          "scenarioVersion",
+          "selection",
+          "modelMode"
+        ],
+        "title": "Scenario",
+        "type": "object"
+      },
+      "Selection": {
+        "additionalProperties": false,
+        "properties": {
+          "countyFips": {
+            "items": {
+              "$ref": "#/components/schemas/CountyFip"
+            },
+            "maxItems": 50,
+            "minItems": 1,
+            "title": "Countyfips",
+            "type": "array"
+          },
+          "eventTimeUtc": {
+            "format": "date-time",
+            "title": "Eventtimeutc",
+            "type": "string"
+          },
+          "warningTypes": {
+            "items": {
+              "$ref": "#/components/schemas/WarningType"
+            },
+            "maxItems": 10,
+            "minItems": 1,
+            "title": "Warningtypes",
+            "type": "array"
+          }
+        },
+        "required": [
+          "countyFips",
+          "warningTypes",
+          "eventTimeUtc"
+        ],
+        "title": "Selection",
+        "type": "object"
+      },
+      "SourceId": {
+        "maxLength": 200,
+        "minLength": 1,
+        "title": "SourceId",
+        "type": "string"
+      },
+      "TrainingDatasetId": {
+        "maxLength": 200,
+        "minLength": 1,
+        "title": "TrainingDatasetId",
+        "type": "string"
+      },
+      "Warning": {
+        "maxLength": 200,
+        "minLength": 1,
+        "title": "Warning",
+        "type": "string"
+      },
+      "WarningType": {
+        "maxLength": 100,
+        "minLength": 1,
+        "title": "WarningType",
+        "type": "string"
+      }
+    }
+  },
+  "info": {
+    "description": "Bootstrap: deterministic OFFLINE EXAMPLE output only. No trained model or verified historical event is available. All application endpoints use {data, meta, error}; /openapi.json and documentation pages use native formats.",
+    "title": "EarthLab API",
+    "version": "1.0.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/api/v1/ai/interpret": {
+      "post": {
+        "operationId": "interpret_api_v1_ai_interpret_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "scenarioSummary": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "id": {
+                        "maxLength": 100,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "modelMode": {
+                        "enum": [
+                          "historical_context",
+                          "exploratory_what_if"
+                        ]
+                      },
+                      "perturbations": {
+                        "additionalProperties": {
+                          "type": "number"
+                        },
+                        "maxProperties": 16,
+                        "type": "object"
+                      },
+                      "presetEventId": {
+                        "maxLength": 100,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "regionId": {
+                        "const": "houston-gulf-coast"
+                      },
+                      "scenarioVersion": {
+                        "minimum": 1.0,
+                        "type": "integer"
+                      },
+                      "selection": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "countyFips": {
+                            "items": {
+                              "pattern": "^[0-9]{5}$",
+                              "type": "string"
+                            },
+                            "maxItems": 50,
+                            "minItems": 1,
+                            "type": "array",
+                            "uniqueItems": true
+                          },
+                          "eventTimeUtc": {
+                            "format": "date-time",
+                            "pattern": "Z$",
+                            "type": "string"
+                          },
+                          "warningTypes": {
+                            "items": {
+                              "maxLength": 100,
+                              "minLength": 1,
+                              "type": "string"
+                            },
+                            "maxItems": 10,
+                            "minItems": 1,
+                            "type": "array",
+                            "uniqueItems": true
+                          }
+                        },
+                        "required": [
+                          "countyFips",
+                          "warningTypes",
+                          "eventTimeUtc"
+                        ],
+                        "title": "ScenarioSelection",
+                        "type": "object"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "regionId",
+                      "presetEventId",
+                      "scenarioVersion",
+                      "selection",
+                      "modelMode"
+                    ],
+                    "title": "Scenario",
+                    "type": "object"
+                  },
+                  "text": {
+                    "maxLength": 2000,
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "text",
+                  "scenarioSummary"
+                ],
+                "title": "InterpretRequest",
+                "type": "object"
+              }
+            }
+          },
+          "description": "Reserved v1 input shape. This bootstrap returns 503 before processing any provider request.",
+          "required": true
+        },
+        "responses": {
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseEnvelope_dict_"
+                }
+              }
+            },
+            "description": "Unknown region, event or route"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseEnvelope_dict_"
+                }
+              }
+            },
+            "description": "Invalid or unsupported input"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseEnvelope_dict_"
+                }
+              }
+            },
+            "description": "Workstream dependency unavailable"
+          }
+        },
+        "summary": "Interpret",
+        "tags": [
+          "unavailable integrations"
+        ]
+      }
+    },
+    "/api/v1/catalog/events": {
+      "get": {
+        "operationId": "events_api_v1_catalog_events_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "regionId",
+            "required": false,
+            "schema": {
+              "default": "houston-gulf-coast",
+              "title": "Regionid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseEnvelope_list_dict__"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseEnvelope_dict_"
+                }
+              }
+            },
+            "description": "Unknown region, event or route"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseEnvelope_dict_"
+                }
+              }
+            },
+            "description": "Invalid or unsupported input"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseEnvelope_dict_"
+                }
+              }
+            },
+            "description": "Workstream dependency unavailable"
+          }
+        },
+        "summary": "Events",
+        "tags": [
+          "offline example"
+        ]
+      }
+    },
+    "/api/v1/catalog/regions": {
+      "get": {
+        "operationId": "regions_api_v1_catalog_regions_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseEnvelope_list_dict__"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseEnvelope_dict_"
+                }
+              }
+            },
+            "description": "Unknown region, event or route"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseEnvelope_dict_"
+                }
+              }
+            },
+            "description": "Invalid or unsupported input"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseEnvelope_dict_"
+                }
+              }
+            },
+            "description": "Workstream dependency unavailable"
+          }
+        },
+        "summary": "Regions",
+        "tags": [
+          "offline example"
+        ]
+      }
+    },
+    "/api/v1/geo/counties": {
+      "get": {
+        "operationId": "counties_api_v1_geo_counties_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "regionId",
+            "required": false,
+            "schema": {
+              "default": "houston-gulf-coast",
+              "title": "Regionid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseEnvelope_dict_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseEnvelope_dict_"
+                }
+              }
+            },
+            "description": "Unknown region, event or route"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseEnvelope_dict_"
+                }
+              }
+            },
+            "description": "Invalid or unsupported input"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseEnvelope_dict_"
+                }
+              }
+            },
+            "description": "Workstream dependency unavailable"
+          }
+        },
+        "summary": "Counties",
+        "tags": [
+          "offline example"
+        ]
+      }
+    },
+    "/api/v1/models/current": {
+      "get": {
+        "operationId": "current_model_api_v1_models_current_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseEnvelope_ModelMetadata_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseEnvelope_dict_"
+                }
+              }
+            },
+            "description": "Unknown region, event or route"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseEnvelope_dict_"
+                }
+              }
+            },
+            "description": "Invalid or unsupported input"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseEnvelope_dict_"
+                }
+              }
+            },
+            "description": "Workstream dependency unavailable"
+          }
+        },
+        "summary": "Current Model",
+        "tags": [
+          "model"
+        ]
+      }
+    },
+    "/api/v1/network": {
+      "get": {
+        "operationId": "network_api_v1_network_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "regionId",
+            "required": false,
+            "schema": {
+              "default": "houston-gulf-coast",
+              "title": "Regionid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseEnvelope_dict_"
+                }
+              }
+            },
+            "description": "Unknown region, event or route"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseEnvelope_dict_"
+                }
+              }
+            },
+            "description": "Invalid or unsupported input"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseEnvelope_dict_"
+                }
+              }
+            },
+            "description": "Workstream dependency unavailable"
+          }
+        },
+        "summary": "Network",
+        "tags": [
+          "unavailable integrations"
+        ]
+      }
+    },
+    "/api/v1/network/compare": {
+      "post": {
+        "operationId": "compare_network_api_v1_network_compare_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "disabledEdgeIds": {
+                    "items": {
+                      "maxLength": 200,
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "maxItems": 100,
+                    "minItems": 0,
+                    "type": "array"
+                  },
+                  "disabledNodeIds": {
+                    "items": {
+                      "maxLength": 200,
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "maxItems": 100,
+                    "minItems": 0,
+                    "type": "array"
+                  },
+                  "interventions": {
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "action": {
+                          "enum": [
+                            "protect",
+                            "disable",
+                            "inspect"
+                          ]
+                        },
+                        "budgetUnits": {
+                          "minimum": 0.0,
+                          "type": "number"
+                        },
+                        "graphEdgeIds": {
+                          "items": {
+                            "maxLength": 200,
+                            "minLength": 1,
+                            "type": "string"
+                          },
+                          "maxItems": 3,
+                          "minItems": 0,
+                          "type": "array"
+                        },
+                        "graphNodeIds": {
+                          "items": {
+                            "maxLength": 200,
+                            "minLength": 1,
+                            "type": "string"
+                          },
+                          "maxItems": 3,
+                          "minItems": 0,
+                          "type": "array"
+                        },
+                        "id": {
+                          "maxLength": 200,
+                          "minLength": 1,
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "graphEdgeIds",
+                        "graphNodeIds",
+                        "action"
+                      ],
+                      "title": "Intervention",
+                      "type": "object"
+                    },
+                    "maxItems": 3,
+                    "minItems": 0,
+                    "type": "array"
+                  },
+                  "regionId": {
+                    "const": "houston-gulf-coast"
+                  }
+                },
+                "required": [
+                  "regionId",
+                  "disabledNodeIds",
+                  "disabledEdgeIds",
+                  "interventions"
+                ],
+                "title": "NetworkCompareRequest",
+                "type": "object"
+              }
+            }
+          },
+          "description": "Reserved v1 input shape. This bootstrap returns 503 before processing any provider request.",
+          "required": true
+        },
+        "responses": {
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseEnvelope_dict_"
+                }
+              }
+            },
+            "description": "Unknown region, event or route"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseEnvelope_dict_"
+                }
+              }
+            },
+            "description": "Invalid or unsupported input"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseEnvelope_dict_"
+                }
+              }
+            },
+            "description": "Workstream dependency unavailable"
+          }
+        },
+        "summary": "Compare Network",
+        "tags": [
+          "unavailable integrations"
+        ]
+      }
+    },
+    "/api/v1/scenarios/evaluate": {
+      "post": {
+        "operationId": "evaluate_api_v1_scenarios_evaluate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Scenario-Input"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseEnvelope_Evaluation_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseEnvelope_dict_"
+                }
+              }
+            },
+            "description": "Unknown region, event or route"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseEnvelope_dict_"
+                }
+              }
+            },
+            "description": "Invalid or unsupported input"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseEnvelope_dict_"
+                }
+              }
+            },
+            "description": "Workstream dependency unavailable"
+          }
+        },
+        "summary": "Evaluate",
+        "tags": [
+          "offline example"
+        ]
+      }
+    },
+    "/api/v1/voice/speak": {
+      "post": {
+        "operationId": "speak_api_v1_voice_speak_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "text": {
+                    "maxLength": 2000,
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "text"
+                ],
+                "title": "VoiceSpeakRequest",
+                "type": "object"
+              }
+            }
+          },
+          "description": "Reserved v1 input shape. This bootstrap returns 503 before processing any provider request.",
+          "required": true
+        },
+        "responses": {
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseEnvelope_dict_"
+                }
+              }
+            },
+            "description": "Unknown region, event or route"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseEnvelope_dict_"
+                }
+              }
+            },
+            "description": "Invalid or unsupported input"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseEnvelope_dict_"
+                }
+              }
+            },
+            "description": "Workstream dependency unavailable"
+          }
+        },
+        "summary": "Speak",
+        "tags": [
+          "unavailable integrations"
+        ]
+      }
+    },
+    "/api/v1/voice/transcribe": {
+      "post": {
+        "operationId": "transcribe_api_v1_voice_transcribe_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "audio": {
+                    "format": "binary",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "audio"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "description": "Reserved audio upload. The bootstrap returns 503 without reading or sending audio.",
+          "required": true
+        },
+        "responses": {
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseEnvelope_dict_"
+                }
+              }
+            },
+            "description": "Unknown region, event or route"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseEnvelope_dict_"
+                }
+              }
+            },
+            "description": "Invalid or unsupported input"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseEnvelope_dict_"
+                }
+              }
+            },
+            "description": "Workstream dependency unavailable"
+          }
+        },
+        "summary": "Transcribe",
+        "tags": [
+          "unavailable integrations"
+        ]
+      }
+    },
+    "/healthz": {
+      "get": {
+        "operationId": "health_healthz_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseEnvelope_dict_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseEnvelope_dict_"
+                }
+              }
+            },
+            "description": "Unknown region, event or route"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseEnvelope_dict_"
+                }
+              }
+            },
+            "description": "Invalid or unsupported input"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseEnvelope_dict_"
+                }
+              }
+            },
+            "description": "Workstream dependency unavailable"
+          }
+        },
+        "summary": "Health",
+        "tags": [
+          "health"
+        ]
+      }
+    },
+    "/readyz": {
+      "get": {
+        "operationId": "ready_readyz_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseEnvelope_dict_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseEnvelope_dict_"
+                }
+              }
+            },
+            "description": "Unknown region, event or route"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseEnvelope_dict_"
+                }
+              }
+            },
+            "description": "Invalid or unsupported input"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseEnvelope_dict_"
+                }
+              }
+            },
+            "description": "Workstream dependency unavailable"
+          }
+        },
+        "summary": "Ready",
+        "tags": [
+          "health"
+        ]
+      }
+    }
+  }
+}

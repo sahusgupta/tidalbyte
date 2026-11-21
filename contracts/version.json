@@ -1,0 +1,10 @@
+{
+  "version": "1.0.0",
+  "status": "bootstrap-freeze",
+  "sourceSchemas": [
+    "scenario.schema.json",
+    "command.schema.json",
+    "api.schema.json",
+    "envelope.schema.json"
+  ]
+}
