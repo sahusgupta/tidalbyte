@@ -84,6 +84,13 @@ export default function EarthView({
   const [photoreal, setPhotoreal] = useState<Photoreal>(photorealConfigured() ? "loading" : "off");
   const [failed, setFailed] = useState(false);
   const [imagery, setImagery] = useState<ImageryStatus | null>(null);
+  const previousZone = useRef(activeZoneId);
+  useEffect(() => {
+    if (!activeZoneId && previousZone.current) {
+      document.getElementById(`earth-zone-${previousZone.current}`)?.focus();
+    }
+    previousZone.current = activeZoneId;
+  }, [activeZoneId]);
 
   const stopOrbit = () => {
     rotating.current = false;
@@ -461,7 +468,7 @@ export default function EarthView({
                     Study zones <span>({region.zones.length})</span>
                   </h3>
                   {!failed && (
-                    <button className="earth-link" onClick={() => showRegion(region)}>
+                    <button className="earth-region-link" onClick={() => showRegion(region)}>
                       Show on globe
                     </button>
                   )}
@@ -472,6 +479,7 @@ export default function EarthView({
                     return (
                       <li key={zone.id}>
                         <button
+                          id={`earth-zone-${zone.id}`}
                           className={`earth-zone ${hovered === zone.id ? "is-hot" : ""}`}
                           onMouseEnter={() => setHovered(zone.id)}
                           onMouseLeave={() => setHovered(null)}

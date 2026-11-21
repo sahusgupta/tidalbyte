@@ -135,7 +135,7 @@
   font-weight: 400;
   color: #586255;
 }
-.earth-link {
+.earth-region-link {
   font-size: 12px;
   color: #344837;
   text-decoration: underline;
@@ -292,7 +292,7 @@
     border-bottom: 1px solid #929c8e;
     min-height: 42px;
   }
-  .earth-link {
+  .earth-region-link {
     min-height: 44px;
   }
   .earth-zones ul {

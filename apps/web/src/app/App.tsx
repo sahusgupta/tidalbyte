@@ -187,17 +187,10 @@ export function App({ onEarth }: { onEarth?: () => void } = {}) {
         Skip to map
       </a>
       <header className="mast">
-        <button
-          type="button"
-          className="brand"
-          onClick={onEarth}
-          disabled={!onEarth}
-          title="Back to Earth"
-          aria-label="EarthLab: back to Earth"
-        >
+        <div className="brand">
           <Icon name="atlas" size={34} />
           <b>EarthLab</b>
-        </button>
+        </div>
         <span className="brand-divider" />
         <h1 className="product-title">Disaster Atlas</h1>
         <div className="header-end">
