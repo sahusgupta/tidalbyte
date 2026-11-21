@@ -1,11 +1,11 @@
 # EarthLab Status
 
-Updated: 2026-11-21. **Prompt 00 lead bootstrap only**; verification in progress
-on `integrate/bootstrap`, not yet published to main.
+Updated: 2026-11-21. **Prompt 00 lead bootstrap only**, verified locally and in a
+fresh isolated clone. Integration branch: `integrate/bootstrap`.
 
 | Workstream | Owner | Branch | Status | Next integration |
 |---|---|---|---|---|
-| Lead/contracts/CI | Codex lead | integrate/bootstrap | Scaffold implemented; final browser/clone checks underway | Publish verified bootstrap |
+| Lead/contracts/CI | Codex lead | integrate/bootstrap → main | Bootstrap complete | Teammates pull the scaffold commit |
 | Globe/UI | unassigned feature owner | — | Lead's initial keyless globe/mock overlay only | prompts/01-FRONTEND-GLOBE.md |
 | ML/data | unassigned | — | Fail-closed placeholder; no model or verified data | prompts/02-ML-DATA.md |
 | Infrastructure/graph | unassigned | — | 503 route stubs only | prompts/03-INFRA-GAME-THEORY.md |
@@ -25,7 +25,11 @@ require lead approval and consumer acknowledgement.
 - Production build passed with lazy Cesium chunk-size warning.
 - Browser found and repaired misplaced static assets; Earth now renders locally.
 - API-backed Run example visibly reports API connected and remains OFFLINE EXAMPLE.
-- Clean-clone and final responsive/offline checks still pending this commit.
+- Browser checked 390x844, 768x1024, 1280x720 and 1440x900; county inspection,
+  Houston shortcut/flight and actual API-unavailable production fallback work.
+- Fresh isolated clone passed frozen installs, typecheck, all 58 tests, build,
+  contract/OpenAPI drift checks and kit validation; web/API boot and HTTP checks
+  passed for health/readiness, all three fixture counties and real imagery XML.
 
 ## Limits and team barrier
 
@@ -34,7 +38,7 @@ ElevenLabs or Google tiles are enabled. The fixture event/time/indices are
 arbitrary; polygons are schematic, not official boundaries. Training intentionally
 exits2 without writing artifacts. No provider credentials are needed.
 
-Do not begin independent feature work until the lead publishes this scaffold to
-main. Teammates then fetch/pull and read this file, DECISIONS and their own prompt.
+This is the lead scaffold barrier once this commit is available on main.
+Teammates fetch/pull main, then read this file, DECISIONS and their own prompt.
 A second physical machine and deployed-host rehearsal remain unverified. This
 bootstrap does not meet the complete product definition of done.

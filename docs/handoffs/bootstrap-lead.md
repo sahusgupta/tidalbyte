@@ -24,7 +24,27 @@ Python emits a dependency deprecation warning in Starlette TestClient/AnyIO.
 Initial failed checks exposed external-reference code generation, datetime regex
 incompatibility, optional null serialization and misplaced Cesium assets. These
 were repaired before publication. No failed check is represented as successful.
-Final clone/browser evidence will be appended before publication.
+Final integrated checks passed after repairs: `pnpm typecheck`, `pnpm test`
+(5 web + 53 Python), `pnpm build` including deployed Cesium asset checks,
+`pnpm contracts:check`, `pnpm openapi:check`, and the kit validator.
+
+## Browser evidence
+
+Inspected the actual console at 1280x720, 1440x900, 768x1024 and 390x844.
+The globe renders from local imagery with Cesium attribution. Houston flight,
+the H shortcut, schematic overlays, county pinning and inspector updates work.
+Run example returned `API connected`; after stopping the API, production preview
+returned `API unavailable · bundled offline example` while keeping manual controls.
+Desktop footer stays in view; mobile/tablet scroll normally without horizontal
+overflow. The last 1440x900 viewport measured page width1440 and height900.
+
+Interface-craft critique repaired the three most consequential issues: missing
+static assets, desktop footer below the viewport, and map labels lacking contrast
+against bright imagery. A further camera adjustment fits the schematic region.
+Local ignored screenshot: `output/earthlab-bootstrap.jpg`. It is a machine-local
+verification artifact, not required to run a clean clone. Browser zoom and
+physical device testing were not performed; reduced-motion behavior is implemented
+but was not verified with an OS preference change.
 
 ## API/model dependencies
 
@@ -50,3 +70,22 @@ visual critique. Real county geometry needs separately recorded provenance.
 ML must provide conditional target units, supported features, source versions,
 event/time holdout and baseline before replacing offline indices. Network and
 voice are separate future tasks. No deployment or PR has been created.
+
+## Clean-clone verification and publication
+
+A separate clean Git clone of commit `3885cb6` passed `pnpm install
+--frozen-lockfile`, fresh `.venv` creation and `pip install -r requirements.lock`,
+`pnpm typecheck`, `pnpm test` (5 web + 53 Python passed), `pnpm build`,
+`pnpm contracts:check`, `pnpm openapi:check`, and `python scripts/validate_kit.py`.
+Only documentation changed after that verified source commit.
+
+Clean-clone runtime commands used isolated ports to avoid existing helpers:
+`node scripts/python.mjs -m uvicorn app.main:app --app-dir apps/api --port 8013`
+and `pnpm --filter web dev --port 5183`. HTTP smoke checked the web shell,
+actual Natural Earth II TileMap XML, health, offline readiness and a validated
+three-county evaluation. Both helpers stopped and clone Git status stayed clean.
+
+Publish by fast-forwarding `main` to the integration branch after a final fetch;
+push both `main` and `integrate/bootstrap`. No PR is required for the initial
+lead barrier. No remote CI success, hosted deployment, second-machine rehearsal,
+real data validation or full product demo readiness is claimed by these checks.

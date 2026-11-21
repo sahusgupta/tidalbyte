@@ -20,8 +20,9 @@ Generation is deterministic and committed. TypeScript exports live in
 `packages/contracts/python/earthlab_contracts/models.py`. Generation also mirrors
 the canonical GeoJSON into the TS package for keyless browser fallback. Never
 edit generated files. CI checks drift and validates fixtures against schemas and
-generated Pydantic models. The API applies canonical validation before Pydantic
-coercion; formats and unique array constraints remain enforced at runtime.
+generated Pydantic models. The API checks the original request JSON against the
+canonical schema before evaluating any coerced Pydantic values; formats and
+unique array constraints remain enforced at runtime.
 
 All application endpoints return `{data, meta, error}`; failure has `data:null`.
 `/docs`, `/redoc`, `/openapi.json` are standard framework documentation responses.
