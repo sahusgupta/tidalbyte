@@ -393,6 +393,7 @@ export default function MapView({ meta, roads, buildings, result, buildingMode, 
       fontSize: '12px',
       fontFamily: 'Source Sans 3 Variable, sans-serif',
       lineHeight: '1.45',
+      whiteSpace: 'pre-line',
       boxShadow: '0 10px 30px rgba(0,0,0,.4)',
     }
     if (layer.id === 'roads') {
@@ -400,20 +401,26 @@ export default function MapView({ meta, roads, buildings, result, buildingMode, 
       const fii = 1 - Math.exp(-d / 0.25)
       const state = d > clearance ? '⛔ impassable' : d >= 0.03 ? '⚠️ wet, slow' : '✓ dry'
       return {
-        html: `<b>${roads.name[index] ?? 'Unnamed road'}</b>${roads.bridge[index] ? ' · bridge' : ''}<br/>
-          <span style="color:#94a3b8">${meta.road_classes[roads.cls[index]]} · ${Math.round(roads.len[index])} m</span><br/>
-          Water depth <b>${Math.round(d * 100)} cm</b> · Flood index <b>${fii.toFixed(2)}</b><br/>${state}`,
+        text: [
+          `${roads.name[index] ?? 'Unnamed road'}${roads.bridge[index] ? ' · bridge' : ''}`,
+          `${meta.road_classes[roads.cls[index]]} · ${Math.round(roads.len[index])} m`,
+          `Water depth ${Math.round(d * 100)} cm · Flood index ${fii.toFixed(2)}`,
+          state,
+        ].join('\n'),
         style,
       }
     }
     if (layer.id === 'buildings') {
       const d = (bldDepth?.[index] ?? 0) / 100
       const a = access?.[index]
-      const acc = a === undefined ? '' : a === CUT_OFF ? '<span style="color:#e879f9">cut off from ER</span>' : `ER response ${(a / 10).toFixed(1)} min`
+      const acc = a === undefined ? '' : a === CUT_OFF ? 'Cut off from ER' : `ER response ${(a / 10).toFixed(1)} min`
       return {
-        html: `<b>${buildings.name[index] ?? buildings.kind[index].replace(/_/g, ' ')}</b><br/>
-          <span style="color:#94a3b8">${Math.round(buildings.h[index])} m tall</span><br/>
-          Water at lowest wall <b>${Math.round(d * 100)} cm</b><br/>${acc}`,
+        text: [
+          buildings.name[index] ?? buildings.kind[index].replace(/_/g, ' '),
+          `${Math.round(buildings.h[index])} m tall`,
+          `Water at lowest wall ${Math.round(d * 100)} cm`,
+          acc,
+        ].filter(Boolean).join('\n'),
         style,
       }
     }
