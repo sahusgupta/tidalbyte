@@ -240,12 +240,12 @@ export function Comparison({
           Reachability starts at the fixture reference node. Assumed closures change connections in
           this sample; they do not establish road safety.
         </p>
-        {children}
         <CountyEvidence
           evaluation={evaluation}
           serviceStatus={`Both cases use the same county preset. ${serviceStatus}`}
         />
       </details>
+      {children}
     </section>
   );
 }

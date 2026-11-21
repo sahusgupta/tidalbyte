@@ -49,7 +49,7 @@ installed separately). Server secrets must never use the `VITE_` prefix.
 ## Try the atlas
 
 1. Select a road on the map to inspect its source and intersection with the scenario. Choose **Gulf approach** to edit the storm, then play or scrub the timeline.
-2. Open **Compare** to inspect the local sketch. The backend network comparison uses its own illustrative graph and exposes interventions, connectivity and the two-agency protection game.
+2. Open **Compare** to inspect the local sketch. Expand **Infrastructure network** for interventions, connectivity and the two-agency protection game on its own illustrative graph.
 3. Choose **Ask the atlas** to type a request or review a recording transcript. Review the proposed action before applying it. Without provider keys, the API labels its built-in command interpreter and fixed sample transcript.
 4. The **Study menu** opens the Downtown **Flood simulator** or the **Earth view** with all five Houston study zones.
 

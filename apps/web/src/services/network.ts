@@ -113,7 +113,7 @@ function catalogFrom(
       name:
         typeof properties.name === "string"
           ? properties.name.slice(0, 200)
-          : String(itemId),
+          : String(itemId).replaceAll("-", " "),
     };
     (kind === "Point" ? nodes : edges).push(item);
   }

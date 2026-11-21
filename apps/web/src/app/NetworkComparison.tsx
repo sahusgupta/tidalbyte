@@ -296,9 +296,8 @@ function StrategyGame({
   return (
     <div className="network-strategy">
       <p>
-        Fixed two-agency teaching example, separate from your manual plan.
-        Assumed disrupted links: {strategy.disabledEdgeIds.map(name).join(", ")}
-        .
+        Choose what each agency protects. This example assumes disruptions on
+        the {strategy.disabledEdgeIds.map(name).join(" and ")}.
       </p>
       <div className="network-fields">
         {strategy.agencies.map((agency, index) => (
@@ -320,7 +319,8 @@ function StrategyGame({
                 .filter((action) => action.budgetUnits <= agency.budgetUnits)
                 .map((action) => (
                   <option key={action.id} value={action.id}>
-                    {name(action.id)} · {action.budgetUnits} budget units
+                    {name(action.id)} · {action.budgetUnits}{" "}
+                    {action.budgetUnits === 1 ? "unit" : "units"}
                   </option>
                 ))}
             </select>
@@ -447,10 +447,9 @@ function Workspace({ catalog }: { catalog: NetworkCatalog }) {
   const [strategyOpened, setStrategyOpened] = useState(false);
   return (
     <>
-      <p className="source-identifiers">{catalog.graphSource}</p>
       <p>
-        Fictional facilities and links. This backend graph is separate from the
-        atlas road fixture.
+        Explore how assumed closures and protection affect access to a fictional
+        clinic and shelter.
       </p>
       <div
         className="network-tabs"
@@ -483,46 +482,60 @@ function Workspace({ catalog }: { catalog: NetworkCatalog }) {
           <Strategy catalog={catalog} />
         </div>
       )}
+      <details className="network-disclosure">
+        <summary>Network source</summary>
+        <p>This planning example uses its own schematic network.</p>
+        <p className="source-identifiers">{catalog.graphSource}</p>
+      </details>
     </>
   );
 }
 export function NetworkComparison() {
+  const [opened, setOpened] = useState(false);
   const query = useQuery({
     queryKey: ["houston-graph"],
     queryFn: ({ signal }) =>
       fetchNetworkCatalog("houston-gulf-coast", { signal }),
     staleTime: 60_000,
+    enabled: opened,
     retry: false,
   });
   return (
-    <section
-      className="network-controls notebook-section"
-      aria-label="Backend network planning"
+    <details
+      className="comparison-detail"
+      onToggle={(event) => {
+        if (event.currentTarget.open) setOpened(true);
+      }}
     >
-      <h3>Backend graph</h3>
-      {query.data?.catalog ? (
-        <Workspace
-          key={query.data.catalog.graphSource}
-          catalog={query.data.catalog}
-        />
-      ) : (
-        <>
-          <p role="status">
-            {query.isFetching
-              ? "Checking graph availability…"
-              : "Unavailable. The atlas still uses its separate local road fixture."}
-          </p>
-          {!query.isFetching && (
-            <button
-              type="button"
-              className="network-text-button"
-              onClick={() => void query.refetch()}
-            >
-              Check backend again
-            </button>
-          )}
-        </>
-      )}
-    </section>
+      <summary>Infrastructure network</summary>
+      <section
+        className="network-controls notebook-section"
+        aria-label="Infrastructure network planning"
+      >
+        {query.data?.catalog ? (
+          <Workspace
+            key={query.data.catalog.graphSource}
+            catalog={query.data.catalog}
+          />
+        ) : (
+          <>
+            <p role="status">
+              {!opened || query.isFetching
+                ? "Opening the network…"
+                : "The network service is unavailable. You can still compare roads on the atlas."}
+            </p>
+            {!query.isFetching && (
+              <button
+                type="button"
+                className="network-text-button"
+                onClick={() => void query.refetch()}
+              >
+                Retry connection
+              </button>
+            )}
+          </>
+        )}
+      </section>
+    </details>
   );
 }
