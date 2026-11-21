@@ -8,20 +8,20 @@
   color: var(--comparison-ink);
   font: 14px/1.5 var(--body, "Source Sans 3 Variable", sans-serif);
 }
-.scenario-comparison-map .comparison-map-heading {
+.scenario-comparison-map .comparison-map-instruction {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 10px;
 }
-.scenario-comparison-map .comparison-map-heading h3 {
+.scenario-comparison-map .comparison-map-instruction p {
   margin: 0;
   color: inherit;
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: 400;
 }
-.scenario-comparison-map .comparison-map-heading > span {
+.scenario-comparison-map .comparison-map-instruction > span {
   flex: none;
   font-variant-numeric: tabular-nums;
 }
@@ -93,6 +93,7 @@
 }
 .scenario-comparison-map .comparison-map-sides {
   position: absolute;
+  z-index: 2;
   inset: 12px 12px auto;
   display: flex;
   justify-content: space-between;
@@ -152,35 +153,57 @@
   font-size: 16px;
   font-family: sans-serif;
 }
-.scenario-comparison-map .comparison-map-control {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: center;
-  gap: 0 12px;
-  padding-top: 10px;
-}
-.scenario-comparison-map .comparison-map-control label { font-weight: 600; }
-.scenario-comparison-map .comparison-map-control output {
-  color: var(--comparison-muted);
-  font-size: 13px;
-  font-variant-numeric: tabular-nums;
-}
-.scenario-comparison-map .comparison-map-control input {
-  box-sizing: border-box;
-  grid-column: 1 / -1;
-  width: 100%;
+.scenario-comparison-map .comparison-map-slider {
+  position: absolute;
+  top: 50%;
+  width: 44px;
   height: 44px;
+  padding: 0;
   margin: 0;
-  accent-color: var(--comparison-accent);
-  cursor: ew-resize;
+  opacity: 0;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  border: 0;
+  outline: none;
 }
-.scenario-comparison-map .comparison-map-control input:focus-visible {
-  outline: 2px solid var(--comparison-accent);
-  outline-offset: 2px;
+.scenario-comparison-map .comparison-map-slider:focus-visible {
+  outline: none;
+  box-shadow: none;
 }
 .scenario-comparison-map:has(input:focus-visible) .comparison-map-divider > span {
   outline: 3px solid #983f24;
   outline-offset: 3px;
+}
+.scenario-comparison-map .comparison-map-credit {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 2px 16px;
+  padding-top: 8px;
+  color: var(--comparison-muted);
+  font-size: 12px;
+}
+.scenario-comparison-map .comparison-map-credit a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: inherit;
+  text-underline-offset: 3px;
+}
+.scenario-comparison-map .comparison-map-disclosure > summary {
+  display: list-item;
+  box-sizing: border-box;
+  min-height: 44px;
+  padding-block: 10px;
+  color: var(--comparison-muted);
+  cursor: pointer;
+  font-size: 13px;
+}
+.scenario-comparison-map .comparison-map-disclosure > summary:focus-visible,
+.scenario-comparison-map .comparison-map-credit a:focus-visible {
+  outline: 2px solid var(--comparison-accent);
+  outline-offset: 2px;
 }
 .scenario-comparison-map .comparison-map-key {
   display: flex;
@@ -211,7 +234,6 @@
   font-size: 13px;
   line-height: 1.5;
 }
-.scenario-comparison-map figcaption .comparison-map-attribution { font-size: 12px; }
 .scenario-comparison-map .comparison-map-fallback {
   position: absolute;
   right: 12px;
@@ -240,8 +262,5 @@
   outline-offset: 2px;
 }
 @media (max-width: 480px) {
-  .scenario-comparison-map .comparison-map-control { grid-template-columns: 1fr; }
-  .scenario-comparison-map .comparison-map-control output { margin-top: 2px; }
-  .scenario-comparison-map .comparison-map-control input { grid-column: 1; }
   .scenario-comparison-map .comparison-map-sides { inset: 8px 8px auto; }
 }

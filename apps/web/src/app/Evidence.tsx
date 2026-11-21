@@ -198,10 +198,6 @@ export function Comparison({
       className="notebook-page comparison-page"
       aria-label="Baseline and alternative comparison"
     >
-      <header className="notebook-heading">
-        <h2>Before & after</h2>
-        <p>The open-road baseline and your edited scenario, at the same timeline position.</p>
-      </header>
       <ScenarioComparisonMap baseline={baseline} edited={state} />
       <details className="comparison-detail">
         <summary>Comparison details &amp; evidence</summary>

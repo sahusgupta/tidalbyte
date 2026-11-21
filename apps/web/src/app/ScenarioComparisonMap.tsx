@@ -7,13 +7,15 @@ import {
   type Point,
 } from "../atlas/domain";
 import { timeLabel } from "./FieldTools";
+import aerialManifest from "../../public/map/provenance.json";
 import "./comparison-map.css";
 
 const WIDTH = 1000;
-// WGS84 export bounds from public/map/provenance.json, not image-derived geometry.
-const AERIAL = [-95.9, 29.249921875, -94.7, 30.200078125] as const;
-const DETAIL = [-95.570036869, 29.6, -95.079963131, 29.96] as const;
 type Bounds = readonly [number, number, number, number];
+const archives = aerialManifest.assets.map(({ file, bboxWgs84 }) => {
+  const [west, south, east, north] = bboxWgs84;
+  return { file, url: `/map/${file}`, bounds: [west, south, east, north] as const };
+});
 
 function projection(points: Point[], aspect: number, unitsPerPixel: number) {
   const height = WIDTH / aspect;
@@ -103,11 +105,11 @@ export function ScenarioComparisonMap({
 }) {
   const id = useId().replace(/:/g, "");
   const frame = useRef<HTMLDivElement>(null);
+  const slider = useRef<HTMLInputElement>(null);
   const [split, setSplit] = useState(50);
   const [aspect, setAspect] = useState(1.6);
   const [unitsPerPixel, setUnitsPerPixel] = useState(1);
-  const [aerialAvailable, setAerialAvailable] = useState(true);
-  const [detailAvailable, setDetailAvailable] = useState(true);
+  const [failedArchives, setFailedArchives] = useState<string[]>([]);
   useEffect(() => {
     const element = frame.current;
     if (!element) return;
@@ -141,9 +143,9 @@ export function ScenarioComparisonMap({
   const summary = `${split}% baseline, ${100 - split}% edited`;
 
   return (
-    <figure className="scenario-comparison-map" aria-labelledby={`${id}-caption`}>
-      <div className="comparison-map-heading">
-        <h3>Geographic comparison</h3>
+    <figure className="scenario-comparison-map" aria-label="Baseline and edited scenario map">
+      <div className="comparison-map-instruction">
+        <p id={`${id}-help`}>Drag the divider or use arrow keys.</p>
         <span>T+{time}</span>
       </div>
       <div
@@ -151,6 +153,8 @@ export function ScenarioComparisonMap({
         className="comparison-map-frame"
         onPointerDown={(event) => {
           if (!event.isPrimary || event.button !== 0) return;
+          event.preventDefault();
+          slider.current?.focus({ preventScroll: true });
           event.currentTarget.setPointerCapture(event.pointerId);
           moveDivider(event);
         }}
@@ -170,7 +174,7 @@ export function ScenarioComparisonMap({
           <title id={`${id}-title`}>Baseline and edited Houston scenario swipe map</title>
           <desc id={`${id}-description`}>
             Shared archival aerial, north up. Baseline on the left; edited geometry and assumed
-            closures on the right, both at T+{time}. Use the slider below to reveal either side.
+            closures on the right, both at T+{time}. Use the divider to reveal either side.
             Roads are an authored schematic, not surveyed streets. No flood depth or road safety
             is inferred.
           </desc>
@@ -183,22 +187,15 @@ export function ScenarioComparisonMap({
             </clipPath>
           </defs>
           <rect className="comparison-map-ground" width={WIDTH} height={project.height} />
-          {aerialAvailable && (
+          {archives.filter(({ file }) => !failedArchives.includes(file)).map((archive) => (
             <image
-              href="/map/houston-usgs.webp"
-              {...project.image(AERIAL)}
+              key={archive.file}
+              href={archive.url}
+              {...project.image(archive.bounds)}
               preserveAspectRatio="none"
-              onError={() => setAerialAvailable(false)}
+              onError={() => setFailedArchives((failed) => [...new Set([...failed, archive.file])])}
             />
-          )}
-          {detailAvailable && (
-            <image
-              href="/map/houston-detail-usgs.webp"
-              {...project.image(DETAIL)}
-              preserveAspectRatio="none"
-              onError={() => setDetailAvailable(false)}
-            />
-          )}
+          ))}
           <rect className="comparison-map-wash" width={WIDTH} height={project.height} />
           <g clipPath={`url(#${baselineClip})`}>
             <ScenarioOverlay snapshot={baseline} project={project} side="baseline" />
@@ -219,17 +216,11 @@ export function ScenarioComparisonMap({
         <span className="comparison-map-divider" style={{ left: `${split}%` }} aria-hidden="true">
           <span>↔</span>
         </span>
-        {!aerialAvailable && (
-          <span className="comparison-map-fallback" role="status">
-            Regional aerial unavailable; geometry remains geographically aligned.
-          </span>
-        )}
-      </div>
-      <div className="comparison-map-control">
-        <label htmlFor={`${id}-slider`}>Drag to compare</label>
-        <output htmlFor={`${id}-slider`}>{summary}</output>
         <input
+          ref={slider}
           id={`${id}-slider`}
+          className="comparison-map-slider"
+          style={{ left: `${split}%` }}
           type="range"
           min="0"
           max="100"
@@ -237,22 +228,34 @@ export function ScenarioComparisonMap({
           value={split}
           aria-label="Baseline and edited map divider"
           aria-valuetext={summary}
-          aria-describedby={`${id}-caption`}
+          aria-describedby={`${id}-help ${id}-scope`}
           onChange={(event) => setSplit(Number(event.target.value))}
         />
+        {failedArchives.length > 0 && (
+          <span className="comparison-map-fallback" role="status">
+            {failedArchives.length === archives.length ? "Archival aerial unavailable" : "Some archival imagery unavailable"};
+            geometry remains geographically aligned.
+          </span>
+        )}
       </div>
-      <figcaption id={`${id}-caption`}>
-        <ul className="comparison-map-key" aria-label="Map legend">
-          <li><i className={`key-geometry ${edited.mode}`} />{edited.mode === "hurricane" ? "Hypothetical track & 6 km footprint" : "Illustrative flood footprint"}</li>
-          <li><i className="key-road" />Open schematic link</li>
-          <li><i className="key-closure" />Assumed closure</li>
-          <li><i className="key-disconnected" />Disconnected open link</li>
-        </ul>
-        <p>Seeded geometry and open sample roads versus your edits and
-          {` ${edited.closedRoadIds.length} assumed ${edited.closedRoadIds.length === 1 ? "closure" : "closures"}`}.
-          Same scenario clock; road flood exposure is unknown.</p>
-        <p className="comparison-map-attribution">USDA / USGS archival aerial · NAIP 2017–2021 source period, mixed dates.
-          Same imagery on both sides, not observed change.</p>
+      <figcaption>
+        <div className="comparison-map-credit">
+          <span id={`${id}-scope`}>Illustrative scenarios</span>
+          <a href={aerialManifest.serviceUrl} target="_blank" rel="noreferrer">USDA / USGS aerial</a>
+        </div>
+        <details className="comparison-map-disclosure">
+          <summary>Legend &amp; sources</summary>
+          <ul className="comparison-map-key" aria-label="Map legend">
+            <li><i className={`key-geometry ${edited.mode}`} />{edited.mode === "hurricane" ? "Hypothetical track & 6 km footprint" : "Illustrative flood footprint"}</li>
+            <li><i className="key-road" />Open schematic link</li>
+            <li><i className="key-closure" />Assumed closure</li>
+            <li><i className="key-disconnected" />Disconnected open link</li>
+          </ul>
+          <p>Seeded geometry and open sample roads versus your edits and
+            {` ${edited.closedRoadIds.length} assumed ${edited.closedRoadIds.length === 1 ? "closure" : "closures"}`}.
+            Same scenario clock; road flood exposure is unknown.</p>
+          <p>{aerialManifest.sourcePeriod}. Same imagery on both sides, not observed change.</p>
+        </details>
       </figcaption>
     </figure>
   );
