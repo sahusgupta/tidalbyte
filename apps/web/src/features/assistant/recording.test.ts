@@ -28,7 +28,15 @@ function setup() {
   const controller = new AbortController();
   const onComplete = vi.fn();
   const onError = vi.fn();
-  return { track, stream, recorder, dependencies, controller, onComplete, onError };
+  return {
+    track,
+    stream,
+    recorder,
+    dependencies,
+    controller,
+    onComplete,
+    onError,
+  };
 }
 afterEach(() => vi.useRealTimers());
 
@@ -36,21 +44,31 @@ describe("voice recording lifecycle", () => {
   it("stops microphone tracks and returns audio after an explicit stop", async () => {
     const state = setup();
     const session = await startAudioRecording(
-      { signal: state.controller.signal, onComplete: state.onComplete, onError: state.onError },
+      {
+        signal: state.controller.signal,
+        onComplete: state.onComplete,
+        onError: state.onError,
+      },
       state.dependencies,
     );
     expect(state.recorder.state).toBe("recording");
     session.stop();
     expect(state.track.stop).toHaveBeenCalled();
     expect(state.onComplete).toHaveBeenCalledOnce();
-    expect(await (state.onComplete.mock.calls[0][0] as Blob).text()).toBe("recorded-audio");
+    expect(await (state.onComplete.mock.calls[0][0] as Blob).text()).toBe(
+      "recorded-audio",
+    );
     expect(state.onError).not.toHaveBeenCalled();
   });
 
   it("discards audio and releases tracks when unmounted or cancelled", async () => {
     const state = setup();
     await startAudioRecording(
-      { signal: state.controller.signal, onComplete: state.onComplete, onError: state.onError },
+      {
+        signal: state.controller.signal,
+        onComplete: state.onComplete,
+        onError: state.onError,
+      },
       state.dependencies,
     );
     state.controller.abort();
@@ -66,7 +84,11 @@ describe("voice recording lifecycle", () => {
         resolve = result;
       });
     const pending = startAudioRecording(
-      { signal: state.controller.signal, onComplete: state.onComplete, onError: state.onError },
+      {
+        signal: state.controller.signal,
+        onComplete: state.onComplete,
+        onError: state.onError,
+      },
       state.dependencies,
     );
     state.controller.abort();
@@ -101,7 +123,11 @@ describe("voice recording lifecycle", () => {
     };
     await expect(
       startAudioRecording(
-        { signal: state.controller.signal, onComplete: state.onComplete, onError: state.onError },
+        {
+          signal: state.controller.signal,
+          onComplete: state.onComplete,
+          onError: state.onError,
+        },
         state.dependencies,
       ),
     ).rejects.toThrow("Unsupported recorder");
@@ -111,12 +137,40 @@ describe("voice recording lifecycle", () => {
   it("releases the microphone and reports a recorder failure without uploading audio", async () => {
     const state = setup();
     await startAudioRecording(
-      { signal: state.controller.signal, onComplete: state.onComplete, onError: state.onError },
+      {
+        signal: state.controller.signal,
+        onComplete: state.onComplete,
+        onError: state.onError,
+      },
       state.dependencies,
     );
     state.recorder.dispatchEvent(new Event("error"));
     expect(state.track.stop).toHaveBeenCalled();
     expect(state.onError).toHaveBeenCalledOnce();
     expect(state.onComplete).not.toHaveBeenCalled();
+  });
+
+  it("stops and discards a recording that exceeds the server's 4 MiB limit", async () => {
+    const state = setup();
+    await startAudioRecording(
+      {
+        signal: state.controller.signal,
+        onComplete: state.onComplete,
+        onError: state.onError,
+      },
+      state.dependencies,
+    );
+    state.recorder.dispatchEvent(
+      Object.assign(new Event("dataavailable"), {
+        data: new Blob([new Uint8Array(4 * 1024 * 1024 + 1)]),
+      }),
+    );
+    expect(state.track.stop).toHaveBeenCalled();
+    expect(state.onComplete).not.toHaveBeenCalled();
+    expect(state.onError).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: "Recording exceeded the 4 MiB limit.",
+      }),
+    );
   });
 });

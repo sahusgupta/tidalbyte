@@ -1,0 +1,197 @@
+.network-controls {
+  color: var(--ink, #252923);
+}
+.network-controls .network-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 16px 0;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--rule, #d9ddd3);
+}
+.network-controls .network-tabs button,
+.network-controls .network-actions button,
+.network-controls .network-text-button {
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--rule, #d9ddd3);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.network-controls .network-tabs button {
+  border: 0;
+}
+.network-controls .network-tabs button[aria-pressed="true"] {
+  box-shadow: inset 0 -2px var(--accent, #983f24);
+  color: var(--accent, #983f24);
+}
+.network-controls button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.network-controls .network-asset {
+  margin: 16px 0;
+  padding: 12px 0;
+  border: 0;
+  border-top: 1px solid var(--rule, #d9ddd3);
+}
+.network-controls .network-asset legend {
+  padding: 0 8px 0 0;
+  font-weight: 600;
+}
+.network-controls .network-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr));
+  gap: 12px;
+}
+.network-controls .network-fields label {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 5px;
+  color: var(--muted, #535c53);
+  font-size: 13px;
+}
+.network-controls select {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 8px;
+  border: 1px solid var(--rule, #d9ddd3);
+  border-radius: 0;
+  background: var(--paper, #faf8f1);
+  color: var(--ink, #252923);
+  font: inherit;
+  font-size: 15px;
+}
+.network-controls .network-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  margin-top: 8px;
+  font-size: 14px;
+}
+.network-controls .network-check input {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  accent-color: var(--accent, #983f24);
+}
+.network-controls .network-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 8px 0 16px;
+}
+.network-controls .network-actions .notebook-primary {
+  margin: 0;
+  width: auto;
+  min-width: 180px;
+  background: var(--accent, #983f24);
+  color: var(--paper, #faf8f1);
+}
+.network-controls .network-text-button {
+  padding-inline: 0;
+  border: 0;
+  color: var(--accent, #983f24);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.network-controls .network-disclosure {
+  margin-top: 16px;
+  border-top: 1px solid var(--rule, #d9ddd3);
+}
+.network-controls .network-disclosure > summary {
+  min-height: 44px;
+  box-sizing: border-box;
+  padding: 10px 0;
+  font-size: 14px;
+  cursor: pointer;
+}
+.network-controls .network-disclosure li {
+  margin-bottom: 8px;
+  overflow-wrap: anywhere;
+}
+.network-controls .network-preview {
+  margin-top: 20px;
+}
+.network-controls .network-preview > svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  background: #eae8dd;
+}
+.network-controls .network-link {
+  fill: none;
+  stroke: #535c53;
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+.network-controls .network-link.removed {
+  stroke: #983f24;
+  stroke-dasharray: 6 5;
+}
+.network-controls .network-node circle {
+  fill: #faf8f1;
+  stroke: #252923;
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+.network-controls .network-node.removed circle {
+  fill: #d6a28f;
+  stroke-dasharray: 3 2;
+}
+.network-controls .network-node text {
+  fill: #252923;
+  font: 15px sans-serif;
+}
+.network-controls .network-small {
+  font-size: 12px !important;
+}
+.network-controls .network-payoffs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 16px;
+  margin: 20px 0;
+  padding: 16px 0;
+  border-block: 1px solid var(--rule, #d9ddd3);
+}
+.network-controls .network-payoffs span {
+  display: block;
+  font-size: 13px;
+  color: var(--muted, #535c53);
+}
+.network-controls .network-payoffs strong {
+  display: block;
+  font-size: 24px;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+.network-controls .network-payoffs small {
+  font-size: 12px;
+}
+.network-controls .network-outcomes {
+  margin: 16px 0;
+}
+.network-controls .network-outcomes > div {
+  margin-top: 14px;
+}
+.network-controls .network-outcomes dt {
+  font-weight: 600;
+}
+.network-controls .network-outcomes dd {
+  margin: 0;
+}
+.network-controls .network-table-wrap {
+  overflow-x: auto;
+}
+.network-controls :is(button, select, input, summary):focus-visible {
+  outline: 2px solid var(--accent, #983f24);
+  outline-offset: 3px;
+}
