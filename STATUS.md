@@ -4,7 +4,7 @@
 
 The [resource planning integration](https://github.com/sahusgupta/tidalbyte/pull/5) adds mitigation and response to the Houston atlas. Open **Study menu → Resource planning**, or run `pnpm demo:allocation` for both cases. The [planning handoff](docs/handoffs/houston-resource-planning.md) covers the API, computed example, desktop and touch controls, tests and model assumptions.
 
-The four additional AquaGrid regions have local geography, full-default trained surrogate models and checked regional hospital destinations. The five-region catalog includes Downtown. Run `python -m aquagrid.prepare_zones` from `simulator/backend` with the simulator environment on another machine. Large artifacts stay local. Regional flood models use a process simulator as their training target. The allocation engine uses a separate fictional five-link graph.
+All eight desktop and emulated-touch cases passed for Medical Center, Meyerland, Ship Channel and Kingwood. Each zone opened its own region, changed modeled road and building depths during playback and submitted a single pin request that returned a route to its selected emergency facility. The five-region catalog includes Downtown. Run `python -m aquagrid.prepare_zones` from `simulator/backend` with the simulator environment on another machine. Regional flood models use a process simulator as their training target. The allocation engine uses a separate fictional five-link graph. See the [regional training handoff](docs/handoffs/houston-simulator-zones.md) and [browser checks](simulator/qa/README.md).
 
 The current shared API version is 1.1.0. FastAPI computes the three feasible portfolios and completion frames. The command controller requires confirmation, and optional ElevenLabs narration reads the displayed result. The historical bootstrap notes below describe earlier milestones.
 
@@ -16,11 +16,11 @@ and [simulator setup](simulator/README.md).
 
 | Workstream | Owner | Branch | Status | Next integration |
 |---|---|---|---|---|
-| Lead/contracts/CI | Codex lead | codex/houston-atlas-redesign | Combined OpenAPI and CI for both web applications | Pull main before continuing a workstream |
-| Globe/UI | Frontend | feat/globe-sharp-zoom-sim and codex/houston-atlas-redesign | Houston editor, Earth index, five simulator zone links and optional full-stack launcher | Prepare the regions needed for the demo |
+| Lead/contracts/CI | Codex lead | integrate/houston-resource-planning | v1.1 allocation contracts, integrated OpenAPI and CI | Pull main before continuing a workstream |
+| Globe/UI | Frontend | integrate/houston-resource-planning | Houston editor, planning inspector and playback, Earth index and five prepared simulator regions | Rebuild ignored regional artifacts on each demonstration machine |
 | ML/data | ML/data | feat/ml-harvey-peak-flood | Training pipelines and evaluations merged in PR #2 | Transfer weights and connect the county model to the API. See the [ML handoff](docs/handoffs/feat-ml-harvey-peak-flood.md). |
-| Infrastructure/graph | Graph | feat/graph-infra-game-theory | NetworkX fixture, comparison, preview and two-agency game | See the [graph handoff](docs/handoffs/graph-infra-game-theory.md) |
-| AI/voice | AI/voice | feat/voice-gemini-elevenlabs | Validated proposals, transcription, labeled keyless examples, optional live providers | Credentialed rehearsal for Gemini and ElevenLabs. Speech synthesis remains reserved |
+| Infrastructure/graph | Graph | feat/graph-allocation-engine | Constrained independent, coordinated and bargaining strategies on the NetworkX fixture | See the [planning handoff](docs/handoffs/houston-resource-planning.md) |
+| AI/voice | AI/voice | codex/planning-command-voice | Confirmed planning edits, transcription and optional computed-summary narration | Credentialed rehearsal for Gemini and ElevenLabs |
 
 ## Contracts
 
