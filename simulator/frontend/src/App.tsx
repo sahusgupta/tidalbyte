@@ -1,5 +1,5 @@
 import { useCallback, useDeferredValue, useEffect, useRef, useState } from 'react'
-import { Droplets, Layers3, LoaderCircle, PanelLeftOpen, PanelRightOpen, Play, Square } from 'lucide-react'
+import { Volume2, VolumeX, Droplets, Layers3, LoaderCircle, PanelLeftOpen, PanelRightOpen, Play, Square } from 'lucide-react'
 import {
   api,
   chooseRegion,
@@ -19,6 +19,7 @@ import ControlPanel from './components/ControlPanel'
 import EventControls, { insideRegion, MAX_TRACK_POINTS, type EventSettings } from './components/EventControls'
 import ImpactPanel from './components/ImpactPanel'
 import Legend from './components/Legend'
+import { createStormAudio } from './lib/stormAudio'
 import RainOverlay from './components/RainOverlay'
 
 type Dest = { id?: string; lonlat?: LonLat }
@@ -54,6 +55,32 @@ export default function App() {
   const [controls, setControls] = useState<Scenario>(BASELINE)
   const [preset, setPreset] = useState<string | null>(null)
   const [weather, setWeather] = useState<Awaited<ReturnType<typeof currentWeather>> | null>(null)
+  const [sound, setSound] = useState<AudioContext | null>(null)
+  const stormSound = useRef<ReturnType<typeof createStormAudio> | null>(null)
+  useEffect(() => {
+    if (!sound) return
+    stormSound.current = createStormAudio(sound, () => setSound(current => current === sound ? null : current))
+    const visibility = () => {
+      const action = document.hidden ? sound.suspend() : sound.resume()
+      void action.catch(() => {})
+    }
+    document.addEventListener('visibilitychange', visibility)
+    return () => {
+      document.removeEventListener('visibilitychange', visibility)
+      stormSound.current?.dispose()
+      stormSound.current = null
+      void sound.close()
+    }
+  }, [sound])
+  useEffect(() => {
+    stormSound.current?.update(meta?.region.id === region ? controls.rain : 0)
+  }, [sound, controls.rain, meta, region])
+  const toggleSound = () => {
+    if (sound) { setSound(null); return }
+    const context = new AudioContext()
+    void context.resume().catch(() => setSound(current => current === context ? null : current))
+    setSound(context)
+  }
   const [vehicle, setVehicle] = useState('ambulance')
   const [hospital, setHospital] = useState('')
   const [dest, setDest] = useState<Dest>({})
@@ -342,6 +369,9 @@ export default function App() {
       <header className="sim-header" inert={modal}>
         {EMBEDDED ? <div className="sim-embed-title">{scenarioLabel}<span>{scenarioDetail}</span></div> : <div className="sim-brand"><Droplets size={25} aria-hidden="true" /><span>EarthLab</span><span className="sim-product">Houston simulator</span></div>}
         <nav aria-label="Simulator panels">
+          {typeof AudioContext !== 'undefined' && <button type="button" aria-label="Storm sound" title={sound ? 'Mute storm sound' : 'Enable storm sound'} aria-pressed={!!sound} onClick={toggleSound}>
+            {sound ? <Volume2 size={18} /> : <VolumeX size={18} />}<span>Sound {sound ? 'on' : 'off'}</span>
+          </button>}
           <button type="button" id="show-storm" aria-label="Storm controls" aria-expanded={panel === 'storm'} aria-controls="sim-panel" onClick={() => openPanel('storm')}><PanelLeftOpen size={18} aria-hidden="true" /><span>Storm controls</span></button>
           <button type="button" id="show-impact" aria-label="Impact and routing" aria-expanded={panel === 'impact'} aria-controls="sim-panel" onClick={() => openPanel('impact')}><PanelRightOpen size={18} aria-hidden="true" /><span>Impact & routing</span></button>
           <button type="button" aria-label="Map layers" aria-expanded={panel === 'layers'} aria-controls="sim-panel" onClick={() => openPanel('layers')}><Layers3 size={18} aria-hidden="true" /><span>Map layers</span></button>

@@ -88,6 +88,55 @@ export default function Landing({ chooseArea = false, onCloseChooser }: { choose
       globe?.destroy();
     };
   }, []);
+  useEffect(() => {
+    if (typeof AudioContext === 'undefined') return;
+    const journeySound = new AudioContext();
+    const unlock = () => {
+      if (journeySound.state === 'suspended') void journeySound.resume().catch(() => {});
+    };
+    const root = scroller.current!;
+    let lastPosition = root.scrollTop;
+    let lastMove = performance.now();
+    let idle: ReturnType<typeof setTimeout>;
+    const tone = journeySound.createOscillator();
+    tone.type = 'sine';
+    tone.frequency.value = 160;
+    const gain = journeySound.createGain();
+    gain.gain.value = 0;
+    tone.connect(gain).connect(journeySound.destination);
+    tone.start();
+    const fade = () => gain.gain.setTargetAtTime(0, journeySound.currentTime, 0.055);
+    const onScroll = () => {
+      const position = root.scrollTop;
+      const distance = Math.abs(position - lastPosition);
+      lastPosition = position;
+      if (!distance || document.hidden || chooser.current?.open) return;
+      if (journeySound.state !== 'running') return;
+      const now = performance.now();
+      const speed = Math.min(1, distance / Math.max(8, now - lastMove));
+      lastMove = now;
+      const progress = Math.max(0, Math.min(1, position / Math.max(1, root.scrollHeight - root.clientHeight)));
+      const time = journeySound.currentTime;
+      // Absolute scroll depth makes reversals glide back along the same pitch curve.
+      tone.frequency.setTargetAtTime(160 + 16 * progress, time, 0.085);
+      gain.gain.setTargetAtTime(0.012 + speed * 0.008, time, 0.065);
+      clearTimeout(idle);
+      idle = setTimeout(fade, 135);
+    };
+    const gestures = ['pointerdown', 'pointerup', 'click', 'keydown'] as const;
+    gestures.forEach(event => root.addEventListener(event, unlock, { capture: true, passive: true }));
+    root.addEventListener('scroll', onScroll, { passive: true });
+    document.addEventListener('visibilitychange', fade);
+    return () => {
+      clearTimeout(idle);
+      gestures.forEach(event => root.removeEventListener(event, unlock, true));
+      root.removeEventListener('scroll', onScroll);
+      document.removeEventListener('visibilitychange', fade);
+      tone.stop();
+      gain.disconnect();
+      void journeySound.close();
+    };
+  }, []);
   const beginJourney = () => {
     const root = scroller.current;
     if (!root) return;
