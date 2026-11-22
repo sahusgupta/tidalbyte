@@ -396,7 +396,7 @@ export default function App() {
     <div className={`sim-shell ${panel ? 'has-panel' : ''} ${EMBEDDED ? 'is-embedded' : ''}`}>
       <a className="sim-skip" href="#sim-map">Skip to map</a>
       <header className="sim-header" inert={modal}>
-        {EMBEDDED ? <div className="sim-embed-title">{scenarioLabel}<span>{scenarioDetail}</span></div> : <div className="sim-brand"><Droplets size={25} aria-hidden="true" /><span>EarthLab</span><span className="sim-product">Houston simulator</span></div>}
+        {EMBEDDED ? <div className="sim-embed-title">{scenarioLabel}<span>{scenarioDetail}</span></div> : <div className="sim-brand"><Droplets size={25} aria-hidden="true" /><span>flŭd</span><span className="sim-product">Houston simulator</span></div>}
         <nav aria-label="Simulator panels">
           {typeof AudioContext !== 'undefined' && <button type="button" aria-label="Storm sound" title={sound ? 'Mute storm sound' : 'Enable storm sound'} aria-pressed={!!sound} onClick={toggleSound}>
             {sound ? <Volume2 size={18} /> : <VolumeX size={18} />}<span>Sound {sound ? 'on' : 'off'}</span>
@@ -467,7 +467,7 @@ function Splash({ error, name }: { error?: string; name?: string }) {
     <main className="sim-splash">
       <div className="sim-splash-content">
         <Droplets size={32} aria-hidden="true" />
-        <span>EarthLab · Houston simulator</span>
+        <span>flŭd · Houston simulator</span>
         <h1>{error ? missingData ? 'No prepared Houston dataset' : 'Simulation service unavailable' : 'Opening the Houston scene'}</h1>
         {error ? <>
           <p>{missingData ? 'The API is connected, but no simulation region has been built. Prepare or supply a Houston dataset, then retry.' : 'The simulator could not load its API or region data. Check the local service, then retry.'}</p>

@@ -146,9 +146,9 @@ export default function Landing({ chooseArea = false, onCloseChooser }: { choose
     });
   };
   return <div className="landing" ref={scroller}>
-    <a className="landing-skip" href="#/simulate">Skip introduction and open EarthLab</a>
+    <a className="landing-skip" href="#/simulate">Skip introduction and open flŭd</a>
     <header className="landing-header">
-      <a href="#/" className="landing-brand" aria-label="EarthLab home"><Icon name="globe" size={25} />EarthLab</a>
+      <a href="#/" className="landing-brand" aria-label="flŭd home"><Icon name="globe" size={25} />flŭd</a>
     </header>
     <div className="landing-visual" ref={stage} aria-hidden="true">
       <div className="landing-stars" />
@@ -163,7 +163,7 @@ export default function Landing({ chooseArea = false, onCloseChooser }: { choose
         <a className="landing-scroll" href="#landing-earth" onClick={e => { e.preventDefault(); beginJourney(); }}>Scroll to see the bigger picture <Icon name="down" size={18} /></a>
       </section>
       <section id="landing-earth" className="landing-chapter landing-orbit"><div className="landing-copy"><h2>One planet.<br />Our corner of it.</h2><p>Start with Earth. Follow the Gulf Coast to the bayous, neighborhoods and streets of Houston.</p><button className="landing-text-link" onClick={() => scroller.current?.scrollTo({ top: scroller.current.scrollHeight, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' })}>Continue down to Houston <Icon name="down" size={15} /></button></div></section>
-      <section className="landing-chapter landing-houston"><div className="landing-copy"><h2>Down to<br />street level.</h2><p>Change a storm. Compare its modeled impact. Trace a route through the scenario.</p><a className="landing-primary" href="#/simulate">Open EarthLab <Icon name="arrow" size={18} /></a><small>Exploratory scenarios, not live emergency guidance.</small></div></section>
+      <section className="landing-chapter landing-houston"><div className="landing-copy"><h2>Down to<br />street level.</h2><p>Change a storm. Compare its modeled impact. Trace a route through the scenario.</p><a className="landing-primary" href="#/simulate">Open flŭd <Icon name="arrow" size={18} /></a><small>Exploratory scenarios, not live emergency guidance.</small></div></section>
     </main>
     <dialog className="area-chooser" ref={chooser} aria-labelledby="area-title" onCancel={onCloseChooser}>
       <div className="area-heading"><h2 id="area-title">Where in Houston?</h2><button type="button" onClick={onCloseChooser} aria-label="Close area selection">Close</button></div>

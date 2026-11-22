@@ -143,7 +143,7 @@ for (const id of zones) {
     try {
       step('product-landing-area-simulator')
       await page.goto(atlas, { waitUntil: 'domcontentloaded' })
-      await tap(page, page.getByRole('link', { name: 'Open EarthLab', exact: true }), mobile)
+      await tap(page, page.getByRole('link', { name: 'Open flŭd', exact: true }), mobile)
       await page.waitForURL(url => url.hash === '#/simulate')
       const areas = page.getByRole('navigation', { name: 'Houston simulation areas' })
       await tap(page, areas.locator(`a[href="#/zone/${id}"]`), mobile)

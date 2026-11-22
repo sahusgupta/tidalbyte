@@ -8,7 +8,7 @@ export function Root() {
   const [route, navigate] = useHashRoute();
   const zone = route.name === "zone" ? findZone(route.zoneId) : undefined;
   useEffect(() => {
-    document.title = `${zone?.name ?? "Houston flood simulation"} · EarthLab`;
+    document.title = `${zone?.name ?? "Houston flood simulation"} · flŭd`;
   }, [route.name, zone]);
   if (zone) return <SimulatorHost key={zone.id} zone={zone}
     onExit={() => navigate({ name: "landing" })} onHome={() => navigate({ name: "landing" })}

@@ -21,7 +21,7 @@ to an existing Chrome executable. Node 20+ is required. Dependencies are pinned 
 the package lock; this package is separate from production frontend dependencies.
 
 For each region, desktop (1440×900) and **emulated touch** (390×844) runs navigate
-the product landing page via **Open EarthLab**, then the Houston area chooser. The checks require the region heading,
+the product landing page via **Open flŭd**, then the Houston area chooser. The checks require the region heading,
 iframe zone, road and building datasets, and simulation endpoint to match the requested region,
 with no fallback notice. A WebGL probe requires the building layer to draw extruded
 walls in the selected region. The checks select a storm through the UI, play it, and require

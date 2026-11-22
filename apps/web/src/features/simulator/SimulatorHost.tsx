@@ -163,7 +163,7 @@ export function SimulatorHost({
         </button>
         <div className="sim-title">
           <span className="sim-eyebrow">
-            {url ? "EarthLab · Flood simulation" : "Selected Houston area"}
+            {url ? "flŭd · Flood simulation" : "Selected Houston area"}
           </span>
           <h2 id="sim-title" ref={heading} tabIndex={-1}>
             {zone.name}
@@ -221,7 +221,7 @@ export function SimulatorHost({
           {(connection.phase !== "ready" || connection.message) && (
             <div className="sim-status" role="status" aria-live="polite">
               <span>
-                {connection.message || "Loading EarthLab simulation…"}
+                {connection.message || "Loading flŭd simulation…"}
               </span>
               {(connection.phase === "slow" ||
                 connection.phase === "error") && (
@@ -233,7 +233,7 @@ export function SimulatorHost({
                     Retry connection
                   </button>
                   <button type="button" onClick={onHome}>
-                    Back to EarthLab home
+                    Back to flŭd home
                   </button>
                 </div>
               )}
@@ -248,7 +248,7 @@ export function SimulatorHost({
           </div>
           <div className="sim-editor-callout">
             <button type="button" className="sim-primary" onClick={onHome}>
-              Back to EarthLab home <span aria-hidden="true">↗</span>
+              Back to flŭd home <span aria-hidden="true">↗</span>
             </button>
             <p>
               Return home or choose another Houston area.

@@ -28,7 +28,7 @@ try {
       if (request.url().endsWith('/adaptation')) requests.push(request.postDataJSON())
     })
     await page.goto(atlas)
-    await click(page.getByRole('link', { name: 'Open EarthLab', exact: true }))
+    await click(page.getByRole('link', { name: 'Open flŭd', exact: true }))
     await click(page.getByRole('navigation', { name: 'Houston simulation areas' }).locator(`a[href="#/zone/${zone}"]`))
     const frame = page.frameLocator('.sim iframe')
     await click(frame.getByRole('button', { name: 'Storm controls', exact: true }))
