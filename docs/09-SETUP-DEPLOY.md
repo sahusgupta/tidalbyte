@@ -20,7 +20,7 @@ The county endpoint currently serves the offline Houston example.
 
 ## Release the Houston simulator on Vercel
 
-Prepare all five regions using the [simulator setup](../simulator/README.md), install the atlas and simulator frontend dependencies and run the test suites. The release command builds both interfaces for the same origin, exports the regional models' numeric inputs and copies the geometry to the CDN. Each flood function loads its own zone. The EarthLab function handles the allocation API. Example on Windows from the repository root:
+Prepare all five regions using the [simulator setup](../simulator/README.md), install the atlas and simulator frontend dependencies and run the test suites. The release command builds both interfaces for the same origin, exports the regional models' numeric inputs and copies the geometry to the CDN. A Python function serves AquaGrid and EarthLab with a bounded cache of recently used regions. On Windows, run these commands from the repository root.
 
 ```powershell
 $releaseDir = Join-Path $env:TEMP ("earthlab-release-" + (Get-Date -Format yyyyMMdd-HHmmss))

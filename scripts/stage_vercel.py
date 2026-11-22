@@ -18,30 +18,6 @@ from aquagrid.catalog import public_meta  # noqa: E402
 from aquagrid.runtime_data import export_runtime_bundle  # noqa: E402
 
 
-def configure_regions(out):
-    """Keep only one region's model and arrays in each Vercel function."""
-    config_path = out / "vercel.json"
-    config = json.loads(config_path.read_text())
-    default_options = config["functions"]["api/flood.py"]
-    routes = []
-    catalog = []
-    for region in HOUSTON_ZONES:
-        function = "flood" if region.id == DEFAULT_REGION else "flood_" + region.id.replace("-", "_")
-        entry = f"api/{function}.py"
-        if region.id != DEFAULT_REGION:
-            shutil.copyfile(out / "api/flood.py", out / entry)
-        excluded = ["public/**", "apps/**", "packages/**", "contracts/**", "data/**"]
-        excluded.extend(f"simulator/data/processed/{other.id}/**" for other in HOUSTON_ZONES if other != region)
-        config["functions"][entry] = {**default_options, "excludeFiles": "{" + ",".join(excluded) + "}"}
-        routes.append({"source": f"/api/regions/{region.id}/:path*", "destination": f"/api/{function}"})
-        catalog.append(dict(id=region.id, name=region.name, bbox=region.bbox, default=region.id == DEFAULT_REGION, built=True))
-        (out / f"public/geometry/{region.id}/meta.json").write_text(json.dumps(public_meta(region)))
-    (out / "public/geometry/regions.json").write_text(json.dumps(catalog))
-    fallback = next(i for i, route in enumerate(config["rewrites"]) if route["source"] == "/api/regions/:path*")
-    config["rewrites"][fallback:fallback] = routes
-    config_path.write_text(json.dumps(config, indent=2) + "\n")
-
-
 def stage(out):
     if out.is_relative_to(ROOT) or (out.exists() and any(out.iterdir())):
         raise ValueError("Choose a new or empty release directory outside the repository.")
@@ -56,6 +32,7 @@ def stage(out):
                 (out / name).parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(ROOT / name, out / name)
 
+    catalog = []
     for region in HOUSTON_ZONES:
         model = out / "simulator/data/processed" / region.id
         for name in ("grid.json", "static/meta.json", "model/metrics.json", "model/flood_xgb.ubj"):
@@ -66,8 +43,9 @@ def stage(out):
         geometry.mkdir(parents=True)
         for name in ("roads.json", "buildings.json"):
             shutil.copy2(region.out_dir / "static" / name, geometry / name)
-
-    configure_regions(out)
+        catalog.append(dict(id=region.id, name=region.name, bbox=region.bbox, default=region.id == DEFAULT_REGION, built=True))
+        (geometry / "meta.json").write_text(json.dumps(public_meta(region)))
+    (out / "public/geometry/regions.json").write_text(json.dumps(catalog))
 
     env = {**os.environ, "VITE_SIMULATOR_URL": "/simulator/", "VITE_API_BASE_URL": "/"}
     for source, destination, base in (("apps/web", "public", "/"),

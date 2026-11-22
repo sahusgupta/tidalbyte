@@ -2,7 +2,7 @@
 
 ## Storm paths and local infrastructure planning
 
-All five Houston simulators accept a storm origin, up to seven additional waypoints and a rainfall radius. **Impact & routing** ranks nearby areas and named streets and compares drainage or pumping projects under agency budgets and crew limits. The selected event, vehicle and hospital drive the comparison. See the [scenario walkthrough](simulator/README.md#compare-infrastructure-improvements-under-an-event) and [verification and model limits](docs/handoffs/storm-footprints.md).
+All five Houston simulators accept a storm origin, up to seven additional waypoints and a rainfall radius. **Impact & routing** ranks nearby areas and named streets and compares drainage or pumping projects under agency budgets and crew limits. The selected event, vehicle and hospital drive the comparison. Open the [hosted area chooser](https://tidalbyte.vercel.app/#/simulate). See the [scenario walkthrough](simulator/README.md#compare-infrastructure-improvements-under-an-event) and [verification and model limits](docs/handoffs/storm-footprints.md).
 
 ## Local opening performance
 

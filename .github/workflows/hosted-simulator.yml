@@ -1,0 +1,25 @@
+name: Verify hosted Houston simulator
+on:
+  workflow_dispatch:
+  push:
+    tags: ['qa-hosted-*']
+permissions:
+  contents: read
+jobs:
+  exercise-production:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      QA_AQUAGRID_URL: https://tidalbyte.vercel.app
+      QA_ATLAS_URL: https://tidalbyte.vercel.app/
+      QA_CHROME_PATH: /usr/bin/google-chrome
+      QA_SOFTWARE_GL: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.16.0'
+      - run: curl -fsS --retry 2 "$QA_AQUAGRID_URL/readyz"
+      - run: node simulator/qa/verify-storm-tracks.mjs
+      - run: npm ci --prefix simulator/qa
+      - run: node simulator/qa/verify-storm-planning.mjs
