@@ -4,8 +4,11 @@ import argparse
 import subprocess
 import sys
 
+import numpy as np
+
 from .config import REGIONS
 from .geometry import prepare_geometry
+from .storm import flow_parent
 
 
 BUILD_OUTPUTS = (
@@ -27,6 +30,9 @@ def prepare(region_id):
     else:
         for name in ("roads.json", "buildings.json"):
             prepare_geometry(out / "static" / name)
+        rasters_path = out / "rasters.npz"
+        with np.load(rasters_path) as rasters:
+            flow_parent(rasters_path, rasters, prepare=True)
     if needs_model.exists() or not all((out / file).is_file() for file in MODEL_OUTPUTS):
         needs_model.touch()
         subprocess.run([sys.executable, "-m", "aquagrid.model.train", "--region", region_id], check=True)

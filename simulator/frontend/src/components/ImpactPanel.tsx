@@ -17,12 +17,14 @@ import {
   Truck,
   Waves,
 } from 'lucide-react'
-import type { LonLat, Meta, SimResult } from '../lib/api'
+import type { LonLat, Meta, SimRequest, SimResult } from '../lib/api'
+import StormPlanning from './StormPlanning'
 import { Kpi, Panel, SectionTitle, Segmented, Select } from './ui'
 
 type Props = {
   meta: Meta
   result: SimResult | null
+  request: SimRequest | null
   vehicle: string
   onVehicle: (v: string) => void
   hospital: string
@@ -35,7 +37,7 @@ type Props = {
 const fmtMin = (s: number) => `${(s / 60).toFixed(1)} min`
 const fmtKm = (m: number) => `${(m / 1000).toFixed(1)} km`
 
-export default function ImpactPanel({ meta, result, vehicle, onVehicle, hospital, onHospital, dest, onDest, onCollapse }: Props) {
+export default function ImpactPanel({ meta, result, request, vehicle, onVehicle, hospital, onHospital, dest, onDest, onCollapse }: Props) {
   const s = result?.stats
   const r = result?.route
   const vehLabel = meta.vehicles[vehicle]?.label.toLowerCase() ?? vehicle
@@ -105,6 +107,21 @@ export default function ImpactPanel({ meta, result, vehicle, onVehicle, hospital
           )}
         </section>
 
+        {result?.spatial && <details className="storm-event" open>
+          <summary>Most exposed areas</summary>
+          <div>
+            <p>Road length over 15 cm of water, grouped by the nearest named place. Building counts use the same depth threshold.</p>
+            {result.spatial.areas.some(a => a.flooded_road_km > 0 || a.affected_buildings > 0) ?
+              <table className="storm-areas">
+                <thead><tr><th>Near</th><th>Flooded km</th><th>Buildings</th></tr></thead>
+                <tbody>{result.spatial.areas.filter(a => a.flooded_road_km > 0 || a.affected_buildings > 0).map(a =>
+                  <tr key={a.name}><th scope="row">{a.name}</th><td>{a.flooded_road_km.toFixed(1)}</td><td>{a.affected_buildings.toLocaleString()}</td></tr>
+                )}</tbody>
+              </table> : <p>No streets or buildings reached the flood threshold in this run.</p>}
+          </div>
+        </details>}
+
+        <StormPlanning regionId={meta.region.id} request={request} />
         <section>
           <SectionTitle icon={Route}>Modeled route</SectionTitle>
           <div className="space-y-2">
@@ -147,7 +164,8 @@ export default function ImpactPanel({ meta, result, vehicle, onVehicle, hospital
 
         {s && s.hotspots.length > 0 && (
           <section>
-            <SectionTitle icon={TriangleAlert}>Worst-hit streets</SectionTitle>
+            <SectionTitle icon={TriangleAlert}>Streets with the most flooding</SectionTitle>
+            <p className="mb-2 text-[11px] text-slate-400">Flooded length and maximum modeled water depth. The model estimates exposure and passability. Structural failure and event likelihood are outside its scope.</p>
             <ul className="space-y-1.5">
               {s.hotspots.map((h) => {
                 const maxKm = s.hotspots[0].flooded_km || 1

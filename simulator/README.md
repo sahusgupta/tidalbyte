@@ -33,6 +33,18 @@ For standalone development, start Uvicorn with `python -m uvicorn aquagrid.api:a
 
 ## Interpretation
 
+### Compare infrastructure improvements under an event
+
+Run the integrated stack with `pnpm dev`. Open Downtown / Buffalo Bayou, choose the 100-Yr NOAA Atlas preset under **Storm controls**, then choose an origin and a waypoint under **Event origin & path**. Open **Impact & routing → Plan infrastructure improvements → Compare agency plans**. The selected vehicle and hospital govern both sides of each comparison.
+
+Compare local drainage improvements before an event and temporary pumping after flooding. The simulator screens up to three named roads by their length-weighted loss of travel speed and tests local segments near a specific point on each road. It reroutes service access for every project combination. Each project assumes a 20 cm (drainage) or 10 cm (pumping) offset on the treated roadway. These planning assumptions are uncalibrated. They do not redistribute basin water or estimate structural failure.
+
+The two agencies can spend within individual and shared budget limits. Each project occupies one crew. Switch strategies to inspect the funded corridors and see before-and-after road closures, hospital cutoffs and cumulative building delay. Budget units represent illustrative costs. Rounded reports give agencies less precise information when they choose a plan. All displayed outcomes come from the paired simulation runs.
+
+For a separately hosted simulator, route `/api/v1/allocation/` to the EarthLab API and other `/api/` traffic to AquaGrid. In Vite development use `EARTHLAB_API` and `AQUAGRID_API` to override the two targets. The integrated launcher supplies a compatible setup.
+
+After preparing Downtown and starting the stack, run `npm ci --prefix simulator/qa` and `node simulator/qa/verify-storm-planning.mjs` for the desktop and emulated-touch demonstration. Set `QA_CHROME_PATH` to a local Chrome executable or install Playwright Chromium. The script writes screenshots and measured strategy outcomes to the printed temporary folder.
+
 Hospital choices are derived from Overture place records and snapped to the regional road
 network. The prepare pipeline excludes one audited BrightQuery record that mislabels the
 [Holly Hall outpatient clinic](https://www.harrishealth.org/locations-hh/Pages/smith-clinic.aspx)

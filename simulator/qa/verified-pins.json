@@ -7,7 +7,7 @@
       "scope": "Regional model catalog entry used to exercise route selection. No live facility or road status is verified."
     },
     "lonlat": [-95.3825, 29.7625],
-    "routePreset": "shower",
+    "routePreset": "memorial",
     "stormPreset": "memorial"
   },
   "kingwood-lake-houston": {
@@ -24,7 +24,7 @@
       -95.21533,
       30.034656
     ],
-    "routePreset": "shower"
+    "routePreset": "memorial"
   },
   "ship-channel": {
     "vehicle": "ambulance",
@@ -40,7 +40,7 @@
       -95.176069,
       29.725599
     ],
-    "routePreset": "shower"
+    "routePreset": "memorial"
   },
   "medical-center-brays": {
     "vehicle": "ambulance",
@@ -57,7 +57,7 @@
       -95.402584,
       29.702416
     ],
-    "routePreset": "shower"
+    "routePreset": "memorial"
   },
   "meyerland": {
     "vehicle": "ambulance",
@@ -74,6 +74,6 @@
       -95.46214,
       29.684973
     ],
-    "routePreset": "shower"
+    "routePreset": "memorial"
   }
 }

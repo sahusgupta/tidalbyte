@@ -35,12 +35,12 @@ export function toSimulatorZone(zone: Zone): SimulatorZone {
 const fixed = (value: number) => Number(value.toFixed(5)).toString();
 
 /** The simulator URL for a zone, or null when no simulator is configured or the URL is invalid. */
-export function simulatorUrl(base: string | undefined, zone: Zone): URL | null {
+export function simulatorUrl(base: string | undefined, zone: Zone, origin?: string): URL | null {
   const trimmed = base?.trim();
   if (!trimmed) return null;
   let url: URL;
   try {
-    url = new URL(trimmed);
+    url = trimmed === "/simulator/" && origin ? new URL(trimmed, origin) : new URL(trimmed);
   } catch {
     return null;
   }

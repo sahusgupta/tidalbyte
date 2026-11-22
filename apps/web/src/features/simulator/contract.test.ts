@@ -30,6 +30,10 @@ describe("zones", () => {
 });
 
 describe("simulator contract", () => {
+  it("resolves the bundled simulator on the current deployment", () => {
+    expect(simulatorUrl("/simulator/", zone, "https://atlas.example")?.href)
+      .toContain("https://atlas.example/simulator/?zone=");
+  });
   it("adds the zone to the simulator URL and keeps existing parameters", () => {
     const url = simulatorUrl("https://sim.example.org/app?mode=dark", zone)!;
     expect(url.origin).toBe("https://sim.example.org");

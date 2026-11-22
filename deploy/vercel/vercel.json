@@ -1,0 +1,27 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "outputDirectory": "public",
+  "functions": {
+    "api/flood.py": {
+      "maxDuration": 120,
+      "excludeFiles": "{public/**,apps/**,packages/**,contracts/**,data/**}"
+    },
+    "api/earth.py": {
+      "maxDuration": 60,
+      "excludeFiles": "{public/**,simulator/**}"
+    }
+  },
+  "rewrites": [
+    { "source": "/api/regions/:region/roads", "destination": "/geometry/:region/roads.json" },
+    { "source": "/api/regions/:region/buildings", "destination": "/geometry/:region/buildings.json" },
+    { "source": "/api/v1/:path*", "destination": "/api/earth" },
+    { "source": "/healthz", "destination": "/api/earth" },
+    { "source": "/readyz", "destination": "/api/earth" },
+    { "source": "/api/health", "destination": "/api/flood" },
+    { "source": "/api/regions", "destination": "/geometry/regions.json" },
+    { "source": "/api/regions/:region/meta", "destination": "/geometry/:region/meta.json" },
+    { "source": "/api/regions/:path*", "destination": "/api/flood" },
+    { "source": "/simulator", "destination": "/simulator/index.html" }
+  ]
+}

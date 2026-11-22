@@ -17,6 +17,7 @@ from app.openapi import json_request_body
 from app.responses import envelope, reject
 from app.schemas import ResponseEnvelope
 from app.services.network import LIMITATIONS, InvalidPlan, load_network
+from app.services.storm_planning import StormPlanRequest, StormPortfolioGame
 from app.services.allocation import (
     ASSUMPTION_SET,
     LIMITATIONS as ALLOCATION_LIMITATIONS,
@@ -209,3 +210,15 @@ async def compare_allocation(request: Request):
     raw = await read_allocation(request)
     graph = get_network()
     return allocation_response(request, graph, allocation_engine(graph, raw).solve())
+
+
+@router.post("/allocation/storm/compare", response_model=ResponseEnvelope[dict])
+def compare_storm(request: Request, inputs: StormPlanRequest):
+    """Solve a bounded planning game from paired AquaGrid network-routing measurements."""
+    result = envelope(request, StormPortfolioGame(inputs).compare())
+    result["meta"].update(
+        mode="exploratory_what_if",
+        sourceIds=["project:aquagrid-storm-routing", "project:houston-road-adaptation-v1"],
+        warnings=["Roadway treatments, costs, available crews and agency reporting precision are illustrative."],
+    )
+    return result

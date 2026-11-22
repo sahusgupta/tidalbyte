@@ -9,7 +9,7 @@ import {
   TextLayer,
 } from '@deck.gl/layers'
 import { PathStyleExtension } from '@deck.gl/extensions'
-import { AmbientLight, DirectionalLight, LightingEffect, type PickingInfo } from '@deck.gl/core'
+import { AmbientLight, DirectionalLight, LightingEffect, type Accessor, type PickingInfo } from '@deck.gl/core'
 import { Map } from 'react-map-gl/maplibre'
 import { ScaleControl } from 'react-map-gl/maplibre'
 import { ChevronDown, Minus, Plus } from 'lucide-react'
@@ -23,7 +23,11 @@ setWorkerUrl('/maplibre/maplibre-gl-worker.mjs')
 import { CUT_OFF, type LonLat, type Meta, type Roads, type SimResult, type ViewState } from '../lib/api'
 import type { PreparedBuildings } from '../lib/buildingGeometry'
 import { useRouteMarker } from './useRouteMarker'
-import { accessColor, buildingFloodColor, roadColor } from '../lib/colors'
+import { accessColor, buildingFloodColor, ROAD_BLOCKED, roadColor } from '../lib/colors'
+import { decodeClosures, isRoadClosed, streetWater, streetWidth, type WaterSymbol } from '../lib/floodMapGeometry'
+import { fitEventTrack } from '../lib/trackCamera'
+import { ROAD_WATER } from './roadWaterExtension'
+import { stormMapLayers } from './stormMapLayers'
 
 // Ground: USGS The National Map orthoimagery (public domain, no key; ~2 m/px over the US at z16).
 // Toned down so flood depth, routes and closures stay readable on top of it.
@@ -61,8 +65,9 @@ const BASEMAP: StyleSpecification = {
     },
   ],
 }
-const ROAD_WIDTH_M = [16, 14, 11, 9, 8, 5.5, 3.5]
 const FLAT = { depthWriteEnabled: false, depthCompare: 'always' } as const
+const NO_TRACK: LonLat[] = []
+const NO_FLOW: LonLat[][] = []
 
 const svgUrl = (svg: string) => `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
 const HOSPITAL_ICON = svgUrl(
@@ -84,27 +89,30 @@ type Props = {
   showWater: boolean
   storm: number // 0..1 severity for lighting
   onPick: (p: LonLat) => void
+  eventTrack?: LonLat[]
+  pickingTrack?: boolean
 }
 
 function useDecodedImage(url?: string) {
-  const [img, setImg] = useState<HTMLImageElement | null>(null)
+  const [decoded, setDecoded] = useState<{ url: string; image: HTMLImageElement } | null>(null)
   useEffect(() => {
     if (!url) return
     let alive = true
     const im = new Image()
     im.src = url
     im.decode()
-      .then(() => alive && setImg(im))
+      .then(() => alive && setDecoded({ url, image: im }))
       .catch(() => {})
     return () => {
       alive = false
     }
   }, [url])
-  return img
+  return decoded && decoded.url === url ? decoded.image : null
 }
 
-function MapView({ meta, roads, buildings, result, buildingMode, showWater, storm, onPick }: Props) {
+function MapView({ meta, roads, buildings, result, buildingMode, showWater, storm, onPick, eventTrack = NO_TRACK, pickingTrack = false }: Props) {
   const deckRef = useRef<DeckGLRef>(null)
+  const surface = useRef<HTMLDivElement>(null)
   const pointers = useRef(new Set<number>())
   const groundTap = useRef<{ id: number; x: number; y: number } | null>(null)
 
@@ -156,6 +164,21 @@ function MapView({ meta, roads, buildings, result, buildingMode, showWater, stor
   }
 
   const [view, setView] = useState<ViewState>(meta.region.view)
+  useEffect(() => {
+    const map = surface.current
+    if (!map || !eventTrack.length || pickingTrack) return
+    const fit = () => {
+      const { width, height } = map.getBoundingClientRect()
+      const stage = map.closest('.sim-stage')
+      const panel = stage?.querySelector('.sim-panel-host')
+      const rail = width > 760 && panel ? panel.getBoundingClientRect().width + 12 : 0
+      const top = (stage?.querySelector('.sim-summary')?.getBoundingClientRect().height ?? 0) + 36
+      setView(v => fitEventTrack(v, eventTrack, width, height, rail, top))
+    }
+    const observer = new ResizeObserver(fit)
+    observer.observe(map)
+    return () => observer.disconnect()
+  }, [eventTrack, pickingTrack])
   const [openingStage, setOpeningStage] = useState(0)
   const nextStage = useRef<number | undefined>(undefined)
   useEffect(() => () => {
@@ -185,6 +208,7 @@ function MapView({ meta, roads, buildings, result, buildingMode, showWater, stor
 
   const clearance = result?.route.clearance_m ?? 0.3
   const edgeDepth = result?.edges
+  const closures = useMemo(() => decodeClosures(result?.closed_edges_b64), [result?.closed_edges_b64])
   const bldDepth = result?.buildings
   const access = result?.access
 
@@ -210,13 +234,15 @@ function MapView({ meta, roads, buildings, result, buildingMode, showWater, stor
           parameters: FLAT,
         })
       : null
-    const roadLayer = new PathLayer<number>({
+    const roadLayer = new PathLayer<number, { getWater: Accessor<number, WaterSymbol> }>({
       id: 'roads',
       data: roadIdx,
       getPath: (i) => roads.paths[i],
-      getColor: (i) => roadColor((edgeDepth?.[i] ?? 0) / 100, clearance, roads.bridge[i] === 1),
-      // dry streets are already visible in the imagery: keep them thin; water-affected roads stand out
-      getWidth: (i) => ROAD_WIDTH_M[roads.cls[i]] * ((edgeDepth?.[i] ?? 0) > 3 ? 1.25 : 0.45),
+      getColor: i => isRoadClosed(closures, i, edgeDepth?.[i] ?? 0, clearance)
+        ? ROAD_BLOCKED : roadColor((edgeDepth?.[i] ?? 0) / 100, Infinity, roads.bridge[i] === 1),
+      getWater: showWater && edgeDepth
+        ? i => streetWater(edgeDepth[i], isRoadClosed(closures, i, edgeDepth[i], clearance)) : [0, 0],
+      getWidth: i => streetWidth(roads.cls[i], edgeDepth?.[i] ?? 0, showWater),
       widthUnits: 'meters',
       widthMinPixels: 0.8,
       capRounded: true,
@@ -225,7 +251,12 @@ function MapView({ meta, roads, buildings, result, buildingMode, showWater, stor
       autoHighlight: true,
       highlightColor: [255, 255, 255, 120],
       parameters: FLAT,
-      updateTriggers: { getColor: [resultKey, clearance], getWidth: [resultKey] },
+      extensions: [ROAD_WATER],
+      updateTriggers: {
+        getColor: [resultKey, clearance],
+        getWater: [resultKey, clearance, showWater],
+        getWidth: [resultKey, showWater],
+      },
     })
     const bldLayer = new SolidPolygonLayer<number>({
       id: 'buildings',
@@ -246,10 +277,17 @@ function MapView({ meta, roads, buildings, result, buildingMode, showWater, stor
       updateTriggers: { getFillColor: [resultKey, buildingMode] },
     })
     return { water, roadLayer, bldLayer }
-  }, [overlay, showWater, meta, roads, buildings, roadIdx, edgeDepth, bldDepth, access, clearance, buildingMode, resultKey])
+  }, [overlay, showWater, meta, roads, buildings, roadIdx, edgeDepth, closures, bldDepth, access, clearance, buildingMode, resultKey])
 
   const route = result?.route
   const cur = route?.current
+  const hasTrack = eventTrack.length > 0
+  const activeTrack = pickingTrack ? NO_TRACK : result?.spatial?.active_track ?? NO_TRACK
+  const flowPaths = showWater && !pickingTrack ? result?.spatial?.flow_paths ?? NO_FLOW : NO_FLOW
+  const eventLayers = useMemo(
+    () => stormMapLayers(eventTrack, activeTrack, flowPaths, pickingTrack),
+    [eventTrack, activeTrack, flowPaths, pickingTrack],
+  )
   const { marker, projectMarker } = useRouteMarker(deckRef, cur?.coords)
   const afterRender = () => {
     projectMarker()
@@ -288,9 +326,11 @@ function MapView({ meta, roads, buildings, result, buildingMode, showWater, stor
           id: 'route-blocked',
           data: route.blocked,
           getPath: (d: LonLat[]) => d,
-          getColor: [255, 64, 64, 255],
-          getWidth: 9,
+          getColor: [255, 118, 96, 255],
+          getWidth: 3,
           widthUnits: 'pixels',
+          getDashArray: [4, 3],
+          extensions: [new PathStyleExtension({ dash: true })],
           capRounded: true,
           parameters: FLAT,
         }),
@@ -298,7 +338,7 @@ function MapView({ meta, roads, buildings, result, buildingMode, showWater, stor
           id: 'route-blocked-pts',
           data: route.blocked.filter((_, i) => i % 3 === 0),
           getPosition: (d: LonLat[]) => d[Math.floor(d.length / 2)],
-          getRadius: 7,
+          getRadius: 3.5,
           radiusUnits: 'pixels',
           getFillColor: [255, 64, 64, 255],
           getLineColor: [255, 255, 255, 255],
@@ -315,7 +355,7 @@ function MapView({ meta, roads, buildings, result, buildingMode, showWater, stor
           data: [cur.coords],
           getPath: (d: LonLat[]) => d,
           getColor: [52, 211, 153, 70],
-          getWidth: 16,
+          getWidth: hasTrack ? 7 : 16,
           widthUnits: 'pixels',
           capRounded: true,
           jointRounded: true,
@@ -326,7 +366,7 @@ function MapView({ meta, roads, buildings, result, buildingMode, showWater, stor
           data: [cur.coords],
           getPath: (d: LonLat[]) => d,
           getColor: [52, 211, 153, 255],
-          getWidth: 6,
+          getWidth: hasTrack ? 3 : 6,
           widthUnits: 'pixels',
           capRounded: true,
           jointRounded: true,
@@ -335,7 +375,7 @@ function MapView({ meta, roads, buildings, result, buildingMode, showWater, stor
       )
     }
     return layers
-  }, [route, cur])
+  }, [route, cur, hasTrack])
 
   const markerLayers = useMemo(() => {
     const hospitals = meta.hospitals.map((h) => ({ ...h, active: h.id === route?.hospital.id }))
@@ -410,7 +450,8 @@ function MapView({ meta, roads, buildings, result, buildingMode, showWater, stor
     if (layer.id === 'roads') {
       const d = (edgeDepth?.[index] ?? 0) / 100
       const fii = 1 - Math.exp(-d / 0.25)
-      const state = d > clearance ? '⛔ impassable' : d >= 0.03 ? '⚠️ wet, slow' : '✓ dry'
+      const state = isRoadClosed(closures, index, edgeDepth?.[index] ?? 0, clearance)
+        ? 'Closed for selected vehicle' : d >= 0.03 ? 'Wet road · slower travel' : 'Dry road'
       return {
         text: [
           `${roads.name[index] ?? 'Unnamed road'}${roads.bridge[index] ? ' · bridge' : ''}`,
@@ -439,11 +480,12 @@ function MapView({ meta, roads, buildings, result, buildingMode, showWater, stor
   }
 
   return (
-    <><div className="sim-deck-surface" onPointerDownCapture={startGroundTap} onPointerMoveCapture={moveGroundTap} onPointerUpCapture={finishGroundTap} onPointerCancelCapture={() => { pointers.current.clear(); groundTap.current = null }} onContextMenuCapture={() => { groundTap.current = null }}><DeckGL
+    <><div ref={surface} className={hasTrack ? 'sim-deck-surface has-storm-track' : 'sim-deck-surface'} onPointerDownCapture={startGroundTap} onPointerMoveCapture={moveGroundTap} onPointerUpCapture={finishGroundTap} onPointerCancelCapture={() => { pointers.current.clear(); groundTap.current = null }} onContextMenuCapture={() => { groundTap.current = null }}><DeckGL
       ref={deckRef}
       viewState={view}
       onViewStateChange={({ viewState }) => setView(viewState as ViewState)}
       controller={{ inertia: 250 }}
+      getCursor={({ isDragging }) => isDragging ? 'grabbing' : pickingTrack ? 'crosshair' : 'grab'}
       onInteractionStateChange={({ isDragging }) => { if (isDragging) groundTap.current = null }}
       onAfterRender={afterRender}
       layers={[
@@ -452,6 +494,7 @@ function MapView({ meta, roads, buildings, result, buildingMode, showWater, stor
         baseLayers.bldLayer,
         openingStage > 1 && routeLayers,
         openingStage > 1 && markerLayers,
+        openingStage > 1 && eventLayers,
       ]}
       effects={lighting.effects}
       getTooltip={getTooltip}

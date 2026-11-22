@@ -4,7 +4,20 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-from ..pipeline.features import STATIC_FEATURES
+STATIC_FEATURES = [
+    "elev",        # m, NAVD88 (3DEP bare earth)
+    "slope_pct",   # local terrain slope
+    "twi",         # topographic wetness index
+    "hand",        # height above nearest drainage, m
+    "tpi",         # topographic position index, m (negative = local low spot)
+    "sink_depth",  # depression storage depth, m
+    "sea_thresh",  # sea level needed to reach this point over land, m
+    "dist_water",  # m to nearest water body / canal
+    "dist_sea",    # m to open bay / ocean
+    "imperv",      # impervious fraction (buildings + pavement density)
+    "road_class",  # 0 motorway .. 6 service, 7 off-road
+    "is_bridge",
+]
 
 SCENARIO_FEATURES = ["rain", "duration", "surge", "clog"]
 DERIVED_FEATURES = ["storm_total", "wl_minus_elev", "wl_minus_thresh"]

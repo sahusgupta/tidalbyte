@@ -43,6 +43,9 @@ export default defineConfig({
   server: {
     port: 5173,
     // AQUAGRID_API overrides the backend, e.g. AQUAGRID_API=http://127.0.0.1:8001 npm run dev
-    proxy: { '/api': process.env.AQUAGRID_API ?? 'http://127.0.0.1:8000' },
+    proxy: {
+      '/api/v1/allocation': process.env.EARTHLAB_API ?? 'http://127.0.0.1:8000',
+      '/api': process.env.AQUAGRID_API ?? 'http://127.0.0.1:8000',
+    },
   },
 })
