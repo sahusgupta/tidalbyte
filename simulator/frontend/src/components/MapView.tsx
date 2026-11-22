@@ -4,6 +4,7 @@ import {
   BitmapLayer,
   IconLayer,
   PathLayer,
+  PolygonLayer,
   ScatterplotLayer,
   SolidPolygonLayer,
   TextLayer,
@@ -28,6 +29,7 @@ import { decodeClosures, isRoadClosed, streetWater, streetWidth, type WaterSymbo
 import { fitEventTrack } from '../lib/trackCamera'
 import { ROAD_WATER } from './roadWaterExtension'
 import { stormMapLayers } from './stormMapLayers'
+import type { Place } from '../lib/relief'
 
 // Ground: USGS The National Map orthoimagery (public domain, no key; ~2 m/px over the US at z16).
 // Toned down so flood depth, routes and closures stay readable on top of it.
@@ -91,6 +93,8 @@ type Props = {
   onPick: (p: LonLat) => void
   eventTrack?: LonLat[]
   pickingTrack?: boolean
+  /** Funded places from the Relief money panel, drawn while it is open. */
+  relief?: { places: Place[]; highlighted: string | null; locate: { geoid: string; n: number } | null } | null
 }
 
 function useDecodedImage(url?: string) {
@@ -110,7 +114,7 @@ function useDecodedImage(url?: string) {
   return decoded && decoded.url === url ? decoded.image : null
 }
 
-function MapView({ meta, roads, buildings, result, buildingMode, showWater, storm, onPick, eventTrack = NO_TRACK, pickingTrack = false }: Props) {
+function MapView({ meta, roads, buildings, result, buildingMode, showWater, storm, onPick, eventTrack = NO_TRACK, pickingTrack = false, relief = null }: Props) {
   const deckRef = useRef<DeckGLRef>(null)
   const surface = useRef<HTMLDivElement>(null)
   const pointers = useRef(new Set<number>())
@@ -179,6 +183,24 @@ function MapView({ meta, roads, buildings, result, buildingMode, showWater, stor
     observer.observe(map)
     return () => observer.disconnect()
   }, [eventTrack, pickingTrack])
+  // Bring the recommended places (or the one picked in the list) into view beside the panel.
+  const reliefRef = useRef(relief)
+  reliefRef.current = relief
+  const reliefKey = relief?.places.map((p) => p.tract.geoid).join(',') ?? ''
+  const locateKey = relief?.locate ? `${relief.locate.geoid}:${relief.locate.n}` : ''
+  useEffect(() => {
+    const map = surface.current
+    const current = reliefRef.current
+    if (!map || !current?.places.length) return
+    const picked = current.locate && current.places.filter((p) => p.tract.geoid === current.locate!.geoid)
+    const points = (picked?.length ? picked : current.places).map((p) => p.tract.anchor)
+    const { width, height } = map.getBoundingClientRect()
+    const stage = map.closest('.sim-stage')
+    const panel = stage?.querySelector('.sim-panel-host')
+    const rail = width > 760 && panel ? panel.getBoundingClientRect().width + 12 : 0
+    const top = (stage?.querySelector('.sim-summary')?.getBoundingClientRect().height ?? 0) + 48
+    setView((v) => fitEventTrack(v, points, width, height, rail, top))
+  }, [reliefKey, locateKey])
   const [openingStage, setOpeningStage] = useState(0)
   const nextStage = useRef<number | undefined>(undefined)
   useEffect(() => () => {
@@ -377,6 +399,42 @@ function MapView({ meta, roads, buildings, result, buildingMode, showWater, stor
     return layers
   }, [route, cur, hasTrack])
 
+  const reliefLayers = useMemo(() => {
+    if (!relief?.places.length) return []
+    const top = Math.max(...relief.places.map((p) => p.share))
+    const areas = relief.places.flatMap((p) => p.tract.outline.map((ring) => ({ ring, place: p })))
+    return [
+      new PolygonLayer<{ ring: [number, number][]; place: Place }>({
+        id: 'relief-areas',
+        data: areas,
+        getPolygon: (d) => d.ring,
+        getFillColor: (d) => [246, 213, 138, Math.round(25 + 55 * (d.place.share / top))],
+        getLineColor: (d) => (d.place.tract.geoid === relief.highlighted ? [255, 255, 255, 255] : [246, 213, 138, 235]),
+        getLineWidth: (d) => (d.place.tract.geoid === relief.highlighted ? 4 : 2),
+        lineWidthUnits: 'pixels',
+        stroked: true,
+        filled: true,
+        parameters: FLAT,
+        updateTriggers: { getLineColor: relief.highlighted, getLineWidth: relief.highlighted },
+      }),
+      new TextLayer<Place>({
+        id: 'relief-ranks',
+        data: relief.places,
+        getText: (p) => String(p.rank),
+        getPosition: (p) => p.tract.anchor,
+        getSize: 14,
+        getColor: [27, 36, 48, 255],
+        fontFamily: '"Source Sans 3 Variable", sans-serif',
+        fontWeight: 700,
+        background: true,
+        getBackgroundColor: (p) => (p.tract.geoid === relief.highlighted ? [255, 255, 255, 255] : [246, 213, 138, 255]),
+        backgroundPadding: [7, 3],
+        parameters: FLAT,
+        updateTriggers: { getBackgroundColor: relief.highlighted },
+      }),
+    ]
+  }, [relief])
+
   const markerLayers = useMemo(() => {
     const hospitals = meta.hospitals.map((h) => ({ ...h, active: h.id === route?.hospital.id }))
     const dest = route?.dest
@@ -492,8 +550,10 @@ function MapView({ meta, roads, buildings, result, buildingMode, showWater, stor
         openingStage > 0 && baseLayers.water,
         openingStage > 0 && baseLayers.roadLayer,
         baseLayers.bldLayer,
+        openingStage > 1 && reliefLayers[0],
         openingStage > 1 && routeLayers,
         openingStage > 1 && markerLayers,
+        openingStage > 1 && reliefLayers[1], // rank badges stay readable above place labels
         openingStage > 1 && eventLayers,
       ]}
       effects={lighting.effects}

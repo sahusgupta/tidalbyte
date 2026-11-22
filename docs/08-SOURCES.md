@@ -10,6 +10,8 @@ Check each provider's current license, service limits, access terms and attribut
 6. **Google Gemini function calling**: https://codelabs.developers.google.com/codelabs/gemini-function-calling . The API returns structured tool-call requests; the application performs validated actions.
 7. **ElevenLabs speech-to-text**: https://elevenlabs.io/docs/overview/capabilities/speech-to-text . Use server-side access for transcription; check quotas.
 8. **Google Map Tiles API overview**: https://developers.google.com/maps/documentation/tile/quick-reference . Geographic imagery/zoom coverage varies; don't promise photorealistic coverage everywhere.
+9. **CDC/ATSDR Social Vulnerability Index 2022 (census tracts)**: https://www.atsdr.cdc.gov/place-health/php/svi/ . Population and vulnerability measures behind the simulator's Relief money overlay. ACS 2018–2022 estimates; percentiles rank tracts within Texas. Public domain; see `data/provenance/relief_sources.md`.
+10. **Census TIGERweb 2020 census tracts**: https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/Tracts_Blocks/MapServer/10 . Tract outlines for Harris and Montgomery counties, clipped to each simulator region.
 
 ## Required review before launch
 - Record exact downloaded file names, date, revision, size and licenses in `data/provenance/`.

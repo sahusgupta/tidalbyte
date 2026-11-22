@@ -31,6 +31,13 @@ After completing the [EarthLab setup](../README.md), run `pnpm dev` from the rep
 
 For standalone development, start Uvicorn with `python -m uvicorn aquagrid.api:app --port 8000` from `simulator/backend` using the simulator environment, and `npm run dev -- --port 5174` from `simulator/frontend`. Set the frontend process variable `AQUAGRID_API` when its API runs at a different address. To embed a separately served simulator, set `VITE_SIMULATOR_URL` to its public URL before starting or building the atlas. A static deployment of the simulator must forward its `/api/` requests to the AquaGrid backend.
 
+## Relief money
+
+Open any Houston area and choose a storm, then select **Relief money** in the header. The panel lists the five places where a donation would reach the most people in need for that storm. Each has an amount, the number of people in modeled flooded homes and up to two plain reasons, such as low incomes or no car. Choose $250K, $1M, $5M or type another amount (`750k`, `2.5m`). **Most in need** gives extra weight to more socially vulnerable places; **Most people** counts every resident equally. The places appear on the map in gold with their rank. Clicking one brings it into view.
+
+The overlay follows whatever storm is on screen, including storm paths. Census tracts and CDC/ATSDR Social Vulnerability Index measures come from `public/relief/<region>.json`. The browser matches each building to its tract and spreads a tract's residents evenly over its buildings. The share of flooded buildings (over 15 cm) then estimates residents in flooded homes. Need adds residents in deep water (over 50 cm), without a car, or 65+ or disabled and cut off from the selected hospital. The budget is split in proportion to vulnerability-weighted need, in $100 steps. This is an exploratory rule from a modeled scenario, not a needs assessment. Rebuild the tract files with `ml/relief/build_relief.py`; inputs are listed in [the provenance note](../data/provenance/relief_sources.md).
+
+## Interpretation
 ## Interpretation
 
 ### Compare infrastructure improvements under an event

@@ -1,5 +1,5 @@
-import { useCallback, useDeferredValue, useEffect, useRef, useState } from 'react'
-import { Volume2, VolumeX, Droplets, Layers3, LoaderCircle, PanelLeftOpen, PanelRightOpen, Play, Square } from 'lucide-react'
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
+import { Volume2, VolumeX, Droplets, HandCoins, Layers3, LoaderCircle, PanelLeftOpen, PanelRightOpen, Play, Square } from 'lucide-react'
 import {
   api,
   chooseRegion,
@@ -19,6 +19,8 @@ import ControlPanel from './components/ControlPanel'
 import EventControls, { insideRegion, MAX_TRACK_POINTS, type EventSettings } from './components/EventControls'
 import ImpactPanel from './components/ImpactPanel'
 import Legend from './components/Legend'
+import ReliefPanel, { FOCUS_PRIORITY, type ReliefFocus } from './components/ReliefPanel'
+import { assignBuildings, reliefPlan, tractNeeds, type ReliefData } from './lib/relief'
 import { createStormAudio } from './lib/stormAudio'
 import RainOverlay from './components/RainOverlay'
 
@@ -95,11 +97,16 @@ export default function App() {
   const playbackId = useRef(0)
   const [playing, setPlaying] = useState<{ k: number; n: number; t: number } | null>(null)
   const playingRef = useRef(false)
-  const [panel, setPanel] = useState<'storm' | 'impact' | 'layers' | null>(null)
+  const [panel, setPanel] = useState<'storm' | 'impact' | 'layers' | 'relief' | null>(null)
+  const [relief, setRelief] = useState<ReliefData | null>(null)
+  const [reliefBudget, setReliefBudget] = useState(1_000_000)
+  const [reliefFocus, setReliefFocus] = useState<ReliefFocus>('need')
+  const [reliefHighlight, setReliefHighlight] = useState<string | null>(null)
+  const [reliefLocate, setReliefLocate] = useState<{ geoid: string; n: number } | null>(null)
   const [compact, setCompact] = useState(() => window.matchMedia('(max-width: 760px)').matches)
   const panelRef = useRef<HTMLDivElement>(null)
   const returnFocus = useRef<HTMLElement | null>(null)
-  const openPanel = (next: 'storm' | 'impact' | 'layers') => {
+  const openPanel = (next: 'storm' | 'impact' | 'layers' | 'relief') => {
     setDraft(null)
     returnFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
     setPanel((current) => current === next ? null : next)
@@ -186,6 +193,14 @@ export default function App() {
         setMeta(meta)
       })
       .catch(failed)
+    setRelief(null)
+    setReliefHighlight(null)
+    setReliefLocate(null)
+    // Census tracts for the Relief money panel; regions without a file simply hide the panel.
+    fetch(`/relief/${region}.json`, { signal: load.signal })
+      .then((r) => (r.ok ? (r.json() as Promise<ReliefData>) : null))
+      .then((data) => { if (!load.signal.aborted && data?.region === region) setRelief(data) })
+      .catch(() => {})
     Promise.all([api.roads(region, load.signal), api.buildings(region, load.signal), import('./components/MapView')])
       .then(([roads, buildings, renderer]) => {
         if (!load.signal.aborted) setScene({ roads, buildings, MapView: renderer.default })
@@ -316,6 +331,20 @@ export default function App() {
 
   // Keep input urgent; expensive map updates can yield while the slider moves.
   const deferredResult = useDeferredValue(result)
+  // Which tract each building sits in: once per region, by the building's first vertex.
+  const buildingTracts = useMemo(() => {
+    if (!scene || !relief) return null
+    const { startIndices, attributes } = scene.buildings.mesh
+    const pos = attributes.getPolygon.value
+    return assignBuildings((i) => [pos[startIndices[i] * 3], pos[startIndices[i] * 3 + 1]], scene.buildings.mesh.length, relief.tracts)
+  }, [scene, relief])
+  const reliefResult = panel === 'relief' && relief && buildingTracts && deferredResult
+    && deferredResult.buildings.length === buildingTracts.length ? deferredResult : null
+  const reliefPlaces = useMemo(() => {
+    if (!relief || !buildingTracts || !reliefResult) return null
+    const needs = tractNeeds(relief.tracts, buildingTracts, reliefResult.buildings, reliefResult.access)
+    return reliefPlan(relief.tracts, needs, reliefBudget, FOCUS_PRIORITY[reliefFocus]).places
+  }, [relief, buildingTracts, reliefResult, reliefBudget, reliefFocus])
   const severity = Math.min(1, controls.rain / 170 + (controls.surge / 3) * 0.6) * 0.85
   const mapSeverity = useDeferredValue(severity)
   const onPick = useCallback((lonlat: LonLat) => {
@@ -375,12 +404,14 @@ export default function App() {
           <button type="button" id="show-storm" aria-label="Storm controls" aria-expanded={panel === 'storm'} aria-controls="sim-panel" onClick={() => openPanel('storm')}><PanelLeftOpen size={18} aria-hidden="true" /><span>Storm controls</span></button>
           <button type="button" id="show-impact" aria-label="Impact and routing" aria-expanded={panel === 'impact'} aria-controls="sim-panel" onClick={() => openPanel('impact')}><PanelRightOpen size={18} aria-hidden="true" /><span>Impact & routing</span></button>
           <button type="button" aria-label="Map layers" aria-expanded={panel === 'layers'} aria-controls="sim-panel" onClick={() => openPanel('layers')}><Layers3 size={18} aria-hidden="true" /><span>Map layers</span></button>
+          {relief && <button type="button" id="show-relief" aria-label="Relief money" aria-expanded={panel === 'relief'} aria-controls="sim-panel" onClick={() => openPanel('relief')}><HandCoins size={18} aria-hidden="true" /><span>Relief money</span></button>}
         </nav>
       </header>
       <main className="sim-stage">
         <div id="sim-map" className="sim-map" tabIndex={-1} aria-label="Houston scenario map. Click to choose a starting point, or use the starting point selector in Impact and routing." inert={modal}>
           {scene ? <>
-            <scene.MapView key={meta.region.id} meta={meta} roads={scene.roads} buildings={scene.buildings} result={deferredResult} buildingMode={buildingMode} showWater={showWater} storm={event ? 0 : mapSeverity} onPick={onPick} eventTrack={draft ?? event?.track} pickingTrack={draft !== null} />
+            <scene.MapView key={meta.region.id} meta={meta} roads={scene.roads} buildings={scene.buildings} result={deferredResult} buildingMode={buildingMode} showWater={showWater} storm={event ? 0 : mapSeverity} onPick={onPick} eventTrack={draft ?? event?.track} pickingTrack={draft !== null}
+              relief={panel === 'relief' && reliefPlaces ? { places: reliefPlaces, highlighted: reliefHighlight, locate: reliefLocate } : null} />
             {!event && <RainOverlay rain={controls.rain} wind={wind} severity={severity} />}
           </> : <p className="sim-map-loading" role="status"><LoaderCircle size={16} aria-hidden="true" className="sim-spinner" />Loading roads and buildings…</p>}
         </div>
@@ -408,6 +439,9 @@ export default function App() {
               onSettings={settings => { setEventSettings(settings); if (event) { stop(); setFrame(null); setEvent({ ...event, ...settings }) } }}
               onDraw={() => { if (playingRef.current) stopAndRestore(); setPanel(null); setDrawMessage(''); setDraft([]); requestAnimationFrame(() => document.getElementById('sim-map')?.focus()) }} />} />}
           {panel === 'impact' && <ImpactPanel meta={meta} result={result} request={playing ? null : frame?.request ?? null} vehicle={vehicle} onVehicle={v => { if (v !== vehicle) { stop(); setFrame(null); setVehicle(v) } }} hospital={hospital} onHospital={(id) => { stop(); setFrame(null); setHospital(id) }} dest={dest} onDest={(id) => { if (id !== 'custom') { stop(); setFrame(null); setDest({ id }) } }} onCollapse={closePanel} />}
+          {panel === 'relief' && <ReliefPanel data={relief} places={reliefPlaces} budget={reliefBudget} onBudget={setReliefBudget}
+            focus={reliefFocus} onFocus={setReliefFocus} highlighted={reliefHighlight} onHighlight={setReliefHighlight}
+            onLocate={(geoid) => setReliefLocate((current) => ({ geoid, n: (current?.n ?? 0) + 1 }))} onCollapse={closePanel} />}
           {panel === 'layers' && <Legend buildingMode={buildingMode} onBuildingMode={setBuildingMode} showWater={showWater} onShowWater={setShowWater} onCollapse={closePanel} />}
         </div>}
         {error && <div className="sim-error" role="alert">{error}</div>}
