@@ -197,7 +197,8 @@ export default function App() {
     setReliefHighlight(null)
     setReliefLocate(null)
     // Census tracts for the Relief money panel; regions without a file simply hide the panel.
-    fetch(`/relief/${region}.json`, { signal: load.signal })
+    // BASE_URL keeps this working when the simulator is hosted under a sub-path (e.g. /simulator/ on Vercel).
+    fetch(`${import.meta.env.BASE_URL}relief/${region}.json`, { signal: load.signal })
       .then((r) => (r.ok ? (r.json() as Promise<ReliefData>) : null))
       .then((data) => { if (!load.signal.aborted && data?.region === region) setRelief(data) })
       .catch(() => {})
