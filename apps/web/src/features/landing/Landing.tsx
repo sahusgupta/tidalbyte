@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { LandingGlobe } from './landingGlobe';
+import { RegionInset } from '../earth/RegionInset';
 import { HOUSTON } from '../earth/zones';
 import { Icon } from '../../app/Icon';
 import '@fontsource-variable/source-sans-3';
@@ -23,6 +24,7 @@ function EvidenceDiagram() {
 }
 
 export default function Landing({ chooseArea = false, onCloseChooser }: { chooseArea?: boolean; onCloseChooser?: () => void }) {
+  const [preview, setPreview] = useState(HOUSTON.zones[0]);
   const chooser = useRef<HTMLDialogElement>(null);
   const syncScene = useRef<(() => void) | null>(null);
   useEffect(() => {
@@ -116,12 +118,19 @@ export default function Landing({ chooseArea = false, onCloseChooser }: { choose
     </main>
     <dialog className="area-chooser" ref={chooser} aria-labelledby="area-title" onCancel={onCloseChooser}>
       <div className="area-heading"><h2 id="area-title">Where in Houston?</h2><button type="button" onClick={onCloseChooser} aria-label="Close area selection">Close</button></div>
-      <p>Choose an area to open its flood simulation.</p>
-      <nav aria-label="Houston simulation areas">
-        {HOUSTON.zones.map(area => <a key={area.id} href={`#/zone/${area.id}`}>
-          <span><strong>{area.name}</strong><small>{area.area}</small></span><Icon name="arrow" size={18} />
-        </a>)}
-      </nav>
+      <div className="area-spread">
+        <div className="area-preview">
+          <RegionInset region={HOUSTON} highlighted={preview.id} />
+          <div className="area-caption"><strong>{preview.name}</strong><p>{preview.summary}</p></div>
+        </div>
+        <nav aria-label="Houston simulation areas">
+          {HOUSTON.zones.map((area, index) => <a key={area.id} href={`#/zone/${area.id}`}
+            data-preview={preview.id === area.id} onFocus={() => setPreview(area)} onMouseEnter={() => setPreview(area)}>
+            <span className="area-key" aria-hidden="true">{String.fromCharCode(65 + index)}</span>
+            <span><strong>{area.name}</strong><small>{area.area}</small></span><Icon name="arrow" size={16} />
+          </a>)}
+        </nav>
+      </div>
     </dialog>
     <footer className="landing-footer"><span>Houston, Texas · 29.76° N / 95.37° W</span><span>Satellite: Esri & contributors · Houston: USDA / USGS</span></footer>
   </div>;

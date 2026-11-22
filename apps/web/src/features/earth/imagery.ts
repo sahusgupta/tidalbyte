@@ -22,11 +22,8 @@ export const USGS_IMAGERY_URL =
   "https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/tile/{z}/{y}/{x}";
 export const USGS_MAX_LEVEL = 16;
 export const HOUSTON_IMAGERY_BOUNDS = [-95.9, 29.24, -94.7, 30.2] as const;
-type Bounds = readonly [number, number, number, number];
-export const HOUSTON_ARCHIVE_LAYERS: readonly { url: string; bounds: Bounds }[] = [
-  { url: "/map/houston-usgs.webp", bounds: [-95.9, 29.249921875, -94.7, 30.200078125] },
-  { url: "/map/houston-detail-usgs.webp", bounds: [-95.570036869, 29.6, -95.079963131, 29.96] },
-];
+import { HOUSTON_ARCHIVE_LAYERS, type Bounds } from "./archiveLayers";
+export { HOUSTON_ARCHIVE_LAYERS };
 const usgsCredit = () =>
   new Credit(
     '<a href="https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer" target="_blank" rel="noopener">Imagery: USDA / USGS The National Map</a>',

@@ -1,5 +1,5 @@
 import {
-  CloudDrizzle,
+  CloudSun,
   CloudLightning,
   CloudRain,
   CloudRainWind,
@@ -19,7 +19,7 @@ import { Panel, SectionTitle, Slider } from './ui'
 
 const PRESET_ICON: Record<string, LucideIcon> = {
   clear: Sun,
-  shower: CloudDrizzle,
+  current: CloudSun,
   kingtide: Waves,
   thunderstorm: CloudLightning,
   '100yr': CloudRainWind,
@@ -32,6 +32,7 @@ const PRESET_ICON: Record<string, LucideIcon> = {
 
 type Props = {
   meta: Meta
+  weatherLabel: string
   controls: Scenario
   preset: string | null
   onControls: (c: Scenario) => void
@@ -44,11 +45,12 @@ type Props = {
   embedded: boolean
 }
 
-export default function ControlPanel({ meta, controls, preset, onControls, onPreset, playing, onPlay, onStop, onCollapse, embedded }: Props) {
+export default function ControlPanel({ meta, weatherLabel, controls, preset, onControls, onPreset, playing, onPlay, onStop, onCollapse, embedded }: Props) {
   const set = (k: keyof Scenario) => (v: number) => onControls({ ...controls, [k]: v })
   const total = controls.rain * controls.duration
+  const scenarios = Object.entries(meta.presets).filter(([key]) => key !== 'shower')
   return (
-    <Panel>
+    <Panel className="storm-console">
       <header className="flex items-center gap-2.5 border-b border-white/[0.06] px-3.5 py-2.5">
         {!embedded && (
           <div className="sim-panel-symbol">
@@ -72,35 +74,21 @@ export default function ControlPanel({ meta, controls, preset, onControls, onPre
 
       <div className="space-y-4 overflow-y-auto px-3.5 py-3">
         <section>
-          <SectionTitle>Storm presets</SectionTitle>
-          <div className="grid grid-cols-2 gap-1.5">
-            {Object.entries(meta.presets).map(([key, p]) => {
+          <button type="button" className="storm-weather" onClick={() => onPreset('current')}
+            aria-label="Current Weather" aria-pressed={preset === 'current'}>
+            <CloudSun size={32} strokeWidth={1.35} aria-hidden="true" />
+            <span>Current Weather<strong>{weatherLabel}</strong></span>
+            <i aria-hidden="true" />
+          </button>
+          <div className="storm-table">
+            <div className="storm-columns"><span>Storm presets</span><span>Rainfall</span></div>
+            {scenarios.map(([key, p]) => {
               const Icon = PRESET_ICON[key] ?? CloudRain
-              const active = preset === key
-              const extreme = key === 'cat4' || key === 'harvey'
-              return (
-                <button
-                  key={key}
-                  type="button"
-                  title={p.blurb}
-                  aria-pressed={active}
-                  onClick={() => onPreset(key)}
-                  className={`group flex items-center gap-1.5 rounded-lg border px-2 py-1.5 text-left text-[11.5px] font-medium transition-all ${
-                    extreme ? 'col-span-2' : ''
-                  } ${
-                    active
-                      ? extreme
-                        ? 'border-rose-400/60 bg-rose-500/15 text-white shadow-[0_0_20px_-6px_rgba(244,63,94,0.7)]'
-                        : 'border-sky-400/60 bg-sky-400/10 text-white shadow-[0_0_20px_-8px_rgba(56,189,248,0.8)]'
-                      : 'border-white/[0.06] bg-white/[0.02] text-slate-300 hover:border-white/15 hover:bg-white/[0.05]'
-                  }`}
-                >
-                  <Icon
-                    className={`h-4 w-4 shrink-0 ${active ? (extreme ? 'text-rose-300' : 'text-sky-300') : 'text-slate-500 group-hover:text-slate-300'}`}
-                  />
-                  <span className="leading-tight">{p.label}</span>
-                </button>
-              )
+              return <button type="button" key={key} title={p.blurb} aria-label={p.label}
+                aria-pressed={preset === key} onClick={() => onPreset(key)}>
+                <Icon size={16} aria-hidden="true" /><span>{p.label}</span>
+                <small>{p.rain} mm/h</small>
+              </button>
             })}
           </div>
         </section>

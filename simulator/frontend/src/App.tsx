@@ -12,6 +12,7 @@ import {
   type SimRequest,
   type SimResult,
 } from './lib/api'
+import { currentWeather } from './lib/currentWeather'
 import { sameRouteSelection } from './lib/routeSelection'
 import ControlPanel from './components/ControlPanel'
 import ImpactPanel from './components/ImpactPanel'
@@ -24,7 +25,7 @@ type Scene = {
   roads: Roads
   buildings: Awaited<ReturnType<typeof api.buildings>>
 }
-const INITIAL_PRESET = 'thunderstorm'
+const BASELINE: Scenario = { rain: 0, duration: 1, surge: 0, clog: 0.1 }
 const PLAY_FRAMES = 24
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
@@ -48,8 +49,9 @@ export default function App() {
   const [meta, setMeta] = useState<Meta | null>(null)
   const [scene, setScene] = useState<Scene | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [controls, setControls] = useState<Scenario>({ rain: 0, duration: 1, surge: 0, clog: 0.1 })
-  const [preset, setPreset] = useState<string | null>(INITIAL_PRESET)
+  const [controls, setControls] = useState<Scenario>(BASELINE)
+  const [preset, setPreset] = useState<string | null>(null)
+  const [weather, setWeather] = useState<Awaited<ReturnType<typeof currentWeather>> | null>(null)
   const [vehicle, setVehicle] = useState('ambulance')
   const [hospital, setHospital] = useState('')
   const [dest, setDest] = useState<Dest>({})
@@ -132,12 +134,13 @@ export default function App() {
     // Model inputs only depend on the small catalog entry. Start the scenario
     // while the region's much larger geometry and the 3D renderer are loading.
     api.meta(region, load.signal)
-      .then((meta) => {
+      .then(async (meta) => {
+        const { latitude, longitude } = meta.region.view
+        const local = await currentWeather(latitude, longitude, load.signal).catch(() => null)
         if (load.signal.aborted) return
-        const key = INITIAL_PRESET in meta.presets ? INITIAL_PRESET : Object.keys(meta.presets)[0]
-        const p = meta.presets[key]
-        setPreset(key)
-        setControls({ rain: p.rain, duration: p.duration, surge: p.surge, clog: p.clog })
+        setWeather(local)
+        setPreset('current')
+        setControls({ ...BASELINE, rain: local?.rain ?? 0 })
         setHospital(meta.hospitals[0]?.id ?? '')
         setDest({ id: meta.neighborhoods[0]?.id })
         setMeta(meta)
@@ -249,6 +252,11 @@ export default function App() {
   }
   const onPreset = (key: string) => {
     stop()
+    if (key === 'current') {
+      setPreset(key)
+      setControls({ ...BASELINE, rain: weather?.rain ?? 0 })
+      return
+    }
     const p = meta!.presets[key]
     setPreset(key)
     setControls({ rain: p.rain, duration: p.duration, surge: p.surge, clog: p.clog })
@@ -260,6 +268,8 @@ export default function App() {
 
   const wind = Math.min(1, (controls.surge / 3) * 0.8 + (controls.rain / 200) * 0.35)
   const p = preset ? meta.presets[preset] : null
+  const scenarioLabel = preset === 'current' ? weather?.label ?? 'Weather unavailable' : p?.label ?? 'Custom storm'
+  const scenarioDetail = preset === 'current' ? weather?.source ?? 'Dry baseline' : 'Simulated scenario'
   const redirected = EARTH_ZONE_ID ? EARTH_ZONE_ID !== meta.region.id : Boolean(EARTH_ZONE && !overlaps(EARTH_BBOX, meta.region.bbox))
 
   const modal = compact && panel !== null
@@ -267,7 +277,7 @@ export default function App() {
     <div className={`sim-shell ${panel ? 'has-panel' : ''} ${EMBEDDED ? 'is-embedded' : ''}`}>
       <a className="sim-skip" href="#sim-map">Skip to map</a>
       <header className="sim-header" inert={modal}>
-        {EMBEDDED ? <div className="sim-embed-title">{p ? p.label : 'Custom storm'}<span>Simulated scenario</span></div> : <div className="sim-brand"><Droplets size={25} aria-hidden="true" /><span>EarthLab</span><span className="sim-product">Houston simulator</span></div>}
+        {EMBEDDED ? <div className="sim-embed-title">{scenarioLabel}<span>{scenarioDetail}</span></div> : <div className="sim-brand"><Droplets size={25} aria-hidden="true" /><span>EarthLab</span><span className="sim-product">Houston simulator</span></div>}
         <nav aria-label="Simulator panels">
           <button type="button" aria-label="Storm controls" aria-expanded={panel === 'storm'} aria-controls="sim-panel" onClick={() => openPanel('storm')}><PanelLeftOpen size={18} aria-hidden="true" /><span>Storm controls</span></button>
           <button type="button" id="show-impact" aria-label="Impact and routing" aria-expanded={panel === 'impact'} aria-controls="sim-panel" onClick={() => openPanel('impact')}><PanelRightOpen size={18} aria-hidden="true" /><span>Impact & routing</span></button>
@@ -287,14 +297,14 @@ export default function App() {
               {regions.filter((r) => r.built).map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
             </select>
           ) : !EMBEDDED && <h1>{meta.region.name}</h1>}
-          {!EMBEDDED && <p>{p ? p.label : 'Custom storm'} <span>· Simulated scenario</span></p>}
+          {!EMBEDDED && <p>{scenarioLabel} <span>· {scenarioDetail}</span></p>}
           {redirected && (
             <p className="sim-zone-note">No prepared dataset for “{EARTH_ZONE ?? EARTH_ZONE_ID}”. Showing {meta.region.name}.</p>
           )}
         </div>}
         {modal && <button type="button" className="sim-backdrop" tabIndex={-1} aria-label="Close simulator panel" onClick={closePanel} />}
         {panel && <div ref={panelRef} id="sim-panel" className="sim-panel-host" role={compact ? 'dialog' : 'region'} aria-modal={compact || undefined} aria-labelledby={`${panel}-panel-title`}>
-          {panel === 'storm' && <ControlPanel meta={meta} controls={controls} preset={preset} onControls={onControls} onPreset={onPreset} playing={playing} onPlay={play} onStop={stop} onCollapse={closePanel} embedded={EMBEDDED} />}
+          {panel === 'storm' && <ControlPanel weatherLabel={weather?.label ?? 'Weather unavailable'} meta={meta} controls={controls} preset={preset} onControls={onControls} onPreset={onPreset} playing={playing} onPlay={play} onStop={stop} onCollapse={closePanel} embedded={EMBEDDED} />}
           {panel === 'impact' && <ImpactPanel meta={meta} result={result} vehicle={vehicle} onVehicle={setVehicle} hospital={hospital} onHospital={(id) => { stop(); setResult(null); setHospital(id) }} dest={dest} onDest={(id) => { if (id !== 'custom') { stop(); setResult(null); setDest({ id }) } }} onCollapse={closePanel} />}
           {panel === 'layers' && <Legend buildingMode={buildingMode} onBuildingMode={setBuildingMode} showWater={showWater} onShowWater={setShowWater} onCollapse={closePanel} />}
         </div>}

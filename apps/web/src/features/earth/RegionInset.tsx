@@ -1,4 +1,4 @@
-import { HOUSTON_ARCHIVE_LAYERS } from "./imagery";
+import { HOUSTON_ARCHIVE_LAYERS } from "./archiveLayers";
 import { regionBBox, type Region } from "./zones";
 
 /** WGS84 index diagram. Letter keys correspond to the study-zone list below. */
