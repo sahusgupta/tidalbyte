@@ -1001,6 +1001,56 @@
         "title": "ConnectivityMetrics",
         "type": "object"
       },
+      "Corridor": {
+        "additionalProperties": false,
+        "properties": {
+          "center": {
+            "maxItems": 2,
+            "minItems": 2,
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "title": "Center",
+            "type": "array"
+          },
+          "length_m": {
+            "maximum": 200000.0,
+            "minimum": 1.0,
+            "title": "Length M",
+            "type": "integer"
+          },
+          "name": {
+            "maxLength": 240,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "nearby": {
+            "anyOf": [
+              {
+                "maxLength": 240,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nearby"
+          }
+        },
+        "required": [
+          "name",
+          "length_m",
+          "center"
+        ],
+        "title": "Corridor",
+        "type": "object"
+      },
       "CountyFip": {
         "pattern": "^[0-9]{5}$",
         "title": "CountyFip",
@@ -1189,6 +1239,52 @@
         "title": "Limitation2",
         "type": "string"
       },
+      "Measurements": {
+        "additionalProperties": false,
+        "properties": {
+          "corridors": {
+            "items": {
+              "$ref": "#/components/schemas/Corridor"
+            },
+            "maxItems": 3,
+            "title": "Corridors",
+            "type": "array"
+          },
+          "offset_cm": {
+            "enum": [
+              10,
+              20
+            ],
+            "title": "Offset Cm",
+            "type": "integer"
+          },
+          "outcomes": {
+            "items": {
+              "$ref": "#/components/schemas/Outcome"
+            },
+            "maxItems": 8,
+            "minItems": 1,
+            "title": "Outcomes",
+            "type": "array"
+          },
+          "phase": {
+            "enum": [
+              "mitigation",
+              "response"
+            ],
+            "title": "Phase",
+            "type": "string"
+          }
+        },
+        "required": [
+          "phase",
+          "offset_cm",
+          "corridors",
+          "outcomes"
+        ],
+        "title": "Measurements",
+        "type": "object"
+      },
       "ModelMetadata": {
         "additionalProperties": false,
         "properties": {
@@ -1288,6 +1384,43 @@
         "minLength": 1,
         "title": "Note",
         "type": "string"
+      },
+      "Outcome": {
+        "additionalProperties": false,
+        "properties": {
+          "blocked_km": {
+            "maximum": 1000000.0,
+            "minimum": 0.0,
+            "title": "Blocked Km",
+            "type": "number"
+          },
+          "cut_off": {
+            "maximum": 10000000.0,
+            "minimum": 0.0,
+            "title": "Cut Off",
+            "type": "integer"
+          },
+          "delay_minutes": {
+            "maximum": 10000000000.0,
+            "minimum": 0.0,
+            "title": "Delay Minutes",
+            "type": "number"
+          },
+          "impaired_km": {
+            "maximum": 1000000.0,
+            "minimum": 0.0,
+            "title": "Impaired Km",
+            "type": "number"
+          }
+        },
+        "required": [
+          "delay_minutes",
+          "cut_off",
+          "blocked_km",
+          "impaired_km"
+        ],
+        "title": "Outcome",
+        "type": "object"
       },
       "PlanComparison": {
         "additionalProperties": false,
@@ -2002,6 +2135,70 @@
         "minLength": 1,
         "title": "SourceId2",
         "type": "string"
+      },
+      "StormPlanRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "budget": {
+            "default": 36,
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Budget",
+            "type": "integer"
+          },
+          "crews": {
+            "default": 2,
+            "maximum": 3.0,
+            "minimum": 0.0,
+            "title": "Crews",
+            "type": "integer"
+          },
+          "health_access_priority": {
+            "default": 85,
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Health Access Priority",
+            "type": "integer"
+          },
+          "health_budget": {
+            "default": 24,
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Health Budget",
+            "type": "integer"
+          },
+          "information": {
+            "default": "field_reports",
+            "enum": [
+              "field_reports",
+              "full_model"
+            ],
+            "title": "Information",
+            "type": "string"
+          },
+          "measurements": {
+            "$ref": "#/components/schemas/Measurements"
+          },
+          "works_access_priority": {
+            "default": 20,
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Works Access Priority",
+            "type": "integer"
+          },
+          "works_budget": {
+            "default": 24,
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Works Budget",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "measurements"
+        ],
+        "title": "StormPlanRequest",
+        "type": "object"
       },
       "TrainingDatasetId": {
         "maxLength": 200,
@@ -2778,6 +2975,68 @@
           }
         },
         "summary": "Evaluate Allocation",
+        "tags": [
+          "illustrative network"
+        ]
+      }
+    },
+    "/api/v1/allocation/storm/compare": {
+      "post": {
+        "description": "Solve a bounded planning game from paired AquaGrid network-routing measurements.",
+        "operationId": "compare_storm_api_v1_allocation_storm_compare_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StormPlanRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseEnvelope_dict_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseEnvelope_dict_"
+                }
+              }
+            },
+            "description": "Unknown region, event or route"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseEnvelope_dict_"
+                }
+              }
+            },
+            "description": "Invalid or unsupported input"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseEnvelope_dict_"
+                }
+              }
+            },
+            "description": "Workstream dependency unavailable"
+          }
+        },
+        "summary": "Compare Storm",
         "tags": [
           "illustrative network"
         ]

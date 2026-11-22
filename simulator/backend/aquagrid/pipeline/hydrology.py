@@ -140,6 +140,7 @@ def compute(elev_raw: np.ndarray, nodata: np.ndarray, water_poly_mask: np.ndarra
 
     return dict(
         elev=elev.astype(np.float32),
+        flow_parent=parent.astype(np.int32),
         water=water,
         sea=sea,
         fill=fill,

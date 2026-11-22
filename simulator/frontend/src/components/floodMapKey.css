@@ -1,0 +1,23 @@
+.sim-water-key { margin-top: 12px; }
+.sim-water-key i { position: relative; }
+.sim-water-key .storm-key { border-top: 2px dashed #ffc164; }
+.sim-water-key .runoff-key { border-top: 2px solid #adf5f9; }
+.sim-water-key i::after {
+  content: '';
+  position: absolute;
+  right: 1px;
+  top: -4px;
+  width: 6px;
+  height: 6px;
+  border-top: 2px solid;
+  border-right: 2px solid;
+  transform: rotate(45deg);
+}
+.sim-water-key .storm-key::after { color: #ffc164; }
+.sim-water-key .runoff-key::after { color: #adf5f9; }
+.sim-route-key .route-closed { border-top: 3px dashed #ff7660; }
+.has-storm-track .sim-route-dot {
+  width: 12px;
+  height: 12px;
+  border-width: 2px;
+}

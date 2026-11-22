@@ -5,12 +5,13 @@ from __future__ import annotations
 import base64
 import io
 import json
+import os
 import time
 from collections import OrderedDict
 from dataclasses import dataclass
 from threading import Lock
+from weakref import WeakValueDictionary
 
-import geopandas as gpd
 import numpy as np
 import pandas as pd
 import xgboost as xgb
@@ -18,11 +19,15 @@ from PIL import Image
 
 from .catalog import VEHICLES, public_meta
 from .config import REGIONS, Region
-from .model.featurize import FEATURES, assemble, inundation_index, static_matrix
+from .model.featurize import FEATURES, assemble, inundation_index
+from .model.simulator import MAX_DEPTH_M, coastal_depth
 from .pipeline.dem import load_grid
-from .routing import WET_M, Router, edge_weights
+from .routing import WET_M, NodeIndex, Router, edge_weights
+from .runtime_data import load_inputs
+from .storm import StormEvent, StormGrid
 
 FLOODED_M = 0.15  # "flooded" for statistics: water over the curb / doorstep
+_VERCEL_WORKER = os.environ.get("VERCEL") == "1"
 
 
 @dataclass(frozen=True)
@@ -31,12 +36,14 @@ class Scenario:
     duration: float
     surge: float
     clog: float
+    event: StormEvent | None = None
 
     @classmethod
-    def make(cls, rain, duration, surge, clog):
+    def make(cls, rain, duration, surge, clog, event=None):
         # quantise so near-identical slider positions share a cache entry
         return cls(round(float(np.clip(rain, 0, 250)), 1), round(float(np.clip(duration, 0.1, 48)), 2),
-                   round(float(np.clip(surge, 0, 4)), 2), round(float(np.clip(clog, 0, 1)), 2))
+                   round(float(np.clip(surge, 0, 4)), 2), round(float(np.clip(clog, 0, 1)), 2),
+                   StormEvent.from_dict(event) if event is not None else None)
 
 
 def _depth_lut():
@@ -69,35 +76,35 @@ class RegionEngine:
         self.booster.load_model(out / "model" / "flood_xgb.ubj")
         self.n_trees = self.metrics["n_trees"]
 
-        edges = gpd.read_parquet(out / "edges.parquet")
-        self.edge_len = edges.length_m.to_numpy()
-        self.edge_name = edges.name.to_numpy()
-        self.edge_cls = edges.cls.to_numpy()
-        node_xy = np.load(out / "nodes.npy")
-        bn = np.load(out / "building_node.npy")
+        inputs = load_inputs(out)
+        self.edge_len = inputs["edge_len"]
+        # Missing street names have code -1. Keep them missing for hotspot grouping.
+        self.edge_name = np.append(inputs["edge_names"].astype(object), None)[inputs["edge_name_codes"]]
+        self.edge_cls = inputs["edge_cls"]
+        bn = inputs["building_node"]
         self.bld_node = bn[:, 0].astype(int)
         self.bld_snap_m = bn[:, 1]
 
-        fe = pd.read_parquet(out / "feat_edges.parquet")
-        fb = pd.read_parquet(out / "feat_buildings.parquet")
-        fc = pd.read_parquet(out / "feat_cells.parquet")
-        self.cell_rc = (fc.row.to_numpy(), fc.col.to_numpy())
-        S = [static_matrix(fe), static_matrix(fb), static_matrix(fc)]
-        self.splits = np.cumsum([0] + [len(s) for s in S])
-        self.static = np.vstack(S)
+        self.cell_rc = (inputs["cell_row"], inputs["cell_col"])
+        self.asset_xy = inputs["asset_xy"]
+        self.storm_grid = None
+        self.splits = inputs["splits"]
+        self.static = np.ascontiguousarray(inputs["static"])
         self.X = np.empty((len(self.static), len(FEATURES)), dtype=np.float32)
 
-        geoms = [np.asarray(g.coords) for g in edges.geometry]
-        self.router = Router(edges.ui.to_numpy(), edges.vi.to_numpy(), edges.time_s.to_numpy(),
-                             self.edge_len, node_xy, geoms)
+        geoms = np.split(inputs["coordinates"], inputs["geometry_stops"][:-1])
+        self.router = Router(inputs["ui"], inputs["vi"], inputs["time_s"],
+                             self.edge_len, inputs["node_xy"], geoms)
         self.lut = _depth_lut()
         self._prediction_lock = Lock()
         self._pred_cache: OrderedDict[Scenario, tuple] = OrderedDict()
         self._dry_cache: dict = {}
+        self._dry_routes = OrderedDict()
+        self._route_lock = Lock()
         self.pois = {p["id"]: p for p in self.meta["hospitals"] + self.meta["neighborhoods"]}
         self._node_index = None
         print(f"[engine] {region.id}: {len(self.static):,} prediction points, "
-              f"{len(edges):,} edges, loaded in {time.time() - t0:.1f}s")
+              f"{len(self.edge_len):,} edges, loaded in {time.time() - t0:.1f}s")
 
     # ------------------------------------------------------------------ flood
     def predict(self, sc: Scenario):
@@ -106,14 +113,41 @@ class RegionEngine:
             if sc in self._pred_cache:
                 self._pred_cache.move_to_end(sc)
                 return self._pred_cache[sc]
-            assemble(self.static, sc.rain, sc.duration, sc.surge, sc.clog, self.region.base_water_level, out=self.X)
-            d = self.booster.inplace_predict(self.X, iteration_range=(0, self.n_trees))
-            d = np.clip(np.asarray(d, dtype=np.float32), 0, None)
+            rain, surge = sc.rain, sc.surge
+            if sc.event:
+                if self.storm_grid is None:
+                    self.storm_grid = StormGrid.load(self.region, self.grid, self.asset_xy, self.cell_rc,
+                                                     self.meta["neighborhoods"])
+                rain = self.storm_grid.forcing(sc.event) * sc.rain
+                # The Ship Channel is our only estuarine study region. The sea level is
+                # a boundary condition and the existing depth model includes sea connectivity.
+                if sc.event.kind != "hurricane" or self.region.id != "ship-channel":
+                    surge = 0
+            if sc.event:
+                # Outside the swath and its downstream catchment only coastal water can
+                # reach a feature. Use the teacher's sea connectivity/backflow calculation
+                # there, avoiding surrogate residuals and full-grid inference in dry areas.
+                wet = rain > 0
+                d = np.zeros(len(self.static), dtype=np.float32)
+                if surge > 0:
+                    columns = [FEATURES.index(name) for name in ("elev", "sea_thresh", "dist_sea", "is_bridge")]
+                    elev, threshold, dist, bridge = (self.static[:, col] for col in columns)
+                    coastal = coastal_depth(self.region.base_water_level + surge, elev, threshold, dist, bridge > 0)
+                    np.clip(coastal, 0, MAX_DEPTH_M, out=d)
+                if wet.any():
+                    X = self.X[:np.count_nonzero(wet)]
+                    assemble(self.static[wet], rain[wet], sc.duration, surge, sc.clog,
+                             self.region.base_water_level, out=X)
+                    d[wet] = np.maximum(d[wet], self.booster.inplace_predict(X, iteration_range=(0, self.n_trees)))
+            else:
+                assemble(self.static, rain, sc.duration, surge, sc.clog, self.region.base_water_level, out=self.X)
+                d = self.booster.inplace_predict(self.X, iteration_range=(0, self.n_trees))
+                d = np.asarray(d, dtype=np.float32)
             d[d < 0.01] = 0
             a, b, c, e = self.splits
             res = (d[a:b], d[b:c], d[c:e])
             self._pred_cache[sc] = res
-            if len(self._pred_cache) > 96:
+            if len(self._pred_cache) > (8 if _VERCEL_WORKER else 96):
                 self._pred_cache.popitem(last=False)
             return res
 
@@ -130,8 +164,6 @@ class RegionEngine:
     # ---------------------------------------------------------------- routing
     def nearest_node(self, lon, lat):
         if self._node_index is None:
-            from .pipeline.build import NodeIndex
-
             self._node_index = NodeIndex(self.router.node_xy, float(np.mean(self.region.bbox[1::2])))
         i, d = self._node_index.query([lon], [lat])
         return int(i[0]), float(d[0])
@@ -145,9 +177,9 @@ class RegionEngine:
 
     # ------------------------------------------------------------------- main
     def simulate(self, rain, duration, surge, clog, vehicle="ambulance", hospital=None, dest=None,
-                 dest_lonlat=None, overlay=True):
+                 dest_lonlat=None, overlay=True, event=None):
         t0 = time.perf_counter()
-        sc = Scenario.make(rain, duration, surge, clog)
+        sc = Scenario.make(rain, duration, surge, clog, event=event)
         de, db, dc = self.predict(sc)
         t_pred = time.perf_counter() - t0
 
@@ -165,10 +197,15 @@ class RegionEngine:
         w_dry, t_dry = self._dry(src, clearance)
         t_now = self.router.access_times(src, w)
         route_now = self.router.route(src, dst, w)
-        rkey = ("route", src, dst, clearance)
-        if rkey not in self._dry_cache:
-            self._dry_cache[rkey] = self.router.route(src, dst, w_dry)
-        route_dry = self._dry_cache[rkey]
+        rkey = (src, dst, clearance)
+        with self._route_lock:
+            if rkey not in self._dry_routes:
+                self._dry_routes[rkey] = self.router.route(src, dst, w_dry)
+            route_dry = self._dry_routes[rkey]
+            if _VERCEL_WORKER:
+                self._dry_routes.move_to_end(rkey)
+                if len(self._dry_routes) > 32:
+                    self._dry_routes.popitem(last=False)
         t_route = time.perf_counter() - t0 - t_pred
 
         blocked = []
@@ -224,13 +261,23 @@ class RegionEngine:
             delay_s=None if route_now is None or route_dry is None else round(route_now["time_s"] - route_dry["time_s"], 1),
         )
         out = dict(
-            scenario=sc.__dict__,
+            scenario=dict(rain=sc.rain, duration=sc.duration, surge=sc.surge, clog=sc.clog),
             edges=np.round(de * 100).astype(int).tolist(),
+            closed_edges_b64=base64.b64encode(np.packbits(imp, bitorder="little").tobytes()).decode("ascii"),
             buildings=np.round(db * 100).astype(int).tolist(),
             access=access.tolist(),
             stats=stats,
             route=route,
         )
+        if sc.event:
+            out["scenario"]["event"] = dict(kind=sc.event.kind, track=sc.event.track,
+                                             radius_km=sc.event.radius_km, progress=sc.event.progress)
+            active_rc = self.storm_grid.active_rc(sc.event)
+            out["spatial"] = dict(
+                active_track=self.storm_grid.lonlat(active_rc),
+                flow_paths=self.storm_grid.trace(active_rc, sc.event.radius_km) if sc.rain > 0 else [],
+                areas=self.storm_grid.area_impacts(L, de > FLOODED_M, imp, db > FLOODED_M),
+            )
         if overlay:
             out["overlay"] = self.overlay_png(dc)
         out["timing_ms"] = dict(model=round(t_pred * 1000, 1), routing=round(t_route * 1000, 1),
@@ -260,11 +307,26 @@ def _route_json(r):
                 length_m=round(r["length_m"], 1), n_edges=len(r["edges"]))
 
 
-_ENGINES: dict[str, RegionEngine] = {}
+_ENGINES: OrderedDict[str, RegionEngine] = OrderedDict()
 _LOAD_LOCKS = {region_id: Lock() for region_id in REGIONS}
+_HOSTED_LOAD_LOCK = Lock()
+_LIVE_ENGINES: WeakValueDictionary[str, RegionEngine] = WeakValueDictionary()
 
 
 def get_engine(region_id: str) -> RegionEngine:
+    if _VERCEL_WORKER:
+        # Serialize large allocations. An evicted engine may still serve an active
+        # request; its weak entry lets other callers reuse it until that request ends.
+        with _HOSTED_LOAD_LOCK:
+            engine = _LIVE_ENGINES.get(region_id)
+            if region_id not in _ENGINES and len(_ENGINES) >= 2:
+                _ENGINES.popitem(last=False)
+            if engine is None:
+                engine = RegionEngine(REGIONS[region_id])
+                _LIVE_ENGINES[region_id] = engine
+            _ENGINES[region_id] = engine
+            _ENGINES.move_to_end(region_id)
+            return engine
     with _LOAD_LOCKS[region_id]:
         if region_id not in _ENGINES:
             _ENGINES[region_id] = RegionEngine(REGIONS[region_id])

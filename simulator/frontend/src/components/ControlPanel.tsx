@@ -15,6 +15,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import type { Meta, Scenario } from '../lib/api'
+import type { ReactNode } from 'react'
 import { Panel, SectionTitle, Slider } from './ui'
 
 const PRESET_ICON: Record<string, LucideIcon> = {
@@ -31,6 +32,7 @@ const PRESET_ICON: Record<string, LucideIcon> = {
 }
 
 type Props = {
+  eventControls: ReactNode
   meta: Meta
   weatherLabel: string
   controls: Scenario
@@ -45,7 +47,7 @@ type Props = {
   embedded: boolean
 }
 
-export default function ControlPanel({ meta, weatherLabel, controls, preset, onControls, onPreset, playing, onPlay, onStop, onCollapse, embedded }: Props) {
+export default function ControlPanel({ meta, weatherLabel, controls, preset, onControls, onPreset, playing, onPlay, onStop, onCollapse, embedded, eventControls }: Props) {
   const set = (k: keyof Scenario) => (v: number) => onControls({ ...controls, [k]: v })
   const total = controls.rain * controls.duration
   const scenarios = Object.entries(meta.presets).filter(([key]) => key !== 'shower')
@@ -73,6 +75,7 @@ export default function ControlPanel({ meta, weatherLabel, controls, preset, onC
       </header>
 
       <div className="space-y-4 overflow-y-auto px-3.5 py-3">
+        {eventControls}
         <section>
           <button type="button" className="storm-weather" onClick={() => onPreset('current')}
             aria-label="Current Weather" aria-pressed={preset === 'current'}>

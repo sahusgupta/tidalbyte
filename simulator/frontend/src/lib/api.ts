@@ -60,11 +60,24 @@ export type Buildings = {
 
 export type Scenario = { rain: number; duration: number; surge: number; clog: number }
 
+export type StormEvent = {
+  kind: 'flood' | 'hurricane'
+  track: LonLat[]
+  radius_km: number
+  progress?: number
+}
+
 export type RouteGeom = { coords: LonLat[]; time_s: number; length_m: number; n_edges: number }
 
 export type SimResult = {
   scenario: Scenario
+  spatial?: {
+    active_track: LonLat[]
+    flow_paths: LonLat[][]
+    areas: { name: string; flooded_road_km: number; blocked_road_km: number; affected_buildings: number }[]
+  }
   edges: number[] // depth, cm
+  closed_edges_b64?: string
   buildings: number[] // depth, cm
   access: number[] // response time in 0.1 min units; 65535 = cut off
   overlay?: string
@@ -99,6 +112,7 @@ export type SimResult = {
 }
 
 export type SimRequest = Scenario & {
+  event?: StormEvent
   vehicle: string
   hospital: string
   dest?: string

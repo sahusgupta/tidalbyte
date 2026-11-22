@@ -186,7 +186,7 @@ for (const id of zones) {
       if (await frame.getByRole('button', { name: 'Stop storm playback', exact: true }).count()) await tap(page, frame.getByRole('button', { name: 'Stop storm playback', exact: true }), mobile)
       await sleep(300)
       report.playback = { preset: stormKey, elapsed, frames: responses.slice(beforePlay).map(result => ({ scenario: result.scenario, fingerprint: result.fingerprint, floodedRoadKm: result.stats.roads.flooded_km, floodedBuildings: result.stats.buildings.flooded })) }
-      step('clear-scenario-and-route-inputs')
+      step('reviewed-storm-and-route-inputs')
       await tap(page, frame.getByRole('button', { name: 'Storm controls', exact: true }), mobile)
       const clearKey = pin.routePreset
       const beforeClear = responses.length
@@ -237,6 +237,9 @@ for (const id of zones) {
       const picked = responses.slice(beforePin).find(result => result.request.dest_lonlat)
       assert.equal(picked.request.hospital, pin.hospital.id)
       assert.equal(picked.request.vehicle, pin.vehicle)
+      for (const field of ['rain', 'duration', 'surge', 'clog']) {
+        assert.equal(picked.request[field], meta.presets[pin.routePreset][field], `Pinned route changed the reviewed storm's ${field}`)
+      }
       assert.ok(inBounds(picked.request.dest_lonlat, meta.region.bbox))
       assert.ok(Math.hypot(picked.request.dest_lonlat[0] - pin.point[0], picked.request.dest_lonlat[1] - pin.point[1]) < 0.002, 'Map projection/pick drift exceeded roughly200m')
       assert.notEqual(picked.route.status, 'blocked')

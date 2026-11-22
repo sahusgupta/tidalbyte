@@ -18,7 +18,20 @@ on port 5173. The API reads `GEMINI_API_KEY` for interpretation and
 commands and sample transcript. Keep provider credentials on the server.
 The county endpoint currently serves the offline Houston example.
 
-## Frontend hosting
+## Release the Houston simulator on Vercel
+
+Prepare all five regions using the [simulator setup](../simulator/README.md), install the atlas and simulator frontend dependencies and run the test suites. The release command builds both interfaces for the same origin, exports the regional models' numeric inputs and copies the geometry to the CDN. A Python function serves AquaGrid and EarthLab with a bounded cache of recently used regions. On Windows, run these commands from the repository root.
+
+```powershell
+$releaseDir = Join-Path $env:TEMP ("earthlab-release-" + (Get-Date -Format yyyyMMdd-HHmmss))
+simulator/.venv/Scripts/python.exe scripts/stage_vercel.py $releaseDir
+vercel link --cwd $releaseDir --project tidalbyte --scope sahoosegs-projects --yes
+vercel deploy --cwd $releaseDir --prod --skip-domain
+```
+
+Smoke-test the staged HTTP endpoints, then use `vercel promote <deployment-url>` from the linked release directory. Check the product domain with `QA_AQUAGRID_URL` and `QA_ATLAS_URL` set to that origin. Run `node simulator/qa/verify-storm-tracks.mjs` and `node simulator/qa/verify-storm-planning.mjs`. Each release takes its derived regional inputs from the prepared machine. Git contains the preparation and deployment code.
+
+## Atlas-only hosting
 
 `vercel.json` is a **configuration template**, not an existing deployment. Use
 repository root as project root, the pinned Node version and the committed

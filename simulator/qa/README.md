@@ -57,6 +57,10 @@ than merely the time label. The report distinguishes desktop mouse and emulated
 touch. A physical phone, live traffic, emergency suitability, and predictive model
 accuracy remain outside this check.
 
+## Check an advancing storm and a pinned route
+
+Run `node simulator/qa/verify-storm-tracks.mjs` from the repository root after preparing the regions and starting the services. This calls the actual AquaGrid HTTP API twice per region. It moves a six-hour, 125 mm/h rain footprint with a 1.2 km radius from a neighborhood reference point towards the reviewed routing pin. The Ship Channel case also uses a 0.3 m hurricane surge. The check verifies that water depths and mapped extent change, terrain runoff lines stay inside the study grid, neighborhood impacts sum to regional exposure, and the router evaluates the same pinned destination. Set `QA_ZONES` for a subset or `QA_AQUAGRID_URL` for another service.
+
 ## Measure local opening performance
 
 Run `node profile-opening.mjs` from this directory with the local services running. Each trial opens a fresh desktop Chrome profile, waits for the intro heading, uses the area chooser and records the first 3D building draw. It then measures browser frame intervals and completed model requests during a 3.5-second storm playback. The default is three Downtown trials. `QA_ATLAS_URL`, `QA_ZONE`, `QA_CHROME_PATH`, and `QA_TRIALS` override those settings. Use the same machine, viewport and server mode for comparisons. The [performance handoff](../../docs/handoffs/local-opening-performance.md) describes the reference run.

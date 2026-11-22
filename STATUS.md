@@ -1,5 +1,9 @@
 # EarthLab Status
 
+## Storm paths and local infrastructure planning
+
+All five Houston simulators accept a storm origin, up to seven additional waypoints and a rainfall radius. **Impact & routing** ranks nearby areas and named streets and compares drainage or pumping projects under agency budgets and crew limits. The selected event, vehicle and hospital drive the comparison. Open the [hosted area chooser](https://tidalbyte.vercel.app/#/simulate). See the [scenario walkthrough](simulator/README.md#compare-infrastructure-improvements-under-an-event) and [verification and model limits](docs/handoffs/storm-footprints.md).
+
 ## Local opening performance
 
 The landing opens before the globe loads. AquaGrid prepares its 3D buildings in a worker and makes storm controls available while the map loads. In the local Downtown benchmark the median time to the first building draw fell from 3.97 s to 1.62 s. The [performance handoff](docs/handoffs/local-opening-performance.md) records the hardware, startup timings, regional service behavior and verification commands.

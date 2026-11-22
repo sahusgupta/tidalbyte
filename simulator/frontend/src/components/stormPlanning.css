@@ -1,0 +1,24 @@
+.storm-planning { border-block: 1px solid var(--sim-rule); }
+.storm-planning summary { cursor: pointer; padding: 12px 2px; min-height: 44px; color: var(--sim-paper); font-size: 14px; font-weight: 600; }
+.storm-planning summary::marker { color: var(--sim-amber); }
+.planning-body { padding: 0 2px 14px; font-size: 13px; }
+.planning-body > *, .planning-result > * { margin-block: 0 10px; }
+.planning-body p { line-height: 1.4; color: var(--sim-dim); }
+.planning-body details { border-top: 1px solid var(--sim-rule); }
+.planning-body details summary { font-size: 13px; }
+.planning-body details p { margin-block: 5px 10px; }
+.planning-body label { display: grid; align-content: end; gap: 4px; font-weight: 550; }
+.planning-body :is(input,select) { min-width: 0; width: 100%; min-height: 42px; border: 1px solid var(--sim-rule); border-radius: 2px; padding: 6px 8px; background: var(--sim-bg); color: var(--sim-paper); font-weight: 400; }
+.planning-inputs { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; margin-block-end: 10px; }
+.planning-run { width: 100%; min-height: 44px; color: #172b39; background: #c5deef; font-weight: 650; border-radius: 2px; }
+.planning-run:hover:enabled { background: #d7eaf7; }
+.planning-actions { padding: 0; list-style: none; }
+.planning-actions li { padding: 8px 0; border-top: 1px solid var(--sim-rule); }
+.planning-actions :is(strong, span) { display: block; }
+.planning-actions span { font-size: 12px; color: var(--sim-dim); }
+.planning-result table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.planning-result caption { text-align: left; font-weight: 600; margin-block-end: 5px; }
+.planning-result :is(th,td) { border-bottom: 1px solid var(--sim-rule); text-align: right; padding: 5px 2px; }
+.planning-result th { font-weight: 400; color: var(--sim-dim); }
+.planning-result th:first-child { text-align: left; }
+.planning-result td { white-space: nowrap; }

@@ -11,10 +11,12 @@ import {
   type Scenario,
   type SimRequest,
   type SimResult,
+  type StormEvent,
 } from './lib/api'
 import { currentWeather } from './lib/currentWeather'
 import { sameRouteSelection } from './lib/routeSelection'
 import ControlPanel from './components/ControlPanel'
+import EventControls, { insideRegion, MAX_TRACK_POINTS, type EventSettings } from './components/EventControls'
 import ImpactPanel from './components/ImpactPanel'
 import Legend from './components/Legend'
 import RainOverlay from './components/RainOverlay'
@@ -57,7 +59,13 @@ export default function App() {
   const [dest, setDest] = useState<Dest>({})
   const [buildingMode, setBuildingMode] = useState<'flood' | 'access'>('flood')
   const [showWater, setShowWater] = useState(true)
-  const [result, setResult] = useState<SimResult | null>(null)
+  const [frame, setFrame] = useState<{ result: SimResult; request: SimRequest } | null>(null)
+  const result = frame?.result ?? null
+  const [event, setEvent] = useState<StormEvent | null>(null)
+  const [eventSettings, setEventSettings] = useState<EventSettings>({ kind: 'flood', radius_km: 2 })
+  const [draft, setDraft] = useState<LonLat[] | null>(null)
+  const [drawMessage, setDrawMessage] = useState('')
+  const playbackId = useRef(0)
   const [playing, setPlaying] = useState<{ k: number; n: number; t: number } | null>(null)
   const playingRef = useRef(false)
   const [panel, setPanel] = useState<'storm' | 'impact' | 'layers' | null>(null)
@@ -65,6 +73,7 @@ export default function App() {
   const panelRef = useRef<HTMLDivElement>(null)
   const returnFocus = useRef<HTMLElement | null>(null)
   const openPanel = (next: 'storm' | 'impact' | 'layers') => {
+    setDraft(null)
     returnFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
     setPanel((current) => current === next ? null : next)
   }
@@ -119,11 +128,15 @@ export default function App() {
     const load = new AbortController()
     regionRef.current = region
     pending.current = null // a queued request carries the old region's hospital/destination ids
+    playbackId.current++
     playingRef.current = false
     setPlaying(null)
     setScene(null)
     setMeta(null)
-    setResult(null)
+    setFrame(null)
+    setEvent(null)
+    setDraft(null)
+    setEventSettings({ kind: 'flood', radius_km: 2 })
     setError(null)
     const failed = (error: unknown) => {
       if (!load.signal.aborted) {
@@ -171,16 +184,20 @@ export default function App() {
     }
     const forRegion = regionRef.current
     if (!forRegion) return
+    const generation = playbackId.current
     inflight.current = true
     api
       .simulate(forRegion, req)
       .then((r) => {
         // A newer storm value must not starve rendering during continuous dragging.
         // A changed route endpoint/vehicle must still discard the old route.
-        if (!playingRef.current && regionRef.current === forRegion &&
-            (!pending.current || sameRouteSelection(req, pending.current))) setResult(r)
+        if (generation === playbackId.current && !playingRef.current && regionRef.current === forRegion &&
+            (!pending.current || sameRouteSelection(req, pending.current))) {
+          setFrame({ result: r, request: req })
+          setError(null)
+        }
       })
-      .catch((e) => { if (regionRef.current === forRegion) setError(String(e)) })
+      .catch((e) => { if (generation === playbackId.current && regionRef.current === forRegion && !pending.current) setError(String(e)) })
       .finally(() => {
         inflight.current = false
         const next = pending.current
@@ -196,20 +213,24 @@ export default function App() {
 
   useEffect(() => {
     if (!meta || meta.region.id !== region || playingRef.current) return
-    send({ ...controls, ...routeParams() })
-  }, [meta, region, controls, routeParams, send])
+    send({ ...controls, ...routeParams(), ...(event && { event }) })
+  }, [meta, region, controls, event, routeParams, send])
 
   const stop = useCallback(() => {
+    if (playingRef.current) playbackId.current++
     playingRef.current = false
     setPlaying(null)
   }, [])
 
   const play = useCallback(async () => {
+    if (playingRef.current) return
+    const generation = ++playbackId.current
+    pending.current = null
     playingRef.current = true
     setPlaying({ k: 0, n: PLAY_FRAMES, t: 0 })
     const params = routeParams()
     const forRegion = regionRef.current!
-    for (let k = 1; k <= PLAY_FRAMES && playingRef.current; k++) {
+    for (let k = 1; k <= PLAY_FRAMES && generation === playbackId.current; k++) {
       const f = k / PLAY_FRAMES
       const sc = {
         rain: controls.rain,
@@ -219,31 +240,73 @@ export default function App() {
       }
       const t0 = performance.now()
       try {
-        const r = await api.simulate(forRegion, { ...sc, ...params })
-        if (!playingRef.current || regionRef.current !== forRegion) break
-        setResult(r)
+        const request = { ...sc, ...params, ...(event && { event: { ...event, progress: f } }) }
+        const r = await api.simulate(forRegion, request)
+        if (generation !== playbackId.current || regionRef.current !== forRegion) return
+        setError(null)
+        setFrame({ result: r, request })
         setPlaying({ k, n: PLAY_FRAMES, t: sc.duration })
       } catch (e) {
-        setError(String(e))
+        if (generation === playbackId.current) setError(String(e))
         break
       }
       await sleep(Math.max(0, 260 - (performance.now() - t0)))
     }
-    playingRef.current = false
-    setPlaying(null)
-  }, [controls, routeParams])
+    if (generation === playbackId.current) {
+      playingRef.current = false
+      setPlaying(null)
+    }
+  }, [controls, event, routeParams])
+
+  function stopAndRestore() {
+    stop()
+    send({ ...controls, ...routeParams(), ...(event && { event }) })
+  }
+
+  function applyTrack(track: LonLat[]) {
+    stop()
+    setFrame(null)
+    setEvent(track.length ? { ...eventSettings, track } : null)
+  }
+
+  function finishDrawing(apply: boolean) {
+    if (apply && draft?.length) applyTrack(draft)
+    setDraft(null)
+    requestAnimationFrame(() => document.getElementById('show-storm')?.focus())
+  }
+
+  useEffect(() => {
+    if (draft === null) return
+    const cancel = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setDraft(null)
+        document.getElementById('show-storm')?.focus()
+      }
+    }
+    document.addEventListener('keydown', cancel)
+    return () => document.removeEventListener('keydown', cancel)
+  }, [draft])
 
   // Keep input urgent; expensive map updates can yield while the slider moves.
   const deferredResult = useDeferredValue(result)
   const severity = Math.min(1, controls.rain / 170 + (controls.surge / 3) * 0.6) * 0.85
   const mapSeverity = useDeferredValue(severity)
   const onPick = useCallback((lonlat: LonLat) => {
+    if (draft !== null && meta) {
+      if (!insideRegion(lonlat, meta.region.bbox)) {
+        setDrawMessage('Choose a point inside the modeled region.')
+      } else if (draft.length < MAX_TRACK_POINTS) {
+        setDrawMessage('')
+        setDraft([...draft, lonlat])
+      }
+      return
+    }
     stop()
-    setResult(null)
+    setFrame(null)
     setDest({ lonlat })
     returnFocus.current = document.getElementById('show-impact')
     setPanel('impact')
-  }, [stop])
+  }, [stop, draft, meta])
 
   const onControls = (c: Scenario) => {
     stop()
@@ -279,7 +342,7 @@ export default function App() {
       <header className="sim-header" inert={modal}>
         {EMBEDDED ? <div className="sim-embed-title">{scenarioLabel}<span>{scenarioDetail}</span></div> : <div className="sim-brand"><Droplets size={25} aria-hidden="true" /><span>EarthLab</span><span className="sim-product">Houston simulator</span></div>}
         <nav aria-label="Simulator panels">
-          <button type="button" aria-label="Storm controls" aria-expanded={panel === 'storm'} aria-controls="sim-panel" onClick={() => openPanel('storm')}><PanelLeftOpen size={18} aria-hidden="true" /><span>Storm controls</span></button>
+          <button type="button" id="show-storm" aria-label="Storm controls" aria-expanded={panel === 'storm'} aria-controls="sim-panel" onClick={() => openPanel('storm')}><PanelLeftOpen size={18} aria-hidden="true" /><span>Storm controls</span></button>
           <button type="button" id="show-impact" aria-label="Impact and routing" aria-expanded={panel === 'impact'} aria-controls="sim-panel" onClick={() => openPanel('impact')}><PanelRightOpen size={18} aria-hidden="true" /><span>Impact & routing</span></button>
           <button type="button" aria-label="Map layers" aria-expanded={panel === 'layers'} aria-controls="sim-panel" onClick={() => openPanel('layers')}><Layers3 size={18} aria-hidden="true" /><span>Map layers</span></button>
         </nav>
@@ -287,8 +350,8 @@ export default function App() {
       <main className="sim-stage">
         <div id="sim-map" className="sim-map" tabIndex={-1} aria-label="Houston scenario map. Click to choose a starting point, or use the starting point selector in Impact and routing." inert={modal}>
           {scene ? <>
-            <scene.MapView key={meta.region.id} meta={meta} roads={scene.roads} buildings={scene.buildings} result={deferredResult} buildingMode={buildingMode} showWater={showWater} storm={mapSeverity} onPick={onPick} />
-            <RainOverlay rain={controls.rain} wind={wind} severity={severity} />
+            <scene.MapView key={meta.region.id} meta={meta} roads={scene.roads} buildings={scene.buildings} result={deferredResult} buildingMode={buildingMode} showWater={showWater} storm={event ? 0 : mapSeverity} onPick={onPick} eventTrack={draft ?? event?.track} pickingTrack={draft !== null} />
+            {!event && <RainOverlay rain={controls.rain} wind={wind} severity={severity} />}
           </> : <p className="sim-map-loading" role="status"><LoaderCircle size={16} aria-hidden="true" className="sim-spinner" />Loading roads and buildings…</p>}
         </div>
         {(!EMBEDDED || redirected) && <div className="sim-summary" inert={modal}>
@@ -302,16 +365,25 @@ export default function App() {
             <p className="sim-zone-note">No prepared dataset for “{EARTH_ZONE ?? EARTH_ZONE_ID}”. Showing {meta.region.name}.</p>
           )}
         </div>}
+        {draft !== null && <div className="storm-draw" aria-label="Draw storm path">
+          <p role="status">{drawMessage || (draft.length === 0 ? 'Tap the map to place the storm origin.' : draft.length === MAX_TRACK_POINTS ? 'Path complete. Apply it to run the storm.' : `${draft.length} ${draft.length === 1 ? 'point' : 'points'} placed. Tap to extend the path.`)}</p>
+          <button type="button" disabled={!draft.length} onClick={() => { setDraft(draft.slice(0, -1)); setDrawMessage('') }}>Undo point</button>
+          <button type="button" onClick={() => finishDrawing(false)}>Cancel</button>
+          <button className="storm-apply" type="button" disabled={!draft.length} onClick={() => finishDrawing(true)}>Apply path</button>
+        </div>}
         {modal && <button type="button" className="sim-backdrop" tabIndex={-1} aria-label="Close simulator panel" onClick={closePanel} />}
         {panel && <div ref={panelRef} id="sim-panel" className="sim-panel-host" role={compact ? 'dialog' : 'region'} aria-modal={compact || undefined} aria-labelledby={`${panel}-panel-title`}>
-          {panel === 'storm' && <ControlPanel weatherLabel={weather?.label ?? 'Weather unavailable'} meta={meta} controls={controls} preset={preset} onControls={onControls} onPreset={onPreset} playing={playing} onPlay={play} onStop={stop} onCollapse={closePanel} embedded={EMBEDDED} />}
-          {panel === 'impact' && <ImpactPanel meta={meta} result={result} vehicle={vehicle} onVehicle={setVehicle} hospital={hospital} onHospital={(id) => { stop(); setResult(null); setHospital(id) }} dest={dest} onDest={(id) => { if (id !== 'custom') { stop(); setResult(null); setDest({ id }) } }} onCollapse={closePanel} />}
+          {panel === 'storm' && <ControlPanel weatherLabel={weather?.label ?? 'Weather unavailable'} meta={meta} controls={controls} preset={preset} onControls={onControls} onPreset={onPreset} playing={playing} onPlay={play} onStop={stopAndRestore} onCollapse={closePanel} embedded={EMBEDDED}
+            eventControls={<EventControls meta={meta} event={event} settings={eventSettings} onTrack={applyTrack}
+              onSettings={settings => { setEventSettings(settings); if (event) { stop(); setFrame(null); setEvent({ ...event, ...settings }) } }}
+              onDraw={() => { if (playingRef.current) stopAndRestore(); setPanel(null); setDrawMessage(''); setDraft([]); requestAnimationFrame(() => document.getElementById('sim-map')?.focus()) }} />} />}
+          {panel === 'impact' && <ImpactPanel meta={meta} result={result} request={playing ? null : frame?.request ?? null} vehicle={vehicle} onVehicle={v => { if (v !== vehicle) { stop(); setFrame(null); setVehicle(v) } }} hospital={hospital} onHospital={(id) => { stop(); setFrame(null); setHospital(id) }} dest={dest} onDest={(id) => { if (id !== 'custom') { stop(); setFrame(null); setDest({ id }) } }} onCollapse={closePanel} />}
           {panel === 'layers' && <Legend buildingMode={buildingMode} onBuildingMode={setBuildingMode} showWater={showWater} onShowWater={setShowWater} onCollapse={closePanel} />}
         </div>}
         {error && <div className="sim-error" role="alert">{error}</div>}
       </main>
       <footer className="sim-transport" inert={modal}>
-        <button type="button" className="sim-play" onClick={playing ? stop : play} disabled={!playing && controls.rain === 0 && controls.surge === 0} aria-label={playing ? 'Stop storm playback' : 'Play storm hour by hour'}>
+        <button type="button" className="sim-play" onClick={playing ? stopAndRestore : play} disabled={draft !== null || (!playing && controls.rain === 0 && controls.surge === 0)} aria-label={playing ? 'Stop storm playback' : 'Play storm hour by hour'}>
           {playing ? <Square size={17} aria-hidden="true" /> : <Play size={17} aria-hidden="true" />}
           <span>{playing ? 'Stop' : 'Play storm'}</span>
         </button>

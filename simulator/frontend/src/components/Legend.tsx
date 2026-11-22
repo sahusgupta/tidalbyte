@@ -1,6 +1,7 @@
 import { Building2, Eye, EyeOff, Siren, X } from 'lucide-react'
 import { ACCESS_LEGEND, WATER_LEGEND } from '../lib/colors'
 import { Panel, SectionTitle } from './ui'
+import './floodMapKey.css'
 
 type Props = {
   buildingMode: 'flood' | 'access'
@@ -28,6 +29,11 @@ export default function Legend({ buildingMode, onBuildingMode, showWater, onShow
         <button type="button" className="sim-water-toggle" onClick={() => onShowWater(!showWater)} aria-pressed={showWater}>
           {showWater ? <Eye size={17} aria-hidden="true" /> : <EyeOff size={17} aria-hidden="true" />} Water {showWater ? 'shown' : 'hidden'}
         </button>
+        <p className="sim-layer-unit">Blue water covers modeled wet streets. Its height follows depth and its width uses the road class.</p>
+        <dl className="sim-route-key sim-water-key">
+          <dt><i className="storm-key" /></dt><dd>Storm track · dashes ahead</dd>
+          <dt><i className="runoff-key" /></dt><dd>Terrain runoff · downstream</dd>
+        </dl>
       </section>
       <section>
         <SectionTitle>Route key</SectionTitle>

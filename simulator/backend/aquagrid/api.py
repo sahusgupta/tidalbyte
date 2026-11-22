@@ -8,6 +8,7 @@ import asyncio
 import logging
 from contextlib import asynccontextmanager
 from importlib import import_module
+from typing import Literal
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -51,6 +52,13 @@ def _region(rid: str):
     return REGIONS[rid]
 
 
+class StormEventRequest(BaseModel):
+    kind: Literal["flood", "hurricane"]
+    track: list[tuple[float, float]] = Field(min_length=1, max_length=8, description="Origin and waypoints, WGS84 lon/lat")
+    radius_km: float = Field(ge=0.2, le=20, description="Distance at which direct rainfall reaches zero")
+    progress: float = Field(1, ge=0, le=1, description="Fraction of the storm track already traveled")
+
+
 class SimRequest(BaseModel):
     rain: float = Field(0, ge=0, le=250, description="rain intensity, mm/h")
     duration: float = Field(1, gt=0, le=48, description="storm duration, h")
@@ -61,6 +69,14 @@ class SimRequest(BaseModel):
     dest: str | None = None
     dest_lonlat: tuple[float, float] | None = None
     overlay: bool = True
+    event: StormEventRequest | None = None
+
+
+def _validate_event_bounds(req: SimRequest, region):
+    if req.event:
+        west, south, east, north = region.bbox
+        if any(not (west <= lon <= east and south <= lat <= north) for lon, lat in req.event.track):
+            raise HTTPException(422, "Storm origin and waypoints must lie inside the selected study region.")
 
 
 @app.get("/api/health")
@@ -107,7 +123,30 @@ def buildings(rid: str, request: Request):
 
 @app.post("/api/regions/{rid}/simulate")
 def simulate(rid: str, req: SimRequest):
-    _region(rid)
+    _validate_event_bounds(req, _region(rid))
     from .engine import get_engine
 
     return ORJSONResponse(get_engine(rid).simulate(**req.model_dump()))
+
+
+class AdaptationRequest(BaseModel):
+    scenario: SimRequest
+    phase: Literal["mitigation", "response"]
+
+
+@app.post("/api/regions/{rid}/adaptation")
+def adaptation(rid: str, body: AdaptationRequest):
+    """Compare up to three local road interventions using the selected event's routing graph."""
+    region = _region(rid)
+    req = body.scenario
+    _validate_event_bounds(req, region)
+    from .adaptation import evaluate
+    from .catalog import VEHICLES
+    from .engine import Scenario, get_engine
+
+    engine = get_engine(rid)
+    if req.vehicle not in VEHICLES or req.hospital not in [poi["id"] for poi in engine.meta["hospitals"]]:
+        raise HTTPException(422, "Choose a supported vehicle and a hospital in this region.")
+    scenario = Scenario.make(req.rain, req.duration, req.surge, req.clog,
+                             event=req.event.model_dump() if req.event else None)
+    return evaluate(engine, scenario, body.phase, req.vehicle, req.hospital)

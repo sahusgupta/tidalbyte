@@ -14,6 +14,7 @@ test('continuous storm edits permit intermediate results while newer inputs are 
 test('new endpoints or vehicle reject an obsolete route result', () => {
   for (const change of [
     { hospital: 'hospital-b' }, { vehicle: 'sedan' },
+    { event: { kind: 'flood', radius_km: 2, track: [[-95.38, 29.76]] } },
     { dest_lonlat: [-95.39, 29.76] }, { dest_lonlat: [-95.38, 29.77] },
     { dest_lonlat: undefined, dest: 'houston-heights' },
   ]) assert.equal(sameRouteSelection(request, { ...request, ...change }), false)

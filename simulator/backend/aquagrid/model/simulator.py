@@ -38,6 +38,17 @@ def _sigmoid(x):
     return 1.0 / (1.0 + np.exp(-x))
 
 
+def coastal_depth(water_level, elevation, sea_threshold, distance_to_sea, bridge):
+    """Metres of surge/backflow without rainfall, using the teacher's hydraulic constraints."""
+    wl_local = water_level - SURGE_GRADIENT_M_PER_KM * distance_to_sea / 1000.0
+    connected = water_level > np.maximum(sea_threshold, SEAWALL_M)
+    surge_depth = np.where(connected, np.clip(wl_local - elevation, 0, None), 0.0)
+    reach = np.exp(-distance_to_sea / 1200.0)
+    backflow = np.where((water_level > OUTFALL_M) & ~bridge,
+                        np.clip(water_level - 0.15 - elevation, 0, None) * 0.6 * reach, 0.0)
+    return np.maximum(surge_depth, backflow)
+
+
 def simulate(f: pd.DataFrame, rain, duration, surge, clog, base_wl=0.30) -> np.ndarray:
     """Water depth (m) at each row of `f`. Scenario args can be scalars or per-row arrays."""
     elev = f.elev.to_numpy()
@@ -49,14 +60,7 @@ def simulate(f: pd.DataFrame, rain, duration, surge, clog, base_wl=0.30) -> np.n
     C = np.asarray(clog, dtype=float)
     WL = base_wl + S
 
-    # 1. coastal surge (connected bathtub with inland water-surface gradient)
-    wl_local = WL - SURGE_GRADIENT_M_PER_KM * f.dist_sea.to_numpy() / 1000.0
-    connected = WL > np.maximum(f.sea_thresh.to_numpy(), SEAWALL_M)
-    surge_depth = np.where(connected, np.clip(wl_local - elev, 0, None), 0.0)
-
-    # 2. drain backflow at high water
-    reach = np.exp(-f.dist_sea.to_numpy() / 1200.0)
-    backflow = np.where((WL > OUTFALL_M) & ~bridge, np.clip(WL - 0.15 - elev, 0, None) * 0.6 * reach, 0.0)
+    coastal = coastal_depth(WL, elev, f.sea_thresh.to_numpy(), f.dist_sea.to_numpy(), bridge)
     tailwater = np.clip((WL - OUTFALL_M) / 1.2, 0, 1)
 
     # 3. rainfall excess
@@ -78,7 +82,7 @@ def simulate(f: pd.DataFrame, rain, duration, surge, clog, base_wl=0.30) -> np.n
     rain_depth = cap_store * (1 - np.exp(-pond / cap_store)) + 0.08 * np.clip(pond - cap_store, 0, None)
     rain_depth = np.where(bridge, 0.1 * rain_depth, rain_depth)
 
-    return np.clip(np.maximum(surge_depth, backflow) + rain_depth, 0, MAX_DEPTH_M)
+    return np.clip(coastal + rain_depth, 0, MAX_DEPTH_M)
 
 
 def add_label_noise(depth, rng, sigma=0.12):

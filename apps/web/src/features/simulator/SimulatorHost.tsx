@@ -31,7 +31,7 @@ export function SimulatorHost({
   onZoneChange,
 }: SimulatorHostProps) {
   const url = useMemo(
-    () => simulatorUrl(import.meta.env.VITE_SIMULATOR_URL, zone),
+    () => simulatorUrl(import.meta.env.VITE_SIMULATOR_URL, zone, window.location.origin),
     [zone],
   );
   const frame = useRef<HTMLIFrameElement>(null);

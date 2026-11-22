@@ -45,3 +45,20 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
+  simulator-engine:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: pip
+          cache-dependency-path: |
+            deploy/vercel/requirements.txt
+            simulator/requirements.txt
+      - name: Install CPU inference and geographic test dependencies
+        run: |
+          grep -E '^(geopandas|shapely|pyarrow)==' simulator/requirements.txt > "$RUNNER_TEMP/geo-test.txt"
+          python -m pip install -r deploy/vercel/requirements.txt -r "$RUNNER_TEMP/geo-test.txt"
+      - run: python -m unittest discover -s tests -v
+        working-directory: simulator/backend

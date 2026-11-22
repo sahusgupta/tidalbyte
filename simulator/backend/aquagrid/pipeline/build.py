@@ -24,12 +24,12 @@ import numpy as np
 import pandas as pd
 import orjson
 import shapely
-from scipy.spatial import cKDTree
 
 import re
 
 from ..config import DEFAULT_REGION, POI, REGIONS
 from ..geometry import prepare_geometry
+from ..routing import NodeIndex
 from . import features as F
 from . import hydrology
 from .dem import fetch_dem, save_grid
@@ -67,18 +67,6 @@ def water_geoms(path):
     lines = w[w.geom_type.isin(["LineString", "MultiLineString"])].geometry
     polys += [g.buffer(8e-5) for g in lines]  # ~8 m half-width for canals / drains
     return polys
-
-
-class NodeIndex:
-    """Nearest-node lookup in a local equirectangular metric."""
-
-    def __init__(self, node_xy, lat0):
-        self.k = np.cos(np.radians(lat0))
-        self.tree = cKDTree(np.c_[node_xy[:, 0] * self.k, node_xy[:, 1]])
-
-    def query(self, lon, lat):
-        d, i = self.tree.query(np.c_[np.asarray(lon) * self.k, np.asarray(lat)])
-        return i, d * 111_320
 
 
 def r6(a):

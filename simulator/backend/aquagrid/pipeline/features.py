@@ -10,22 +10,9 @@ import pandas as pd
 import shapely
 from scipy import ndimage
 
+from ..model.featurize import STATIC_FEATURES
 from .network import WIDTH_M
 
-STATIC_FEATURES = [
-    "elev",        # m, NAVD88 (3DEP bare earth)
-    "slope_pct",   # local terrain slope
-    "twi",         # topographic wetness index
-    "hand",        # height above nearest drainage, m
-    "tpi",         # topographic position index, m (negative = local low spot)
-    "sink_depth",  # depression storage depth, m
-    "sea_thresh",  # sea level needed to reach this point over land, m
-    "dist_water",  # m to nearest water body / canal
-    "dist_sea",    # m to open bay / ocean
-    "imperv",      # impervious fraction (buildings + pavement density)
-    "road_class",  # 0 motorway .. 6 service, 7 off-road
-    "is_bridge",
-]
 BRIDGE_DECK_M = 6.0
 RASTER_KEYS = ["elev", "slope_pct", "twi", "hand", "tpi", "sink_depth", "sea_thresh", "dist_water", "dist_sea", "imperv"]
 
